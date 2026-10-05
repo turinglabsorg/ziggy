@@ -115,7 +115,7 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
     log(`→ ${plan.kind} on ${plan.profile.name}${plan.media ? ` (${plan.media.split("/").pop()})` : ""}`);
     if (dryRun) { results.push({ kind: plan.kind, request: plan.request, profile: plan.profile.name, dryRun: true }); continue; }
     const post = await client.createPost(plan.request);
-    logPost(tenant.slug, { campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || null });
+    logPost(tenant.slug, { campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || null, link: campaign.story?.url || campaign.link || null });
     results.push({ kind: plan.kind, post, profile: plan.profile.name, published: live });
     log(`  ${summarizePost(post).split("\n")[0]}`);
   }

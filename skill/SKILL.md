@@ -49,7 +49,9 @@ Read the reference for the step you are on — `references/tenants.md`, `brand.m
 5. **Autopilot acts only within the playbook.** In `draft` mode it proposes (see `ziggy queue`);
    in `auto` mode it replies/hides and logs every action (`ziggy actions`). Anything legal,
    press, money or unclear is escalated to the queue. Review the queue with the user.
-6. **Report with permalinks and numbers**, never with raw API dumps. `ziggy status`, `ziggy stats`
+6. **Instagram links are not clickable** in captions or comments. Story posts ask people to comment
+   LINK; the autopilot DMs the URL (`linkReply`). Keep "link in bio" true: the bio must point at the site.
+7. **Report with permalinks and numbers**, never with raw API dumps. `ziggy status`, `ziggy stats`
    and `ziggy inbox` already format them.
 
 ## Quick recipes

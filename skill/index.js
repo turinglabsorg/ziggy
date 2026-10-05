@@ -19,7 +19,7 @@ import { produce, resolveVariants, scaffold, check as hfCheck, listTemplates } f
 import { KEY_ENV, keyPlan, keyStatus, pullKey, runUnderHush } from "./scripts/secrets.mjs";
 import { createClient, summarizePost, postPermalinks } from "./scripts/postproxy.mjs";
 import { POST_KINDS, awaitPosts, buildRequest, publishCampaign, publishDrafts } from "./scripts/publish.mjs";
-import { pullInbox, pullStats, reply, hide, dm, readActions } from "./scripts/inbox.mjs";
+import { pullInbox, pullStats, reply, hide, dm, comment, privateReply, readActions } from "./scripts/inbox.mjs";
 import { runAutopilot, readQueue, policyOf } from "./scripts/autopilot.mjs";
 import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
 import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
@@ -86,6 +86,8 @@ Inbox & engagement
   ziggy inbox <slug> [--all] [--no-dms] [--json]    new comments on our posts + inbound DM threads
   ziggy stats <slug> [--json]                       per-post and per-profile engagement
   ziggy reply <slug> <postId> <commentId> --text "…" [--profile prof_…]
+  ziggy comment <slug> <postId> --text "…" [--profile prof_…]          top-level comment on our post
+  ziggy dmlink <slug> <postId> <commentId> --text "…" [--profile prof_…] private reply (DM) to a commenter — links are clickable there
   ziggy hide <slug> <postId> <commentId> [--profile prof_…]
   ziggy dm <slug> <chatId> --text "…"
   ziggy autopilot <slug> [--dry-run] [--json]       answer the inbox per the tenant playbook + policy
@@ -104,7 +106,7 @@ autopilot) wraps itself in \`hush run\` when ${KEY_ENV} is not already set.`);
 
 /* ── key-needing commands re-exec under hush ─────────────────────────────── */
 
-const NEEDS_KEY = new Set(["post", "publish", "status", "profiles", "inbox", "stats", "reply", "hide", "dm", "autopilot"]);
+const NEEDS_KEY = new Set(["post", "publish", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
 
 function ensureKey(slug) {
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
@@ -333,6 +335,26 @@ async function main() {
       const profileId = await resolveProfileId(t, flag("--profile"), "instagram");
       const r = await reply({ tenant: t, postId, profileId, commentId, text });
       return out(r, `replied (${r?.status || "sent"})`);
+    }
+
+    case "comment": {
+      const [slug, postId] = pos;
+      const t = loadTenant(slug); ensureKey(slug);
+      const text = flag("--text");
+      if (!postId || !text || text === true) fail("usage: ziggy comment <slug> <postId> --text \"…\" [--profile prof_…]");
+      const profileId = await resolveProfileId(t, flag("--profile"), "instagram");
+      const r = await comment({ tenant: t, postId, profileId, text });
+      return out(r, `commented (${r?.status || "sent"})`);
+    }
+
+    case "dmlink": {
+      const [slug, postId, commentId] = pos;
+      const t = loadTenant(slug); ensureKey(slug);
+      const text = flag("--text");
+      if (!postId || !commentId || !text || text === true) fail("usage: ziggy dmlink <slug> <postId> <commentId> --text \"…\"");
+      const profileId = await resolveProfileId(t, flag("--profile"), "instagram");
+      const r = await privateReply({ tenant: t, postId, profileId, commentId, text });
+      return out(r, "private reply sent");
     }
 
     case "hide": {

@@ -27,7 +27,7 @@ MIT. Open source at [github.com/turinglabsorg/ziggy](https://github.com/turingla
 site ──▶ brand.json ──▶ identity assets (profile, X header)
                    └──▶ campaign.json ──▶ HyperFrames projects ──▶ reel 9:16 · X 16:9 · feed 4:5 (+ stills)
                                                                └──▶ Postproxy drafts ──▶ publish ──▶ permalinks
-accounts ──▶ inbox (comments, DMs, stats) ──▶ autopilot (playbook + agent) ──▶ replies / hides / queue for a human
+accounts ──▶ inbox (comments, DMs, stats) ──▶ autopilot (playbook + agent) ──▶ replies / link-by-DM / hides / queue for a human
 ```
 
 Everything is per **tenant**: `tenants/<slug>/` in this repo holds the versioned definition
@@ -116,7 +116,7 @@ ziggy/
 ```bash
 cd skill
 npm run check     # syntax
-npm test          # 44 integration tests, no network: mock Postproxy on localhost, fake hush, fake agent, fake HyperFrames CLI
+npm test          # 45 integration tests, no network: mock Postproxy on localhost, fake hush, fake agent, fake HyperFrames CLI
 ```
 
 Rendering for real needs the HyperFrames CLI (`npx hyperframes@0.8.133`) and a Chromium it can

@@ -87,10 +87,10 @@ export function campaignFromStory(tenant, story, { name } = {}) {
     audio: { bed: "ambient", volume: 0.6, swellAt: 1.6, beats: [[0.6, 1318.5, 1.2, 0.07], [1.5, 659.3, 1.6, 0.06], [7.6, 987.8, 0.9, 0.035]] },
     posts: {
       instagram_reel: {
-        body: `${story.title}\n\n${story.dek}${sourcesLine}\n\nFull story: ${displayUrl} · link in bio\n\n#UFO #UAP #Space #Astronomy`,
+        body: `${story.title}\n\n${story.dek}${sourcesLine}\n\nWant the full story with its sources? Comment LINK and we'll send it to you. Also at ${displayUrl} (link in bio).\n\n#UFO #UAP #Space #Astronomy`,
         media: "reel",
         cover: true,
-        first_comment: story.url ? `Read it with sources: ${story.url}` : "",
+        first_comment: "Comment LINK and we'll DM you the full story with sources.",
       },
       twitter: {
         body: `${story.title}\n\n${story.dek}\n\n${story.url || displayUrl}`,

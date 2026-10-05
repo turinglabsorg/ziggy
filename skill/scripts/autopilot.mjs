@@ -18,12 +18,17 @@
  *   skipAuthors:     usernames never answered (our own handles, bots)
  *   escalateWords:   words that force escalation (legal, refund, press, …)
  *   dms:             true to also answer inbound DMs (default false)
+ *   linkReply:       Instagram never makes caption or comment links clickable; DMs do. When a comment
+ *                    on a post that carries a link contains one of `keywords`, the autopilot sends the
+ *                    link as a private reply (DM) and acknowledges publicly — no agent involved.
+ *                    { enabled: true, keywords: ["link", "source", "sources", "fonte", "fonti"],
+ *                      template: "Here is the full story, with sources: {url}", ack: "Sent — check your DMs." }
  *   agent:           { command: ["claude","-p","--output-format","json"], timeoutMs: 120000 }
  */
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { inboxDir, logAction, pullInbox, reply, hide, dm } from "./inbox.mjs";
+import { inboxDir, logAction, pullInbox, reply, hide, dm, privateReply } from "./inbox.mjs";
 import { createClient } from "./postproxy.mjs";
 
 export const DEFAULT_AGENT = { command: ["claude", "-p", "--output-format", "json"], timeoutMs: 120000 };
@@ -36,6 +41,13 @@ export function policyOf(tenant) {
     skipAuthors: (a.skipAuthors || []).map((s) => s.toLowerCase().replace(/^@/, "")),
     escalateWords: (a.escalateWords || ["legal", "lawyer", "refund", "press", "journalist", "lawsuit", "copyright", "dmca"]).map((w) => w.toLowerCase()),
     dms: Boolean(a.dms),
+    linkReply: a.linkReply === false ? null : {
+      enabled: true,
+      keywords: ["link", "source", "sources", "fonte", "fonti", "article", "articolo"],
+      template: "Here is the full story, with sources: {url}",
+      ack: "Sent — check your DMs.",
+      ...(a.linkReply || {}),
+    },
     agent: a.agent === null ? null : { ...DEFAULT_AGENT, ...(a.agent || {}) },
     language: a.language || tenant.language || "en",
   };
@@ -106,6 +118,12 @@ export function triage(item, policy) {
   const text = (item.body || item.lastMessage || "").toLowerCase();
   if (policy.escalateWords.some((w) => text.includes(w))) return { action: "escalate", reason: "escalation keyword" };
   if (!text.trim()) return { action: "skip", reason: "empty" };
+  if (item.type === "comment" && item.postLink && policy.linkReply?.enabled && !item.mine) {
+    const words = text.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/);
+    if (policy.linkReply.keywords.some((k) => words.includes(k.toLowerCase()))) {
+      return { action: "link", text: policy.linkReply.template.replace("{url}", item.postLink), ack: policy.linkReply.ack, reason: "link keyword" };
+    }
+  }
   return null;
 }
 
@@ -149,6 +167,14 @@ export async function runAutopilot({ tenant, client = createClient(), dryRun = f
           report.handled.push(record);
           log(`replied to @${item.author || item.participant}: ${decision.text}`);
         } else { queue(tenant.slug, record); report.queued.push(record); log(`proposed reply to @${item.author || item.participant}: ${decision.text}`); }
+      } else if (decision.action === "link" && item.type === "comment") {
+        if (act) {
+          await privateReply({ tenant, client, postId: item.postId, profileId: item.profileId, commentId: item.id, text: decision.text, by: "autopilot" });
+          if (decision.ack) await reply({ tenant, client, postId: item.postId, profileId: item.profileId, commentId: item.id, text: decision.ack, by: "autopilot" });
+          actions++;
+          report.handled.push(record);
+          log(`sent the link to @${item.author} by DM`);
+        } else { queue(tenant.slug, record); report.queued.push(record); log(`would DM the link to @${item.author}`); }
       } else if (decision.action === "hide" && item.type === "comment") {
         if (act) { await hide({ tenant, client, postId: item.postId, profileId: item.profileId, commentId: item.id, by: "autopilot" }); actions++; report.handled.push(record); log(`hid comment ${item.id} (${decision.reason})`); }
         else { queue(tenant.slug, record); report.queued.push(record); }

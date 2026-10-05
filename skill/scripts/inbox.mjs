@@ -44,7 +44,7 @@ export async function ourPosts({ tenant, client, fromApi = true, limit = 50, pro
   // a Postproxy account that serves one brand: every connected profile is ours unless tenant.json narrows it
   const accountProfiles = new Set((profiles || (fromApi ? await client.listProfiles().catch(() => []) : [])).map((p) => p.id));
   const byId = new Map();
-  for (const r of logged) byId.set(r.postId, { id: r.postId, kind: r.kind, campaign: r.campaign, profileId: r.profileId, platform: r.platform });
+  for (const r of logged) byId.set(r.postId, { id: r.postId, kind: r.kind, campaign: r.campaign, profileId: r.profileId, platform: r.platform, link: r.link || null });
   if (fromApi) {
     try {
       const listed = await client.listPosts({ per_page: limit });
@@ -101,7 +101,7 @@ export async function pullInbox({ tenant, client = createClient(), markSeen = tr
       try {
         const raw = await client.listComments(post.id, profileId);
         const list = (Array.isArray(raw) ? raw : raw?.data || raw?.comments || []).map(normalizeComment).filter(Boolean);
-        for (const c of flatten(list, post.id)) all.push({ ...c, mine: c.mine || (c.author ? mine.has(String(c.author).toLowerCase().replace(/^@/, "")) : false), platform: pl.platform, profileId, postUrl: pl.url || null, campaign: post.campaign || null });
+        for (const c of flatten(list, post.id)) all.push({ ...c, mine: c.mine || (c.author ? mine.has(String(c.author).toLowerCase().replace(/^@/, "")) : false), platform: pl.platform, profileId, postUrl: pl.url || null, postLink: post.link || null, campaign: post.campaign || null });
       } catch (error) {
         errors.push(`${post.id}/${pl.platform}: ${error.message}`);
       }
@@ -162,6 +162,20 @@ export async function pullStats({ tenant, client = createClient() }) {
 export async function reply({ tenant, client = createClient(), postId, profileId, commentId, text, by = "human" }) {
   const result = await client.createComment(postId, profileId, { body: text, parentId: commentId });
   logAction(tenant.slug, { action: "reply", by, postId, profileId, commentId, text, resultId: result?.id || null, status: result?.status || null });
+  return result;
+}
+
+/** A top-level comment on our own post (no parent). */
+export async function comment({ tenant, client = createClient(), postId, profileId, text, by = "human" }) {
+  const result = await client.createComment(postId, profileId, { body: text });
+  logAction(tenant.slug, { action: "comment", by, postId, profileId, text, resultId: result?.id || null, status: result?.status || null });
+  return result;
+}
+
+/** Instagram/Facebook private reply: a DM to the commenter, allowed once per comment within 7 days. Links are clickable there. */
+export async function privateReply({ tenant, client = createClient(), postId, profileId, commentId, text, by = "human" }) {
+  const result = await client.privateReply(postId, profileId, commentId, text);
+  logAction(tenant.slug, { action: "private_reply", by, postId, profileId, commentId, text, resultId: result?.id || null });
   return result;
 }
 

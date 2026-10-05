@@ -34,6 +34,13 @@ prints every entry with its character count against the platform limit.
 
 A failed check stops the whole campaign before anything is created.
 
+## Links on Instagram
+
+Caption and comment URLs are plain text on Instagram. Write the CTA accordingly: "Comment LINK and
+we'll send it to you" (the autopilot's `linkReply` rule does the sending, by DM), plus "link in bio".
+Put the readable domain in the video itself. X, Threads, Bluesky and LinkedIn make links clickable, so
+those posts carry the URL in the text.
+
 ## Writing it
 
 The tenant's `playbook.md` is the voice. For a launch: one idea per post, the URL on X in plain

@@ -129,12 +129,57 @@ test("no agent configured → everything escalates, nothing posted", async () =>
   assert.equal(mock.calls.filter((c) => c.method === "POST").length, before);
 });
 
+test("a LINK comment on a post that carries a link gets the link by DM (private reply) plus a public ack — no agent involved", async () => {
+  writeFileSync(join(world.home, "tenants", "acme", "inbox", "seen.json"), JSON.stringify({ comments: {}, messages: {} }));
+  // the post log carries the story link ziggy published with
+  writeFileSync(join(world.home, "tenants", "acme", "posts.jsonl"), JSON.stringify({ campaign: "s", kind: "instagram_reel", postId: "post_a", profileId: "prof_ig", platform: "instagram", link: "https://acme.example/#/b/story?lang=en" }) + "\n");
+  mock.state.comments.post_a = [
+    { id: "cmt_link", body: "Link please!", author_username: "reader" },
+    { id: "cmt_linked", body: "I linked this to my cousin", author_username: "other" },
+  ];
+  setTenant({ autopilot: { mode: "auto", agent: null, skipAuthors: ["acme"] } });
+  const r = await run(["autopilot", "acme", "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(r.stdout);
+  const pr = mock.calls.find((c) => c.path === "/api/posts/post_a/comments/cmt_link/private_reply");
+  assert.ok(pr, "private reply sent");
+  assert.equal(pr.body.text, "Here is the full story, with sources: https://acme.example/#/b/story?lang=en");
+  const ack = mock.calls.find((c) => c.method === "POST" && c.path === "/api/posts/post_a/comments" && c.body?.parent_id === "cmt_link");
+  assert.equal(ack.body.body, "Sent — check your DMs.");
+  assert.ok(!mock.calls.some((c) => c.path.includes("cmt_linked/private_reply")), "'linked' is not the keyword 'link'");
+  assert.ok(report.queued.some((q) => q.item.id === "cmt_linked"), "the other comment is escalated (no agent)");
+  // draft mode only proposes
+  writeFileSync(join(world.home, "tenants", "acme", "inbox", "seen.json"), JSON.stringify({ comments: {}, messages: {} }));
+  setTenant({ autopilot: { mode: "draft", agent: null, skipAuthors: ["acme"] } });
+  const before = mock.calls.filter((c) => c.path.endsWith("/private_reply")).length;
+  const d = JSON.parse((await run(["autopilot", "acme", "--json"])).stdout);
+  assert.equal(mock.calls.filter((c) => c.path.endsWith("/private_reply")).length, before);
+  assert.ok(d.queued.some((q) => q.decision.action === "link"));
+  // and it can be switched off per tenant
+  writeFileSync(join(world.home, "tenants", "acme", "inbox", "seen.json"), JSON.stringify({ comments: {}, messages: {} }));
+  setTenant({ autopilot: { mode: "auto", agent: null, linkReply: false, skipAuthors: ["acme"] } });
+  const off = JSON.parse((await run(["autopilot", "acme", "--json"])).stdout);
+  assert.ok(off.queued.every((q) => q.decision.action === "escalate"));
+  // restore the two-post log for the remaining tests
+  writeFileSync(join(world.home, "tenants", "acme", "posts.jsonl"), [
+    JSON.stringify({ campaign: "launch", kind: "instagram_post", postId: "post_a", profileId: "prof_ig", platform: "instagram" }),
+    JSON.stringify({ campaign: "launch", kind: "twitter", postId: "post_b", profileId: "prof_x", platform: "twitter" }),
+  ].join("\n") + "\n");
+  mock.state.comments.post_a = mock.state.comments.post_a.filter((c) => !["cmt_link", "cmt_linked"].includes(c.id));
+});
+
 test("manual reply/hide/dm/stats commands", async () => {
   let r = await run(["reply", "acme", "post_a", "cmt_fan", "--text", "Glad you like it", "--json"]);
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(mock.calls.at(-1).body, { body: "Glad you like it", parent_id: "cmt_fan" });
   r = await run(["hide", "acme", "post_a", "cmt_spam"]);
   assert.equal(r.status, 0, r.stderr);
+  r = await run(["comment", "acme", "post_a", "--text", "Comment LINK for the sources."]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(mock.calls.at(-1).body, { body: "Comment LINK for the sources." });
+  r = await run(["dmlink", "acme", "post_a", "cmt_fan", "--text", "https://acme.example/#/b/story"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(mock.calls.at(-1).path, /cmt_fan\/private_reply$/);
   r = await run(["dm", "acme", "chat_1", "--text", "Yes, worldwide."]);
   assert.equal(r.status, 0, r.stderr);
   r = await run(["stats", "acme", "--json"]);

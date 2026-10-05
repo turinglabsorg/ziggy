@@ -14,7 +14,9 @@ ziggy watch <slug> --install --interval 900 | --status | --uninstall
 ## Decision order
 
 1. **Triage without an agent**: author on `skipAuthors` → skip; any `escalateWords` hit → escalate;
-   empty → skip.
+   empty → skip; a comment that says LINK (or another `linkReply.keywords` word) on a post that
+   carries a link → **link**: the URL goes to the commenter as a private reply (a DM, where links
+   are clickable) and a short public ack is posted under the comment.
 2. **Ask the agent** with the playbook + the item. The agent is a command that reads the prompt on
    stdin and prints a JSON decision `{"action": "reply|skip|hide|escalate", "text": "…", "reason": "…"}`;
    the default is `claude -p --output-format json` (Claude Code headless). Codex, a local model or a
@@ -33,9 +35,20 @@ No agent configured (`"agent": null`) means every item is escalated: autopilot n
   "maxPerRun": 10,
   "skipAuthors": ["alienwtch", "alienwatch"],
   "escalateWords": ["legal", "lawyer", "refund", "press", "journalist", "lawsuit", "copyright", "dmca", "partnership", "sponsor"],
+  "linkReply": { "keywords": ["link", "source", "sources", "fonte", "fonti"], "template": "Here is the full story, with sources: {url}", "ack": "Sent — check your DMs." },
   "agent": { "command": ["claude", "-p", "--output-format", "json"], "timeoutMs": 120000 }
 }
 ```
+
+## Links on Instagram
+
+Instagram never makes a URL in a caption or a comment clickable; only the bio link and DMs are. So a
+story post is written for that: the caption and the first comment ask people to comment LINK, the
+autopilot answers each of them with the link by DM (`private_reply`, allowed once per comment within
+7 days) and acknowledges publicly, and the bio link points at the site. `linkReply: false` turns
+the rule off for tenants that do not want it. The link a post carries is recorded at publish time
+(`campaign.story.url` or `campaign.link`), so the rule knows which URL belongs to which post.
+`ziggy dmlink <slug> <postId> <commentId> --text …` does the same by hand.
 
 ## The playbook
 

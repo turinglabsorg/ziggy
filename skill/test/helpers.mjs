@@ -73,6 +73,7 @@ export async function startMockPostproxy({ profiles, posts = {}, comments = {}, 
       return send(201, { data: c });
     }
     if ((mm = m(/^\/api\/posts\/([^/]+)\/comments\/([^/]+)\/(hide|unhide|like|unlike)$/)) && req.method === "POST") return send(200, { data: { id: mm[2], hidden: mm[3] === "hide" } });
+    if ((mm = m(/^\/api\/posts\/([^/]+)\/comments\/([^/]+)\/private_reply$/)) && req.method === "POST") return send(201, { data: { id: `msg_${state.nextId++}`, text: body.text, comment_id: mm[2] } });
     if ((mm = m(/^\/api\/posts\/([^/]+)$/)) && req.method === "GET") { const p = state.posts[mm[1]]; return p ? send(200, { data: p }) : send(404, { error: "not found" }); }
     if ((mm = m(/^\/api\/profiles\/([^/]+)\/stats$/))) return send(200, { data: state.stats.profiles?.[mm[1]] || [] });
     if ((mm = m(/^\/api\/profiles\/([^/]+)\/chats$/)) && req.method === "GET") return send(200, { data: state.chats[mm[1]] || [] });

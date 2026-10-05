@@ -50,7 +50,8 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.copy.url, "acme.example");
   assert.equal(c.posts.instagram_reel.media, "reel");
   assert.equal(c.posts.instagram_reel.cover, true);
-  assert.match(c.posts.instagram_reel.first_comment, /^Read it with sources: https:\/\/acme\.example/);
+  assert.match(c.posts.instagram_reel.body, /Comment LINK/);
+  assert.equal(c.posts.instagram_reel.first_comment, "Comment LINK and we'll DM you the full story with sources.");
   assert.equal(c.posts.twitter.enabled, false);
   assert.equal(c.duration, 12);
 });
