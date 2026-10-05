@@ -22,7 +22,7 @@ When working from the repo without installing: `node ziggy/skill/index.js …`.
 | 1. Tenant | `ziggy tenant add <slug> --name "…" --site https://…` | `tenants/<slug>/tenant.json`, `playbook.md` |
 | 2. Brand | `ziggy brand extract <slug>` then `ziggy brand fonts <slug>` | `brand.json` (palette, fonts, wordmark, mark, tagline) + woff2 files |
 | 3. Identity | `ziggy assets <slug>` | profile mark 1000/400 px, X header 1500×500 (+@2x) |
-| 4. Campaign | `ziggy campaign add <slug> <name>` → edit `campaign.json` | copy + per-platform posts + variants |
+| 4. Campaign | `ziggy campaign add <slug> <name>` → edit `campaign.json`, or `ziggy story <slug>` for the latest story of a publishing tenant | copy + per-platform posts + variants |
 | 5. Video | `ziggy video <slug> <name>` | HyperFrames projects, checked + rendered: reel 9:16, X 16:9, feed 4:5 + stills |
 | 6. Publish | `ziggy post <slug> <name>` (drafts) → `ziggy publish <slug> <ids>` or `ziggy post … --live` | Postproxy posts, permalinks in `ziggy status` |
 | 7. Listen | `ziggy inbox <slug>` · `ziggy stats <slug>` | new comments, DM threads, engagement |
@@ -62,6 +62,14 @@ ziggy assets nova
 ziggy campaign add nova first-post                      # edit copy in tenants/nova/campaigns/first-post/campaign.json
 ziggy video nova first-post
 ziggy post nova first-post                              # drafts → review → ziggy publish nova <ids>
+```
+
+The latest story as a reel (tenant.json → `feed` maps the site's feed):
+```bash
+ziggy stories alienwatch                                 # what the feed has, newest first
+ziggy story alienwatch                                   # → campaign story-<date>-<slug> on the "story" template (kicker, headline, dek, image)
+ziggy video alienwatch story-… --variants reel
+ziggy post alienwatch story-… --live --only instagram_reel --watch
 ```
 
 Daily run on an existing tenant:

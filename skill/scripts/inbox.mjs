@@ -39,8 +39,10 @@ export function readActions(slug) {
 }
 
 /** Our posts for this tenant: the local log first, then (optionally) the API listing. */
-export async function ourPosts({ tenant, client, fromApi = true, limit = 50 }) {
+export async function ourPosts({ tenant, client, fromApi = true, limit = 50, profiles = null }) {
   const logged = readPostLog(tenant.slug).filter((r) => r.postId);
+  // a Postproxy account that serves one brand: every connected profile is ours unless tenant.json narrows it
+  const accountProfiles = new Set((profiles || (fromApi ? await client.listProfiles().catch(() => []) : [])).map((p) => p.id));
   const byId = new Map();
   for (const r of logged) byId.set(r.postId, { id: r.postId, kind: r.kind, campaign: r.campaign, profileId: r.profileId, platform: r.platform });
   if (fromApi) {
@@ -49,7 +51,8 @@ export async function ourPosts({ tenant, client, fromApi = true, limit = 50 }) {
       for (const p of Array.isArray(listed) ? listed : listed?.data || []) {
         const platforms = p.platforms || [];
         const profileIds = new Set(platforms.map((pl) => pl.profile_id).filter(Boolean));
-        const mine = byId.has(p.id) || [...profileIds].some((id) => tenant.postproxy?.profileIds?.includes(id));
+        const configured = tenant.postproxy?.profileIds?.length ? tenant.postproxy.profileIds : null;
+        const mine = byId.has(p.id) || (configured ? [...profileIds].some((id) => configured.includes(id)) : accountProfiles.has([...profileIds][0]));
         if (!mine) continue;
         const prev = byId.get(p.id) || { id: p.id };
         byId.set(p.id, { ...prev, status: p.status, body: p.body || p.post?.body, platforms: platforms.map((pl) => ({ platform: pl.platform, profileId: pl.profile_id, status: pl.status, url: pl.permalink || pl.url || null })) });
@@ -75,9 +78,16 @@ function flatten(comments, postId) {
  * Pull comments on our posts and DM threads; mark what is new against seen.json.
  * Returns { posts, comments: { new, all }, chats, errors }.
  */
+/** The tenant's own usernames: configured handles + the connected profiles' names. */
+export function ownHandles(tenant, profiles) {
+  const norm = (s) => String(s || "").toLowerCase().replace(/^@/, "").trim();
+  return new Set([...Object.values(tenant.handles || {}).map(norm), ...(profiles || []).map((p) => norm(p.name)), ...(profiles || []).map((p) => norm(p.username))].filter(Boolean));
+}
+
 export async function pullInbox({ tenant, client = createClient(), markSeen = true, includeDms = true, log = () => {} }) {
   const seen = loadSeen(tenant.slug);
   const profiles = await client.listProfiles();
+  const mine = ownHandles(tenant, profiles);
   const { posts, apiError } = await ourPosts({ tenant, client });
   const errors = apiError ? [apiError] : [];
   const all = [];
@@ -91,7 +101,7 @@ export async function pullInbox({ tenant, client = createClient(), markSeen = tr
       try {
         const raw = await client.listComments(post.id, profileId);
         const list = (Array.isArray(raw) ? raw : raw?.data || raw?.comments || []).map(normalizeComment).filter(Boolean);
-        for (const c of flatten(list, post.id)) all.push({ ...c, platform: pl.platform, profileId, postUrl: pl.url || null, campaign: post.campaign || null });
+        for (const c of flatten(list, post.id)) all.push({ ...c, mine: c.mine || (c.author ? mine.has(String(c.author).toLowerCase().replace(/^@/, "")) : false), platform: pl.platform, profileId, postUrl: pl.url || null, campaign: post.campaign || null });
       } catch (error) {
         errors.push(`${post.id}/${pl.platform}: ${error.message}`);
       }
@@ -142,7 +152,8 @@ export async function pullStats({ tenant, client = createClient() }) {
     if (tenant.postproxy?.profileIds?.length && !tenant.postproxy.profileIds.includes(p.id)) continue;
     try {
       const raw = await client.profileStats(p.id);
-      out.profiles.push({ id: p.id, name: p.name, platform: p.platform, stats: Array.isArray(raw) ? raw.at(-1) : raw?.data?.at?.(-1) || raw?.data || raw });
+      const rec = raw?.records?.at?.(-1) || raw?.data?.records?.at?.(-1) || (Array.isArray(raw) ? raw.at(-1) : raw?.data || raw);
+      out.profiles.push({ id: p.id, name: p.name, platform: p.platform, recordedAt: rec?.recorded_at || null, stats: rec?.stats || rec });
     } catch (error) { out.errors.push(`${p.platform} profile stats: ${error.message}`); }
   }
   return out;

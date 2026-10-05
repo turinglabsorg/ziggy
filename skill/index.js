@@ -23,6 +23,7 @@ import { pullInbox, pullStats, reply, hide, dm, readActions } from "./scripts/in
 import { runAutopilot, readQueue, policyOf } from "./scripts/autopilot.mjs";
 import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
 import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
+import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const args = process.argv.slice(2);
@@ -69,6 +70,9 @@ Tenants (definitions live in <repo>/tenants/<slug>/, work in ~/.ziggy/tenants/<s
 Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy campaigns <slug>
   ziggy campaign add <slug> <name> [--template teaser]
+  ziggy stories <slug> [--json]                     the tenant's feed (tenant.json → feed), newest first
+  ziggy story <slug> [--index 0] [--name <campaign>] [--force]
+                                                    latest story → campaign on the "story" template (kicker, headline, dek, image)
   ziggy copy <slug> <name> [--json]                show + validate the per-platform copy
   ziggy video <slug> <name> [--variants reel,x,post] [--quality high] [--dry-run] [--skip-check]
                                                     scaffold HyperFrames projects, check, render, capture stills
@@ -209,6 +213,19 @@ async function main() {
       return out({ dir }, `created ${dir}/campaign.json — edit the copy, then: ziggy video ${slug} ${name}`);
     }
 
+    case "stories": {
+      const t = loadTenant(pos[0]);
+      const list = await fetchStories(t);
+      return out(list.map(({ raw, ...rest }) => rest), (d) => d.map((st, i) => `${String(i).padStart(2)}  ${(st.date || "").slice(0, 10)}  ${st.title}${st.section ? `  [${st.section}]` : ""}`).join("\n") || "(empty feed)");
+    }
+
+    case "story": {
+      const t = loadTenant(pos[0]);
+      const idx = Number(flag("--index", 0)) || 0;
+      const r = await createStoryCampaign(t, { index: idx, name: flag("--name") && flag("--name") !== true ? String(flag("--name")) : undefined, force: has("--force") });
+      return out({ name: r.name, dir: r.dir, story: { ...r.story, raw: undefined } }, `created campaign ${r.name}\n  ${r.story.title}\n  ${r.dir}/campaign.json\nnext: ziggy video ${t.slug} ${r.name} --variants reel && ziggy post ${t.slug} ${r.name}`);
+    }
+
     case "copy": {
       const [slug, name] = pos;
       const c = loadCampaign(slug, name);
@@ -222,7 +239,7 @@ async function main() {
       const c = loadCampaign(slug, name);
       if (!installedFonts(fontsDir(slug)).length) fail(`no fonts — run: ziggy brand fonts ${slug}`);
       const variants = resolveVariants(c, flag("--variants") && flag("--variants") !== true ? String(flag("--variants")).split(",") : null);
-      const manifest = produce({ tenant: t, campaign: c, variants, quality: flag("--quality", "high"), version: loadConfig().hyperframesVersion, log: say, skipCheck: has("--skip-check"), dryRun: has("--dry-run") });
+      const manifest = await produce({ tenant: t, campaign: c, variants, quality: flag("--quality", "high"), version: loadConfig().hyperframesVersion, log: say, skipCheck: has("--skip-check"), dryRun: has("--dry-run") });
       return out(manifest, (m) => Object.entries(m.outputs).map(([v, o]) => `${v.padEnd(6)} ${o.video || o.project}${o.still ? `\n       still ${o.still}` : ""}`).join("\n"));
     }
 

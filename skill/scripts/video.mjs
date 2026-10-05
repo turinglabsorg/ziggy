@@ -11,6 +11,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeBed, mulberry32 } from "./bed.mjs";
@@ -25,6 +26,15 @@ export const DEFAULT_VARIANTS = {
   reel: { w: 1080, h: 1920, layout: "stacked", mark: 150, teaser: 46, tag: 38, tagMax: 780, url: 30, orbitK: 0.78, stars: 46, pad: 120, purpose: "instagram_reel" },
   x:    { w: 1920, h: 1080, layout: "line",    mark: 136, teaser: 42, tag: 34, tagMax: 1560, url: 28, orbitK: 0.46, stars: 52, pad: 120, purpose: "twitter" },
   post: { w: 1080, h: 1350, layout: "stacked", mark: 150, teaser: 46, tag: 38, tagMax: 780, url: 30, orbitK: 0.78, stars: 38, pad: 110, purpose: "instagram_post" },
+};
+
+/** Per-template layout numbers merged over DEFAULT_VARIANTS (a template may also drop variants). */
+export const TEMPLATE_VARIANTS = {
+  story: {
+    reel: { padTop: 250, padBottom: 300, photoTop: 340, photoH: 608, spacer: 690, kicker: 26, headline: 62, dek: 32, dekMax: 840, dekMt: 30, meta: 22, brand: 40 },
+    post: { padTop: 110, padBottom: 110, photoTop: 180, photoH: 560, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
+    x: false,
+  },
 };
 
 export function listTemplates() {
@@ -78,8 +88,17 @@ function words(brand) {
 /** Resolve the variant table for a campaign (campaign.variants overrides merge onto defaults). */
 export function resolveVariants(campaign, only) {
   const table = { ...DEFAULT_VARIANTS };
-  for (const [k, v] of Object.entries(campaign.variants || {})) table[k] = { ...(table[k] || {}), ...v };
-  const keys = only?.length ? only : Object.keys(table).filter((k) => !(campaign.variants && campaign.variants[k] === false));
+  const disabled = new Set();
+  const layer = (overrides) => {
+    for (const [k, v] of Object.entries(overrides || {})) {
+      if (v === false) { disabled.add(k); continue; }
+      disabled.delete(k);
+      table[k] = { ...(table[k] || {}), ...v };
+    }
+  };
+  layer(TEMPLATE_VARIANTS[campaign.template || "teaser"]);
+  layer(campaign.variants);
+  const keys = only?.length ? only : Object.keys(table).filter((k) => !disabled.has(k));
   for (const k of keys) if (!table[k] || !table[k].w) throw new Error(`unknown variant ${JSON.stringify(k)}; known: ${Object.keys(table).join(", ")}`);
   return Object.fromEntries(keys.map((k) => [k, table[k]]));
 }
@@ -88,7 +107,32 @@ export function resolveVariants(campaign, only) {
  * Write one HyperFrames project per variant. Returns [{ variant, dir, w, h, purpose }].
  * Pure file generation — no network, no rendering.
  */
-export function scaffold({ tenant, campaign, variants, hyperframesVersion = DEFAULT_HYPERFRAMES_VERSION, outRoot } = {}) {
+/** Fetch or copy the campaign image into the project; returns the relative src or null. */
+async function placeImage(campaign, dir, fetchImpl = fetch) {
+  const ref = campaign.image;
+  if (!ref) return null;
+  const ext = (ref.split("?")[0].match(/\.(jpe?g|png|webp)$/i) || [, "jpg"])[1].toLowerCase();
+  const target = join(dir, "assets", `story.${ext}`);
+  if (/^https?:\/\//i.test(ref)) {
+    if (!existsSync(target)) {
+      const res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } });
+      if (!res.ok) throw new Error(`image ${ref} → ${res.status}`);
+      await writeFile(target, Buffer.from(await res.arrayBuffer()));
+    }
+  } else {
+    const src = ref.startsWith("/") ? ref : join(campaign.dir || ".", ref);
+    if (!existsSync(src)) throw new Error(`image not found: ${src}`);
+    copyFileSync(src, target);
+  }
+  return `assets/story.${ext}`;
+}
+
+function brandParts(brand) {
+  const parts = brand.wordmark?.parts?.length ? brand.wordmark.parts : [{ text: brand.name, weight: 600 }];
+  return parts.map((p) => `<span class="part" style="font-weight: ${p.weight}">${escapeHtml(p.text)}</span>`).join("");
+}
+
+export async function scaffold({ tenant, campaign, variants, hyperframesVersion = DEFAULT_HYPERFRAMES_VERSION, outRoot, fetchImpl } = {}) {
   const brand = tenant.brand;
   if (!brand) throw new Error(`tenant ${tenant.slug} has no brand.json — run: ziggy brand extract ${tenant.slug}`);
   const template = campaign.template || "teaser";
@@ -116,11 +160,17 @@ export function scaffold({ tenant, campaign, variants, hyperframesVersion = DEFA
 
     let audio = "";
     if (campaign.audio?.bed) {
-      writeBed(join(dir, "assets", "bed.wav"), { seconds: duration, seed: campaign.audio.seed || 20261005 });
-      audio = `        <audio id="${id}-bed" src="assets/bed.wav" data-start="0" data-duration="${duration}" data-volume="${campaign.audio.volume ?? 0.7}"></audio>`;
+      const a = campaign.audio;
+      writeBed(join(dir, "assets", "bed.wav"), { seconds: duration, seed: a.seed || 20261005, swellAt: a.swellAt, beats: a.beats });
+      audio = `        <audio id="${id}-bed" src="assets/bed.wav" data-start="0" data-duration="${duration}" data-volume="${a.volume ?? 0.7}"></audio>`;
     }
 
-    const fill = (s) => s
+    const imageSrc = await placeImage(campaign, dir, fetchImpl);
+    const bgRgb = hexToRgb(brand.palette.bg) || { r: 0, g: 0, b: 0 };
+    const headline = copy.headline || copy.title || "";
+    const headlineWords = headline.split(/\s+/).filter(Boolean).map((w) => `<span class="w">${escapeHtml(w)}</span>`).join("");
+
+    let fill = (s) => s
       .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles))
       .replace(/__STARS_JSON__/g, JSON.stringify(stars))
       .replace(/__STARS__/g, starHtml)
@@ -150,15 +200,29 @@ export function scaffold({ tenant, campaign, variants, hyperframesVersion = DEFA
       .replace(/__MONO_FAMILY__/g, brand.fonts?.mono?.family || "monospace")
       .replace(/__BG__/g, brand.palette.bg).replace(/__FG__/g, brand.palette.fg).replace(/__MUTED__/g, brand.palette.muted)
       .replace(/__LINE__/g, brand.palette.line).replace(/__ACCENT_RGB__/g, `${accent.r}, ${accent.g}, ${accent.b}`).replace(/__ACCENT__/g, brand.palette.accent)
+      .replace(/__HEADLINE_WORDS__/g, headlineWords)
+      .replace(/__BRAND_PARTS__/g, brandParts(brand))
+      .replace(/__BRAND_DOT__/g, brand.wordmark?.accentDot === false ? "" : '<span class="b-dot"></span>')
+      .replace(/__IMAGE_SRC__/g, imageSrc || "")
+      .replace(/__HAS_PHOTO__/g, imageSrc ? "true" : "false")
+      .replace(/__PHOTO_DISPLAY__/g, imageSrc ? "block" : "none")
+      .replace(/__BG_RGB__/g, `${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}`)
+      .replace(/__PHOTO_TOP__/g, String(v.photoTop ?? 340)).replace(/__PHOTO_H__/g, String(v.photoH ?? 608))
+      .replace(/__PAD_TOP__/g, String(v.padTop ?? 250)).replace(/__PAD_BOTTOM__/g, String(v.padBottom ?? 330)).replace(/__SPACER__/g, String(v.spacer ?? 690))
+      .replace(/__KICKER__/g, String(v.kicker ?? 26)).replace(/__HEADLINE__/g, String(v.headline ?? 64))
+      .replace(/__DEK_MAX__/g, String(v.dekMax ?? 840)).replace(/__DEK_MT__/g, String(v.dekMt ?? 30)).replace(/__DEK__/g, String(v.dek ?? 33))
+      .replace(/__META__/g, String(v.meta ?? 22)).replace(/__BRAND__/g, String(v.brand ?? 40))
       .replace(/__HOST_ID__/g, `${tenant.slug}-${campaign.name}-${variant}`)
       .replace(/__NAME__/g, escapeHtml(brand.name))
       .replace(/__LANG__/g, campaign.language || "en")
       .replace(/__ID__/g, id)
       .replace(/__W__/g, String(v.w))
       .replace(/__H__/g, String(v.h));
+    const copyTokens = (s) => s.replace(/__COPY_([A-Z0-9_]+)__/g, (_, key) => escapeHtml(copy[key.toLowerCase()] ?? ""));
+    const fillAll = (s) => copyTokens(fill(s));
 
-    writeFileSync(join(dir, "compositions", `${id}.html`), fill(sub));
-    writeFileSync(join(dir, "index.html"), fill(host));
+    writeFileSync(join(dir, "compositions", `${id}.html`), fillAll(sub));
+    writeFileSync(join(dir, "index.html"), fillAll(host));
     const projectName = `${tenant.slug}-${campaign.name}-${variant}`;
     writeFileSync(join(dir, "hyperframes.json"), JSON.stringify({
       $schema: "https://hyperframes.heygen.com/schema/hyperframes.json",
@@ -201,6 +265,7 @@ ${campaign.intent || `${tenant.brand.name} — ${campaign.template || "teaser"} 
 
 ## Copy
 
+- headline: ${campaign.copy?.headline || "—"}
 - teaser: ${campaign.copy?.teaser || "—"}
 - tagline: ${campaign.copy?.tagline || tenant.brand.tagline || "—"}
 - url: ${campaign.copy?.url || tenant.brand.site}
@@ -247,8 +312,8 @@ export function snapshot(projectDir, { at, outDir, version } = {}) {
 }
 
 /** Scaffold → check → render every variant; returns the render manifest. */
-export function produce({ tenant, campaign, variants, quality = "high", version, log = () => {}, skipCheck = false, dryRun = false }) {
-  const projects = scaffold({ tenant, campaign, variants, hyperframesVersion: version });
+export async function produce({ tenant, campaign, variants, quality = "high", version, log = () => {}, skipCheck = false, dryRun = false }) {
+  const projects = await scaffold({ tenant, campaign, variants, hyperframesVersion: version });
   const outDir = rendersDir(tenant.slug, campaign.name);
   const manifest = { tenant: tenant.slug, campaign: campaign.name, renderedAt: new Date().toISOString(), outputs: {} };
   for (const p of projects) {

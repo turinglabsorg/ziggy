@@ -60,6 +60,9 @@ ziggy keys pull nova --send <bitwarden-send-url>            # the Postproxy key,
 ziggy post nova first-post                                   # drafts → review
 ziggy publish nova <id> <id> <id> --watch                    # live, with permalinks
 
+# a story from the site as a reel (tenant.json → feed)
+ziggy story nova && ziggy video nova story-<date>-<slug> --variants reel && ziggy post nova story-<date>-<slug> --live --only instagram_reel
+
 # the days after
 ziggy inbox nova && ziggy stats nova
 ziggy autopilot nova --dry-run                               # then: ziggy watch nova --install --interval 900
@@ -79,7 +82,7 @@ ziggy/
 ├── bin/ziggy                      local wrapper → skill/index.js
 ├── ziggy.config.example.json      ~/.ziggy/config.json example
 ├── tenants/
-│   └── alienwatch/                first tenant: tenant.json, brand.json, playbook.md, campaigns/first-post/
+│   └── alienwatch/                first tenant: tenant.json, brand.json, playbook.md, campaigns/{first-post, story-…}/
 └── skill/
     ├── SKILL.md                   skill entry point (Codex + Claude Code)
     ├── agents/openai.yaml
@@ -96,12 +99,14 @@ ziggy/
     │   ├── bed.mjs                deterministic ambient audio bed (WAV)
     │   ├── postproxy.mjs          API client: posts, publish, stats, comments, DMs
     │   ├── publish.mjs            campaign → drafts → publish; validation against platform limits
+    │   ├── story.mjs              tenant feed → story campaign (mapping in tenant.json)
     │   ├── inbox.mjs              comments + DMs + stats, seen-tracking, action log
     │   ├── autopilot.mjs          triage → agent decision → act per policy
     │   ├── watch.mjs              launchd / cron schedule for the autopilot
     │   └── doctor.mjs
     ├── templates/
-    │   ├── hyperframes/teaser/    host + sub-composition templates (7.5 s logo reveal)
+    │   ├── hyperframes/teaser/    7.5 s logo reveal (launch)
+    │   ├── hyperframes/story/     12 s editorial reel from a story (image, kicker, headline, dek)
     │   └── social/                profile and header compositions
     └── test/                      node:test — mock Postproxy server, fake hush, fake agent, fixtures
 ```
@@ -111,7 +116,7 @@ ziggy/
 ```bash
 cd skill
 npm run check     # syntax
-npm test          # 40 integration tests, no network: mock Postproxy on localhost, fake hush, fake agent, fake HyperFrames CLI
+npm test          # 44 integration tests, no network: mock Postproxy on localhost, fake hush, fake agent, fake HyperFrames CLI
 ```
 
 Rendering for real needs the HyperFrames CLI (`npx hyperframes@0.8.133`) and a Chromium it can

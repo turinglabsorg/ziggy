@@ -47,10 +47,10 @@ test("variants merge campaign overrides onto defaults and reject unknown names",
   assert.deepEqual(Object.keys(resolveVariants({}, ["x"])), ["x"]);
 });
 
-test("scaffold writes complete HyperFrames projects from brand + campaign", () => {
+test("scaffold writes complete HyperFrames projects from brand + campaign", async () => {
   const tenant = loadTenant("acme"), campaign = loadCampaign("acme", "launch");
   const out = join(world.root, "videos");
-  const projects = scaffold({ tenant, campaign, variants: resolveVariants(campaign), outRoot: out });
+  const projects = await scaffold({ tenant, campaign, variants: resolveVariants(campaign), outRoot: out });
   assert.equal(projects.length, 3);
   for (const p of projects) {
     for (const f of ["index.html", `compositions/${p.id}.html`, "hyperframes.json", "package.json", "meta.json", "BRIEF.md", "assets/bed.wav", "assets/fonts/Unbounded.woff2"]) {
@@ -76,9 +76,9 @@ test("scaffold writes complete HyperFrames projects from brand + campaign", () =
   assert.match(reel, /flex-direction: column/);
 });
 
-test("no audio when the campaign says so; HTML in copy is escaped", () => {
+test("no audio when the campaign says so; HTML in copy is escaped", async () => {
   const tenant = loadTenant("acme"), campaign = { ...loadCampaign("acme", "launch"), audio: null, copy: { teaser: "<b>x</b> & y", url: "acme.example" } };
-  const [p] = scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "videos2") });
+  const [p] = await scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "videos2") });
   const sub = readFileSync(join(p.dir, "compositions/teaser-reel.html"), "utf8");
   assert.doesNotMatch(sub, /<audio/);
   assert.ok(!existsSync(join(p.dir, "assets/bed.wav")));

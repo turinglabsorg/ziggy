@@ -130,15 +130,16 @@ export function createClient({ baseUrl = process.env.ZIGGY_POSTPROXY_BASE_URL ||
 /** Normalize a comment record across platforms into { id, body, author, createdAt, parentId, replies[] }. */
 export function normalizeComment(c) {
   if (!c || typeof c !== "object") return null;
-  const author = c.author?.username || c.author?.name || c.username || c.author_name || c.from?.username || c.from?.name || null;
+  const author = c.author_username || c.author?.username || c.author?.name || c.username || c.author_name || c.from?.username || c.from?.name || null;
   return {
     id: c.id,
     body: c.body ?? c.text ?? c.message ?? "",
     author,
-    authorId: c.author?.id || c.author_id || c.from?.id || null,
-    createdAt: c.created_at || c.timestamp || c.createdAt || null,
-    parentId: c.parent_id || null,
+    authorId: c.author_external_id || c.author?.id || c.author_id || c.from?.id || null,
+    createdAt: c.posted_at || c.created_at || c.timestamp || c.createdAt || null,
+    parentId: c.parent_id || c.parent_external_id || null,
     hidden: Boolean(c.hidden || c.is_hidden),
+    likes: c.like_count ?? null,
     mine: Boolean(c.is_own || c.from_page || c.by_profile || c.mine),
     replies: (c.replies || []).map(normalizeComment).filter(Boolean),
     raw: c,

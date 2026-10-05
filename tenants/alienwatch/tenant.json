@@ -3,7 +3,11 @@
   "site": "https://alienwatch.buzz/",
   "language": "en",
   "postproxy": {
-    "profileGroupId": null
+    "profileGroupId": null,
+    "profileIds": [
+      "DaUWBa",
+      "j3Ulwd"
+    ]
   },
   "autopilot": {
     "mode": "draft",
@@ -39,5 +43,25 @@
     "twitter": "@alienwtch",
     "instagram": "@alienwatch"
   },
-  "notes": "UFO/UAP observations log, six languages. Social copy is English only."
+  "notes": "UFO/UAP observations log, six languages. Social copy is English only.",
+  "feed": {
+    "url": "https://alienwatch.buzz/feed/v1/briefings?lang=en&limit=10",
+    "items": "data",
+    "fields": {
+      "title": "title",
+      "dek": "dek",
+      "section": "sector.name",
+      "date": "storyDate",
+      "image": "imageUrl",
+      "slug": "slug",
+      "sources": "sourceCount",
+      "languages": "languageCount"
+    },
+    "imageRewrite": {
+      "match": "^.*?/api/assets/tenants/[0-9a-f-]+/",
+      "replace": "https://alienwatch.buzz/assets/"
+    },
+    "storyUrl": "https://alienwatch.buzz/#/b/{slug}?lang=en",
+    "displayUrl": "alienwatch.buzz"
+  }
 }

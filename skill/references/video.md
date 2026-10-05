@@ -40,6 +40,14 @@ tokens filled from brand + campaign. The shipped template:
   the last letter → tagline → URL with an accent underline → hold. Optional deterministic ambient
   bed (`audio.bed`).
 
+- **story** (12 s, editorial): the tenant's hero image blended into the sky, kicker (section ·
+  date), headline word by word, dek, then a footer with the meta line (sources · languages), the
+  wordmark and the URL. Built by `ziggy story <slug>` from the tenant's feed; variants `reel` and
+  `post` (no 16:9). Copy keys: `kicker`, `headline`, `dek`, `meta`, `url`; `image` is a URL or a
+  path relative to the campaign folder.
+
+Any `campaign.copy` key is available to a template as `__COPY_<KEY>__` (HTML-escaped).
+
 The projects follow the HyperFrames authoring contract (one paused GSAP timeline registered on
 `window.__timelines[id]`, seek-safe tweens, no CSS/GSAP transform conflicts, `data-layout-allow-
 overflow` on the mask wrappers, fonts shipped locally). Keep that contract when adding a template;

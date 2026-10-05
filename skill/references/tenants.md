@@ -31,6 +31,10 @@ The definition is enough to rebuild the work layer anywhere: `ziggy brand fonts`
 - `postproxy.profileGroupId` scopes profile lookup when one Postproxy account serves several brands.
   `profileIds` lets `inbox`/`stats` recognise posts made outside Ziggy.
 - `autopilot` is documented in `autopilot.md`.
+- `feed` (publishing tenants only) tells `ziggy story` where stories come from: `url`, `items`
+  (dotted path to the array), `fields` (dotted paths for title, dek, section, date, image, slug,
+  sources, languages), `imageRewrite` (regex → public asset host), `storyUrl` with `{slug}`,
+  `displayUrl`. See `tenants/alienwatch/tenant.json` for a complete example.
 
 ## Commands
 
