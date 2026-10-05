@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+coverage/
+dist/
+# work layer lives in ~/.ziggy, never here
+tenants/*/renders/
+tenants/*/fonts/
+tenants/*/videos/
+*.mp4
+*.wav
+*.woff2

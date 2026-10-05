@@ -1,0 +1,19 @@
+{
+  "name": "@turinglabs/ziggy-skill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ziggy — per-tenant social launch agent: brand → HyperFrames videos → Postproxy publishing, with hush-held keys.",
+  "license": "MIT",
+  "bin": {
+    "ziggy": "./index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node --check index.js && for f in scripts/*.mjs; do node --check \"$f\" || exit 1; done && sh -n install.sh",
+    "doctor": "node index.js doctor",
+    "test": "node --test test/*.test.mjs"
+  }
+}

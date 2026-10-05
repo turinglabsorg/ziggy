@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ziggy"
+  short_description: "Per-tenant social media manager: brand → videos → posts → replies"
+  default_prompt: "Use $ziggy to run a brand's social accounts: extract the brand, render the reel/X/feed videos with HyperFrames, publish through Postproxy, read the inbox and answer comments within the tenant playbook."

@@ -1,0 +1,86 @@
+{
+  "name": "Alien Watch",
+  "site": "https://alienwatch.buzz/",
+  "lang": "en",
+  "tagline": "Observations on UFOs, UAPs and the search for alien life, from sources around the world.",
+  "palette": {
+    "bg": "#07080b",
+    "fg": "#ece6da",
+    "accent": "#ff5a1f",
+    "line": "#24231f",
+    "muted": "#8c8678",
+    "raw": {
+      "--ink": "#07080b",
+      "--ink-raised": "#0e1015",
+      "--moon": "#ece6da",
+      "--dust": "#8c8678",
+      "--hair": "#24231f",
+      "--flare": "#ff5a1f",
+      "--tone-mixed": "#e2a65f",
+      "--tone-positive": "#7fd6c2"
+    }
+  },
+  "fonts": {
+    "display": {
+      "family": "Unbounded",
+      "weights": [
+        300,
+        400,
+        500,
+        600
+      ]
+    },
+    "text": {
+      "family": "Geist",
+      "weights": [
+        300,
+        400,
+        500
+      ]
+    },
+    "mono": {
+      "family": "Geist Mono",
+      "weights": [
+        400,
+        500
+      ]
+    },
+    "google": "https://fonts.googleapis.com/css2?family=Doto:wght@600;800&family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500&family=Unbounded:wght@300;400;500;600&display=swap"
+  },
+  "wordmark": {
+    "text": "Alien Watch",
+    "parts": [
+      {
+        "text": "Alien",
+        "weight": 300
+      },
+      {
+        "text": "Watch",
+        "weight": 600
+      }
+    ],
+    "transform": "uppercase",
+    "letterSpacing": "0.06em",
+    "accentDot": true
+  },
+  "mark": {
+    "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='9' fill='none' stroke='#ECE6DA' stroke-width='2'/><circle cx='25' cy='9' r='3.5' fill='#FF5A1F'/></svg>",
+    "source": "favicon-data-uri"
+  },
+  "stars": true,
+  "extractedAt": "2026-10-05T15:53:26.257Z",
+  "taglineOriginal": "Osservazioni su UFO, UAP e la ricerca di vita aliena, da fonti di tutto il mondo.",
+  "languages": [
+    "it",
+    "en",
+    "de",
+    "es",
+    "fr",
+    "pt"
+  ],
+  "sections": [
+    "Registry",
+    "Map",
+    "Search"
+  ]
+}

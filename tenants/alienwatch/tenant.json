@@ -1,0 +1,43 @@
+{
+  "name": "Alien Watch",
+  "site": "https://alienwatch.buzz/",
+  "language": "en",
+  "postproxy": {
+    "profileGroupId": null
+  },
+  "autopilot": {
+    "mode": "draft",
+    "dms": false,
+    "maxPerRun": 10,
+    "skipAuthors": [
+      "alienwtch",
+      "alienwatch"
+    ],
+    "escalateWords": [
+      "legal",
+      "lawyer",
+      "refund",
+      "press",
+      "journalist",
+      "lawsuit",
+      "copyright",
+      "dmca",
+      "partnership",
+      "sponsor"
+    ],
+    "agent": {
+      "command": [
+        "claude",
+        "-p",
+        "--output-format",
+        "json"
+      ],
+      "timeoutMs": 120000
+    }
+  },
+  "handles": {
+    "twitter": "@alienwtch",
+    "instagram": "@alienwatch"
+  },
+  "notes": "UFO/UAP observations log, six languages. Social copy is English only."
+}
