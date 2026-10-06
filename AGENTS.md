@@ -30,6 +30,9 @@ working **with** Ziggy.
   one paused GSAP timeline per composition, no CSS-transform/GSAP conflicts, fonts shipped locally,
   `data-layout-allow-overflow` on intentional masks. Test a template change with a real render.
 - Keep per-tenant isolation: a command takes one slug and touches only that tenant's paths and secret.
+- Story campaigns are localized per tenant: `tenant.social` holds the caption CTA, hashtags and the
+  link-comment text, `feed.sections` renames feed sections (e.g. English → Italian), and the
+  meta/sources lines follow `tenant.language`. Defaults preserve the original English copy.
 - An X story post always carries the cover image: `posts.twitter.media` is `slide-cover`. Do not
   ship a text-only thread, and do not put the reel on that post instead of the still.
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
