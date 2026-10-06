@@ -31,6 +31,12 @@ test("the bed is deterministic and a valid 16-bit stereo WAV of the requested le
   assert.notEqual(renderBed({ seconds: 1.0, seed: 7 }).equals(a), true);
 });
 
+test("bed moods: 'news' differs from the ambient default, unknown moods fall back to it", () => {
+  const ambient = renderBed({ seconds: 2 });
+  assert.notEqual(renderBed({ seconds: 2, variant: "news" }).equals(ambient), true);
+  assert.equal(renderBed({ seconds: 2, variant: "nope" }).equals(ambient), true);
+});
+
 test("star fields are seeded and keep the centre band sparse", () => {
   const s1 = starField(40, 1080, 1920, 99), s2 = starField(40, 1080, 1920, 99);
   assert.deepEqual(s1, s2);

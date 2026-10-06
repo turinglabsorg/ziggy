@@ -1,15 +1,24 @@
 /**
- * Deterministic ambient bed (16-bit stereo WAV). Same inputs → byte-identical file, so a
- * tenant's teaser re-renders identically months later. No dependencies.
+ * Deterministic beds (16-bit stereo WAV). Same inputs → byte-identical file, so a tenant's
+ * re-renders are identical months later. No dependencies.
  *
- * Layers: a low drone keyed to the brand (two detuned sines + a slow LFO partial), filtered
- * noise with a swell that crests on the wordmark reveal, and three sonar-like blips on the
- * campaign's beats. Tuned to sit under a 7–8 s logo sting; `beats` and `swellAt` move with
- * the timeline when a template changes its timing.
+ * The mood is named by the campaign's `audio.bed` (`MOODS` below) and picked per tenant with
+ * `social.bed`; "ambient" is the default and stays byte-stable. Every mood layers a pad keyed
+ * to the brand, filtered noise with a swell that crests on the wordmark reveal, and blips on
+ * the campaign's beats; `beats` and `swellAt` move with the timeline when a template changes
+ * its timing.
  */
 import { writeFileSync } from "node:fs";
 
-export function renderBed({ seconds = 7.5, sampleRate = 48000, seed = 20261005, swellAt = 3.45, beats = [[0.55, 1318.5, 1.2, 0.09], [3.55, 659.3, 1.6, 0.07], [5.45, 987.8, 0.9, 0.035]], peak = 0.6, baseHz = 55 } = {}) {
+/** pad: "drone" (deep, detuned) or "fifth" (brighter, baseHz + fifth); tick: a quiet news-clock pulse. */
+const MOODS = {
+  ambient: { baseHz: 55, pad: "drone" },
+  news: { baseHz: 110, pad: "fifth", tick: { at: 0.9, every: 0.75, hz: 2360, len: 0.05, gain: 0.022 } },
+};
+
+export function renderBed({ seconds = 7.5, sampleRate = 48000, seed = 20261005, swellAt = 3.45, beats = [[0.55, 1318.5, 1.2, 0.09], [3.55, 659.3, 1.6, 0.07], [5.45, 987.8, 0.9, 0.035]], peak = 0.6, baseHz, variant = "ambient" } = {}) {
+  const mood = MOODS[variant] || MOODS.ambient;
+  baseHz = baseHz ?? mood.baseHz;
   const n = Math.round(seconds * sampleRate);
   const rand = mulberry32(seed);
   const left = new Float64Array(n);
@@ -35,7 +44,12 @@ export function renderBed({ seconds = 7.5, sampleRate = 48000, seed = 20261005, 
   for (let i = 0; i < n; i++) {
     const t = i / sampleRate;
     const lfo = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.11 * t);
-    const drone = (0.55 * Math.sin(2 * Math.PI * baseHz * t) + 0.35 * Math.sin(2 * Math.PI * (baseHz * 2 + 0.3) * t + 0.4) + 0.18 * Math.sin(2 * Math.PI * (baseHz * 3 - 0.2) * t + 1.1) * lfo) * env(t, 1.8, 1.4) * 0.22;
+    let pad;
+    if (mood.pad === "fifth") {
+      pad = (0.5 * Math.sin(2 * Math.PI * baseHz * t) + 0.3 * Math.sin(2 * Math.PI * (baseHz * 1.5 + 0.2) * t + 0.4) + 0.15 * Math.sin(2 * Math.PI * (baseHz * 2 - 0.1) * t + 1.1) * lfo) * env(t, 1.1, 1.2) * 0.2;
+    } else {
+      pad = (0.55 * Math.sin(2 * Math.PI * baseHz * t) + 0.35 * Math.sin(2 * Math.PI * (baseHz * 2 + 0.3) * t + 0.4) + 0.18 * Math.sin(2 * Math.PI * (baseHz * 3 - 0.2) * t + 1.1) * lfo) * env(t, 1.8, 1.4) * 0.22;
+    }
     const swell = Math.exp(-((t - swellAt) ** 2) / (2 * 0.55 ** 2));
     const air = noise[i] * (0.012 + 0.07 * swell) * env(t, 1.0, 1.2);
     let blips = 0;
@@ -43,7 +57,12 @@ export function renderBed({ seconds = 7.5, sampleRate = 48000, seed = 20261005, 
       const tt = t - t0;
       if (tt >= 0) blips += gain * Math.exp(-tt / (len / 4)) * Math.sin(2 * Math.PI * hz * tt);
     }
-    const mono = drone + air + blips;
+    let tick = 0;
+    if (mood.tick) {
+      const tt = (t - mood.tick.at) % mood.tick.every;
+      if (t >= mood.tick.at && tt < mood.tick.len * 4) tick = mood.tick.gain * Math.exp(-tt / mood.tick.len) * Math.sin(2 * Math.PI * mood.tick.hz * tt);
+    }
+    const mono = pad + air + blips + tick;
     const width = 0.015 * Math.sin(2 * Math.PI * 0.07 * t) * air;
     left[i] = mono + width;
     right[i] = mono - width;

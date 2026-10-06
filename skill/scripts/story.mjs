@@ -101,7 +101,8 @@ export function campaignFromStory(tenant, story, { name } = {}) {
     story: { slug: story.slug, url: story.url, date: story.date, section: story.section },
     copy: { kicker, headline: story.title, dek: story.dek, meta, url: displayUrl },
     image: story.image,
-    audio: { bed: "ambient", volume: 0.6, swellAt: 1.6, beats: [[0.6, 1318.5, 1.2, 0.07], [1.5, 659.3, 1.6, 0.06], [7.6, 987.8, 0.9, 0.035]] },
+    // bed.mjs mood per tenant: "ambient" default, tenant.social.bed overrides (e.g. "news").
+    audio: { bed: social.bed || "ambient", volume: 0.6, swellAt: 1.6, beats: [[0.6, 1318.5, 1.2, 0.07], [1.5, 659.3, 1.6, 0.06], [7.6, 987.8, 0.9, 0.035]] },
     posts: {
       instagram_reel: {
         body: caption,

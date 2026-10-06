@@ -161,7 +161,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     let audio = "";
     if (campaign.audio?.bed) {
       const a = campaign.audio;
-      writeBed(join(dir, "assets", "bed.wav"), { seconds: duration, seed: a.seed || 20261005, swellAt: a.swellAt, beats: a.beats });
+      writeBed(join(dir, "assets", "bed.wav"), { seconds: duration, seed: a.seed || 20261005, swellAt: a.swellAt, beats: a.beats, baseHz: a.baseHz, variant: a.bed });
       audio = `        <audio id="${id}-bed" src="assets/bed.wav" data-start="0" data-duration="${duration}" data-volume="${a.volume ?? 0.7}"></audio>`;
     }
 

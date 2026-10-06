@@ -20,3 +20,10 @@ Language: Italian by default; answer in the language of the person when they wri
 ## Escalate to a human
 - Press, legal threats, defamation concerns, corrections that dispute a fact in a briefing,
   anything about money, anything about minors, anything you are not sure about.
+
+## Visuals and audio
+- Story images come from the site itself — the briefing's `imageUrl` in the feed, exactly like
+  alienwatch. Never source photos elsewhere, never regenerate them.
+- Reels use the `news` audio bed (`social.bed` in tenant.json), not the spacey ambient one —
+  this is a town bulletin, not a planetarium.
+
