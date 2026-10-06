@@ -105,10 +105,11 @@ test("post → tiktok kind: reel media, format=video and the tiktok platform par
   const r = await run(["post", "acme", "launch", "--only", "tiktok", "--json"]);
   assert.equal(r.status, 0, r.stderr);
   const create = mock.calls.filter((x) => x.method === "POST" && x.path === "/api/posts").at(-1).fields;
-  assert.equal(create["platforms[tiktok][format]"], "video");
-  assert.equal(create["platforms[tiktok][privacy_status]"], "PUBLIC_TO_EVERYONE");
-  assert.equal(create["platforms[tiktok][disable_comment]"], "false");
-  assert.equal(create["platforms[tiktok][disable_duet]"], "true");
+  const tiktokParams = JSON.parse(create.platforms).tiktok;
+  assert.equal(tiktokParams.format, "video");
+  assert.equal(tiktokParams.privacy_status, "PUBLIC_TO_EVERYONE");
+  assert.equal(tiktokParams.disable_comment, false, "booleans keep their type in the JSON platforms field");
+  assert.equal(tiktokParams.disable_duet, true);
   assert.match(create["media[]"][0].filename, /reel-1080x1920\.mp4$/);
   const log = readFileSync(join(world.home, "tenants", "acme", "posts.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
   assert.equal(log.at(-1).kind, "tiktok");

@@ -116,18 +116,26 @@ export function createClient({ baseUrl = process.env.ZIGGY_POSTPROXY_BASE_URL ||
           if (child?.body) form.append(`thread[${i}][body]`, child.body);
         });
       }
+      // A platform whose params contain booleans or numbers travels as one JSON `platforms` field
+      // so values keep their type — flattened `platforms[p][k]` fields are strings, which strict
+      // validators (TikTok's booleans) reject. Platforms with a `*_file` upload stay flattened.
+      const typed = {};
       for (const [platform, params] of Object.entries(platforms)) {
-        for (const [k, v] of Object.entries(params || {})) {
-          if (v == null) continue;
-          if (k.endsWith("_file") && typeof v === "string") {
-            form.append(`platforms[${platform}][${k}]`, await openAsBlob(v, { type: mimeFor(v) }), basename(v));
-          } else if (Array.isArray(v)) {
-            for (const item of v) form.append(`platforms[${platform}][${k}][]`, String(item));
-          } else {
-            form.append(`platforms[${platform}][${k}]`, typeof v === "boolean" ? String(v) : String(v));
-          }
+        const entries = Object.entries(params || {}).filter(([, v]) => v != null);
+        if (!entries.length) continue;
+        const hasFile = entries.some(([k, v]) => k.endsWith("_file") && typeof v === "string");
+        const hasTyped = entries.some(([, v]) => typeof v === "boolean" || typeof v === "number");
+        if (!hasFile && hasTyped) {
+          typed[platform] = Object.fromEntries(entries);
+          continue;
+        }
+        for (const [k, v] of entries) {
+          if (k.endsWith("_file") && typeof v === "string") form.append(`platforms[${platform}][${k}]`, await openAsBlob(v, { type: mimeFor(v) }), basename(v));
+          else if (Array.isArray(v)) for (const item of v) form.append(`platforms[${platform}][${k}][]`, String(item));
+          else form.append(`platforms[${platform}][${k}]`, String(v));
         }
       }
+      if (Object.keys(typed).length) form.append("platforms", JSON.stringify(typed));
       return request("POST", "/api/posts", { form }).then(data);
     },
   };
