@@ -30,6 +30,11 @@ working **with** Ziggy.
   one paused GSAP timeline per composition, no CSS-transform/GSAP conflicts, fonts shipped locally,
   `data-layout-allow-overflow` on intentional masks. Test a template change with a real render.
 - Keep per-tenant isolation: a command takes one slug and touches only that tenant's paths and secret.
+- Story campaigns ask an agent for the reel slides before the campaign is written
+  (`story.mjs`: `feed.agent` in tenant.json, same shape as `autopilot.agent`, default
+  `claude -p`; `null` disables). The agent prints 3–4 short slides, one story beat per line;
+  without an agent the dek is split at sentence ends. Reel length comes from the point count
+  (~5s title, 4.4s per point, 4s close — points must stay readable).
 - Story campaigns are localized per tenant: `tenant.social` holds the caption CTA, hashtags and the
   link-comment text, `feed.sections` renames feed sections (e.g. English → Italian), and the
   meta/sources lines follow `tenant.language`. Defaults preserve the original English copy.
