@@ -1,0 +1,103 @@
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { after, before, test } from "node:test";
+
+import { dailyConfig, nextSlotTimes, uncoveredStories } from "../scripts/daily.mjs";
+import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
+
+const world = makeWorld({ withRenders: false });
+after(world.cleanup);
+process.env.ZIGGY_HOME = world.home;
+process.env.ZIGGY_REPO = world.repo;
+const { fontsDir, tenantDir } = await import("../scripts/config.mjs");
+
+mkdirSync(fontsDir("acme"), { recursive: true });
+for (const f of ["Unbounded", "Geist", "GeistMono"]) writeFileSync(join(fontsDir("acme"), `${f}.woff2`), Buffer.alloc(64, 0));
+
+test("daily config: tenant overrides land on top of the defaults", () => {
+  assert.deepEqual(dailyConfig({}), { slots: ["07:30", "13:00", "17:30", "20:00"], tz: "+02:00", maxAgeHours: 48, only: ["instagram_reel"] });
+  assert.deepEqual(dailyConfig({ daily: { slots: ["08:00"], tz: "-05:00" } }).slots, ["08:00"]);
+  assert.equal(dailyConfig({ daily: { tz: "-05:00" } }).tz, "-05:00");
+});
+
+test("slot times: strictly after `from`, in the tenant's fixed offset", () => {
+  // 21:00 local (+02:00) → every slot lands tomorrow
+  const evening = nextSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T19:00:00Z") });
+  assert.deepEqual(evening, ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
+  // 06:00 local → the 07:30 slot lands today, the others too
+  const dawn = nextSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T04:00:00Z") });
+  assert.deepEqual(dawn, ["2026-10-06T05:30:00.000Z", "2026-10-06T11:00:00.000Z"]);
+  // between slots: 07:30 is gone, 13:00 is today
+  const noon = nextSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T08:00:00Z") });
+  assert.deepEqual(noon, ["2026-10-07T05:30:00.000Z", "2026-10-06T11:00:00.000Z"]);
+});
+
+let mock, feedServer, feedPort;
+before(async () => {
+  mock = await startMockPostproxy();
+  const items = [
+    { title: "Fresh story one", dek: "Something happened today in town.", storyDate: "2026-10-06T09:00:00Z", sector: { name: "Cronaca" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-one", sourceCount: 2, languageCount: 1 },
+    { title: "Fresh story two", dek: "Another thing happened in the afternoon.", storyDate: "2026-10-06T14:00:00Z", sector: { name: "Economia" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-two", sourceCount: 1, languageCount: 1 },
+    { title: "Stale story", dek: "This happened days ago.", storyDate: "2026-10-02T09:00:00Z", sector: { name: "Sport" }, imageUrl: "__FEED__/img.jpg", slug: "stale-story", sourceCount: 1, languageCount: 1 },
+  ];
+  feedServer = createServer((req, res) => {
+    if (req.url === "/img.jpg") { res.writeHead(200, { "content-type": "image/jpeg" }); return res.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9])); }
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ data: items.map((it) => ({ ...it, imageUrl: it.imageUrl.replace("__FEED__", `http://127.0.0.1:${feedPort}`) })) }));
+  });
+  await new Promise((r) => feedServer.listen(0, "127.0.0.1", r));
+  feedPort = feedServer.address().port;
+
+  const tenantFile = join(tenantDir("acme"), "tenant.json");
+  const tenant = JSON.parse(readFileSync(tenantFile, "utf8"));
+  tenant.feed = {
+    url: `http://127.0.0.1:${feedPort}/feed`, items: "data",
+    fields: { title: "title", dek: "dek", section: "sector.name", date: "storyDate", image: "imageUrl", slug: "slug", sources: "sourceCount", languages: "languageCount" },
+    storyUrl: "https://acme.example/#/b/{slug}", displayUrl: "acme.example",
+    agent: null,
+  };
+  tenant.daily = { slots: ["07:30", "13:00", "17:30", "20:00"], tz: "+02:00" };
+  writeFileSync(tenantFile, JSON.stringify(tenant, null, 2));
+});
+after(() => new Promise((r) => { feedServer.closeAllConnections(); feedServer.close(r); mock.close(); }));
+
+const ENV = () => ({ ...world.env, ZIGGY_POSTPROXY_BASE_URL: mock.baseUrl, POSTPROXY_API_KEY: API_KEY, ZIGGY_HYPERFRAMES_BIN: fakeBin });
+
+let fakeBin;
+before(() => {
+  const dir = join(world.root, "fakehf-daily");
+  mkdirSync(dir, { recursive: true });
+  fakeBin = join(dir, "hyperframes");
+  writeFileSync(fakeBin, `#!/usr/bin/env node
+const fs = require("node:fs"); const path = require("node:path");
+const [cmd, ...rest] = process.argv.slice(2);
+if (cmd === "check") { console.log("ok"); process.exit(0); }
+if (cmd === "render") { const o = rest[rest.indexOf("-o") + 1]; fs.mkdirSync(path.dirname(o), { recursive: true }); fs.writeFileSync(o, "mp4"); process.exit(0); }
+if (cmd === "snapshot") { const o = rest[rest.indexOf("-o") + 1]; fs.mkdirSync(o, { recursive: true }); fs.writeFileSync(path.join(o, "frame-00-at-7s.png"), "png"); process.exit(0); }
+if (cmd === "--version") { console.log("0.8.133"); process.exit(0); }
+process.exit(1);
+`);
+  chmodSync(fakeBin, 0o755);
+});
+
+test("the daily loop: fresh stories become campaigns, rendered and scheduled on the next slots", async () => {
+  const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:00:00Z", "--json"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(r.stdout);
+  assert.equal(report.planned.length, 2, "two fresh stories, the stale one is ignored");
+  assert.deepEqual(report.planned.map((p) => p.scheduledAt), ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
+  assert.deepEqual(report.errors, []);
+  const creates = mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts");
+  assert.equal(creates.length, 2);
+  assert.deepEqual(creates.map((c) => c.fields["post[scheduled_at]"]), ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
+  // second run: everything is covered, nothing is created again
+  const postsBefore = mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts").length;
+  const again = await runCli(["daily", "acme", "--from", "2026-10-06T19:05:00Z"], ENV());
+  assert.equal(again.status, 0, again.stderr);
+  assert.match(again.stdout, /nothing new/);
+  assert.equal(mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts").length, postsBefore);
+});
+
+function mockCalls() { return mock.calls; }

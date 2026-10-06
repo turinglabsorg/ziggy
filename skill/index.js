@@ -24,6 +24,7 @@ import { runAutopilot, readQueue, policyOf } from "./scripts/autopilot.mjs";
 import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
 import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
 import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
+import { runDaily } from "./scripts/daily.mjs";
 import { threadForCampaign } from "./scripts/thread.mjs";
 import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
 
@@ -75,6 +76,9 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy stories <slug> [--json]                     the tenant's feed (tenant.json → feed), newest first
   ziggy story <slug> [--index 0] [--name <campaign>] [--force]
                                                     latest story → campaign on the "story" template (kicker, headline, dek, image)
+  ziggy daily <slug> [--dry-run] [--from <ISO>]    the daily loop: uncovered feed stories → campaigns →
+                                                    rendered reels → scheduled on the tenant's slots
+                                                    (tenant.json → daily: slots, tz, maxAgeHours, only)
   ziggy copy <slug> <name> [--json]                show + validate the per-platform copy, including thread replies
   ziggy thread <slug> <name> [--limit 280] [--enable]
                                                     rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
@@ -112,7 +116,7 @@ autopilot) wraps itself in \`hush run\` when ${KEY_ENV} is not already set.`);
 
 /* ── key-needing commands re-exec under hush ─────────────────────────────── */
 
-const NEEDS_KEY = new Set(["post", "publish", "delete", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
+const NEEDS_KEY = new Set(["post", "publish", "delete", "daily", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
 
 function ensureKey(slug) {
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
@@ -316,6 +320,22 @@ async function main() {
     }
 
     /* ── key-needing commands ── */
+    case "daily": {
+      const t = loadTenant(pos[0]); ensureKey(t.slug);
+      if (!installedFonts(fontsDir(t.slug)).length) fail(`no fonts — run: ziggy brand fonts ${t.slug}`);
+      const fromFlag = flag("--from");
+      const r = await runDaily(t, {
+        dryRun: has("--dry-run"),
+        log: say,
+        ...(fromFlag && fromFlag !== true ? { from: new Date(fromFlag) } : {}),
+      });
+      return out(r, (d) => [
+        ...d.planned.map((p) => `✓ ${p.campaign}\n  ${p.title}\n  → ${p.scheduledAt}  (${p.posts.map((x) => `${x.kind}${x.postId ? ` ${x.postId}` : ""}`).join(", ")})`),
+        ...d.errors.map((e) => `✗ ${e}`),
+        ...(d.planned.length || d.errors.length ? [] : [`(nothing new — ${d.storiesInFeed} stories in the feed, all already covered)`]),
+      ].join("\n"));
+    }
+
     case "profiles": {
       const t = loadTenant(pos[0]); ensureKey(t.slug);
       const list = await createClient().listProfiles();

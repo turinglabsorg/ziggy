@@ -46,6 +46,12 @@ working **with** Ziggy.
 - Story captions carry the whole story: headline, dek, one paragraph per summary slide, then
   sources/CTA/hashtags. `ziggy delete <slug> <postId…>` removes drafts or scheduled posts (no
   media cleanup — recreating a scheduled post re-uploads).
+- `ziggy daily <slug>` (daily.mjs) is the durable daily loop: uncovered feed stories → campaigns
+  → rendered reels → scheduled on the tenant's slots (`tenant.json → daily`: slots, tz,
+  maxAgeHours, only). An external scheduler (launchd/cron/timer) owns the cadence. Coverage means
+  a post exists in posts.jsonl, matched by slug *and* headline tokens (the feed re-slugs stories
+  on update) — a campaign that crashed mid-run is reused, never resummarized. `--dry-run` writes
+  nothing. A story whose image fails to fetch renders without the photo, never fails.
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
   threads, bluesky, linkedin, facebook. TikTok is video-only, always needs media, and its boolean
   params must keep their type: multipart posts send platforms with boolean/number params as one

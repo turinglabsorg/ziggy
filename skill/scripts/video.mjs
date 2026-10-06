@@ -115,9 +115,13 @@ async function placeImage(campaign, dir, fetchImpl = fetch) {
   const target = join(dir, "assets", `story.${ext}`);
   if (/^https?:\/\//i.test(ref)) {
     if (!existsSync(target)) {
-      const res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } });
-      if (!res.ok) throw new Error(`image ${ref} → ${res.status}`);
-      await writeFile(target, Buffer.from(await res.arrayBuffer()));
+      try {
+        const res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } });
+        if (!res.ok) throw new Error(`${res.status}`);
+        await writeFile(target, Buffer.from(await res.arrayBuffer()));
+      } catch {
+        return null; // a story without a reachable image renders without the photo
+      }
     }
   } else {
     const src = ref.startsWith("/") ? ref : join(campaign.dir || ".", ref);

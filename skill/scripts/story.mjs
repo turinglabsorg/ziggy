@@ -17,7 +17,8 @@
  * about is left for the human to fill in the generated campaign.json.
  */
 import { spawnSync } from "node:child_process";
-import { loadCampaign, saveCampaign } from "./config.mjs";
+import { join } from "node:path";
+import { loadCampaign, saveCampaign, tenantDir } from "./config.mjs";
 import { composeThread } from "./thread.mjs";
 import { SLIDE_IDS } from "./slides.mjs";
 
@@ -215,7 +216,7 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
 }
 
 /** Fetch the latest (or N-th) story and write it as a campaign. Returns { name, dir, story }. */
-export async function createStoryCampaign(tenant, { index = 0, name, fetchImpl, force = false, spawnImpl, summarize = true } = {}) {
+export async function createStoryCampaign(tenant, { index = 0, name, fetchImpl, force = false, spawnImpl, summarize = true, write = true } = {}) {
   const stories = await fetchStories(tenant, { fetchImpl });
   const story = stories[index];
   if (!story) throw new Error(`the feed has ${stories.length} stor${stories.length === 1 ? "y" : "ies"}; index ${index} is out of range`);
@@ -230,6 +231,11 @@ export async function createStoryCampaign(tenant, { index = 0, name, fetchImpl, 
   let exists = false;
   try { loadCampaign(tenant.slug, campaignName); exists = true; } catch { /* new */ }
   if (exists && !force) throw new Error(`campaign ${campaignName} already exists for ${tenant.slug} — pass --force to overwrite`);
+  if (!write) {
+    // dry-run: the campaign exists only in memory, so a probe can never block the real run
+    const dir = join(tenantDir(tenant.slug), "campaigns", campaignName);
+    return { name: campaignName, dir, story, campaign: { ...campaign, name: campaignName, dir } };
+  }
   const dir = saveCampaign(tenant.slug, campaignName, campaign);
   return { name: campaignName, dir, story, campaign };
 }
