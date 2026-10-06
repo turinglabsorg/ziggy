@@ -14,7 +14,7 @@ import { escapeHtml, snapshot, starField } from "./video.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TPL = join(HERE, "..", "templates", "social");
 
-function fontFacesCss(brand, fontFiles, indent = "      ") {
+export function fontFacesCss(brand, fontFiles, indent = "      ") {
   const out = [];
   for (const role of ["display", "text", "mono"]) {
     const f = brand.fonts?.[role];

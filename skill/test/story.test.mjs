@@ -52,7 +52,15 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.posts.instagram_reel.cover, true);
   assert.match(c.posts.instagram_reel.body, /Comment LINK/);
   assert.equal(c.posts.instagram_reel.first_comment, "Comment LINK and we'll DM you the full story with sources.");
+  assert.equal(c.posts.twitter.media, "slide-cover");
+  assert.equal(c.posts.twitter.alt_text, c.copy.headline);
   assert.equal(c.posts.twitter.enabled, false);
+  assert.equal(c.posts.twitter.body, c.copy.headline);
+  assert.equal(c.posts.twitter.body.includes("http"), false);
+  assert.equal(c.posts.twitter.thread.at(-1).body, c.story.url);
+  assert.equal(c.posts.twitter.thread[0].body, c.copy.dek);
+  assert.deepEqual(c.posts.instagram_post.media, ["slide-cover", "slide-dek", "slide-close"]);
+  assert.equal(c.posts.instagram_post.enabled, false);
   assert.equal(c.duration, 12);
 });
 

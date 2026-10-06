@@ -110,6 +110,11 @@ export function createClient({ baseUrl = process.env.ZIGGY_POSTPROXY_BASE_URL ||
         if (/^https?:\/\//i.test(m)) form.append("media[]", m);
         else form.append("media[]", await openAsBlob(m, { type: mimeFor(m) }), basename(m));
       }
+      if (Array.isArray(thread)) {
+        thread.forEach((child, i) => {
+          if (child?.body) form.append(`thread[${i}][body]`, child.body);
+        });
+      }
       for (const [platform, params] of Object.entries(platforms)) {
         for (const [k, v] of Object.entries(params || {})) {
           if (v == null) continue;

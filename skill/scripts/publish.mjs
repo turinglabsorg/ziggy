@@ -8,11 +8,13 @@
  *   "posts": {
  *     "twitter":        { "body": "…", "media": "x" },
  *     "instagram_reel": { "body": "…", "media": "reel", "cover": true, "first_comment": "…" },
- *     "instagram_post": { "body": "…", "media": "post-still", "alt_text": "…" }
+ *     "instagram_post": { "body": "…", "media": ["slide-cover", "slide-dek", "slide-close"], "alt_text": ["…", "…", "…"] }
  *   }
  *
- * `media` names a render variant (video) or `<variant>-still` (the PNG/JPG final frame);
- * an absolute path or URL is used as-is. Posts with `"enabled": false` are skipped.
+ * `media` names a render variant (its video, or its still when the variant is a slide),
+ * `<variant>-still` (the PNG final frame), or an array of those — two or more images on an
+ * Instagram feed post is a carousel. An absolute path or URL is used as-is.
+ * Posts with `"enabled": false` are skipped. `thread` is the list of reply posts.
  */
 import { existsSync, statSync } from "node:fs";
 import { logPost } from "./config.mjs";
@@ -30,45 +32,67 @@ export const POST_KINDS = {
   facebook: { platform: "facebook", format: "post", limits: { chars: 63206 } },
 };
 
-/** Resolve a campaign post's `media` reference to a file path or URL. */
+/** Resolve one `media` reference to a file path or URL. A slide variant resolves to its PNG. */
 export function resolveMedia(ref, manifest) {
   if (!ref) return null;
   if (/^https?:\/\//i.test(ref) || ref.startsWith("/")) return ref;
   const still = ref.endsWith("-still");
   const variant = still ? ref.slice(0, -6) : ref;
   const out = manifest?.outputs?.[variant];
-  if (!out) throw new Error(`media ${JSON.stringify(ref)} refers to variant ${JSON.stringify(variant)} which has no render — run: ziggy video <tenant> <campaign>`);
-  const file = still ? out.still : out.video;
+  if (!out) throw new Error(`media ${JSON.stringify(ref)} refers to variant ${JSON.stringify(variant)} which has no render — run: ziggy video <tenant> <campaign> or ziggy slides <tenant> <campaign>`);
+  const file = still ? out.still : (out.video && existsSync(out.video) ? out.video : out.still);
   if (!file || !existsSync(file)) throw new Error(`media file for ${ref} is missing (${file || "no still captured"})`);
   return file;
 }
 
-/** Static checks before anything is uploaded: text length, file size, extension. */
-export function validatePost(kind, spec, mediaPath) {
+/** `media` is one reference or a list (an Instagram carousel). */
+export function resolveMediaList(ref, manifest) {
+  const refs = Array.isArray(ref) ? ref : ref ? [ref] : [];
+  return refs.map((r) => resolveMedia(r, manifest));
+}
+
+/** Static checks before anything is uploaded: text length, file size, extension, carousel count. */
+export function validatePost(kind, spec, mediaPaths) {
   const def = POST_KINDS[kind];
   if (!def) throw new Error(`unknown post kind ${JSON.stringify(kind)}; known: ${Object.keys(POST_KINDS).join(", ")}`);
   const problems = [];
   const chars = def.limits.chars;
   if (chars && (spec.body || "").length > chars) problems.push(`${kind}: body is ${spec.body.length} chars, limit ${chars}`);
-  if (mediaPath && !/^https?:\/\//i.test(mediaPath)) {
+  for (const [i, child] of (spec.thread || []).entries()) {
+    if (chars && (child.body || "").length > chars) problems.push(`${kind}: thread[${i}] is ${child.body.length} chars, limit ${chars}`);
+  }
+  const paths = Array.isArray(mediaPaths) ? mediaPaths : mediaPaths ? [mediaPaths] : [];
+  let images = 0;
+  let videos = 0;
+  for (const mediaPath of paths) {
+    if (!mediaPath || /^https?:\/\//i.test(mediaPath)) {
+      if (mediaPath && /\.(mp4|mov)(\?|$)/i.test(mediaPath)) videos++;
+      else if (mediaPath) images++;
+      continue;
+    }
     const ext = mediaPath.split(".").pop().toLowerCase();
     const isVideo = ["mp4", "mov"].includes(ext);
     const limit = isVideo ? def.limits.video : def.limits.image;
+    if (isVideo) videos++; else images++;
     if (limit) {
       if (!limit.formats.includes(ext)) problems.push(`${kind}: .${ext} is not accepted (${limit.formats.join(", ")})`);
       const bytes = statSync(mediaPath).size;
       if (bytes > limit.maxBytes) problems.push(`${kind}: ${Math.round(bytes / 1024 / 1024)} MB exceeds ${Math.round(limit.maxBytes / 1024 / 1024)} MB`);
     }
-  } else if (!mediaPath && def.platform === "instagram") {
-    problems.push(`${kind}: Instagram requires media`);
   }
+  const imageCap = def.limits.image?.count;
+  if (imageCap && images > imageCap) problems.push(`${kind}: ${images} images, limit ${imageCap}`);
+  if (videos > 1) problems.push(`${kind}: only one video per post`);
+  if (videos && images && def.platform === "twitter") problems.push(`${kind}: X cannot mix images and video`);
+  if (def.format === "reel" && paths.length !== 1) problems.push(`${kind}: a reel takes one video`);
+  if (!paths.length && def.platform === "instagram") problems.push(`${kind}: Instagram requires media`);
   return problems;
 }
 
 /** Build the request for one campaign post. Pure. */
 export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt }) {
   const def = POST_KINDS[kind];
-  const media = resolveMedia(spec.media, manifest);
+  const media = resolveMediaList(spec.media, manifest);
   const params = {};
   if (def.format) params.format = def.format;
   if (spec.first_comment) params.first_comment = spec.first_comment;
@@ -83,7 +107,7 @@ export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt
   for (const [k, v] of Object.entries(spec.platform || {})) params[k] = v;
   return {
     kind,
-    request: { body: spec.body || "", profiles: [profile.id], media: media ? [media] : [], platforms: { [def.platform]: params }, draft, scheduledAt },
+    request: { body: spec.body || "", profiles: [profile.id], media, platforms: { [def.platform]: params }, draft, scheduledAt, thread: Array.isArray(spec.thread) ? spec.thread.map((child) => ({ body: child.body || "" })) : undefined },
     problems: validatePost(kind, spec, media),
     media,
   };
@@ -112,7 +136,8 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
   if (problems.length) throw new Error(`campaign ${campaign.name} is not publishable:\n  ${problems.join("\n  ")}`);
 
   for (const plan of plans) {
-    log(`→ ${plan.kind} on ${plan.profile.name}${plan.media ? ` (${plan.media.split("/").pop()})` : ""}`);
+    const names = (plan.media || []).map((m) => m.split("/").pop());
+    log(`→ ${plan.kind} on ${plan.profile.name}${names.length ? ` (${names.join(", ")})` : ""}`);
     if (dryRun) { results.push({ kind: plan.kind, request: plan.request, profile: plan.profile.name, dryRun: true }); continue; }
     const post = await client.createPost(plan.request);
     logPost(tenant.slug, { campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || null, link: campaign.story?.url || campaign.link || null });

@@ -17,6 +17,8 @@
  * about is left for the human to fill in the generated campaign.json.
  */
 import { loadCampaign, saveCampaign } from "./config.mjs";
+import { composeThread } from "./thread.mjs";
+import { SLIDE_IDS } from "./slides.mjs";
 
 export function pick(obj, path) {
   if (!path) return undefined;
@@ -76,6 +78,9 @@ export function campaignFromStory(tenant, story, { name } = {}) {
   const meta = [story.sources != null ? `${story.sources} source${story.sources === 1 ? "" : "s"}` : null, story.languages != null ? `${story.languages} language${story.languages === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ");
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   const sourcesLine = story.sources != null ? ` Sourced from ${plural(story.sources, "report")}${story.languages ? ` in ${plural(story.languages, "language")}` : ""}.` : "";
+  const caption = `${story.title}\n\n${story.dek}${sourcesLine}\n\nWant the full story with its sources? Comment LINK and we'll send it to you. Also at ${displayUrl} (link in bio).\n\n#UFO #UAP #Space #Astronomy`;
+  const linkComment = "Comment LINK and we'll DM you the full story with sources.";
+  const thread = composeThread({ title: story.title, dek: story.dek, url: story.url, limit: 280 });
   return {
     template: "story",
     language: lang,
@@ -87,14 +92,23 @@ export function campaignFromStory(tenant, story, { name } = {}) {
     audio: { bed: "ambient", volume: 0.6, swellAt: 1.6, beats: [[0.6, 1318.5, 1.2, 0.07], [1.5, 659.3, 1.6, 0.06], [7.6, 987.8, 0.9, 0.035]] },
     posts: {
       instagram_reel: {
-        body: `${story.title}\n\n${story.dek}${sourcesLine}\n\nWant the full story with its sources? Comment LINK and we'll send it to you. Also at ${displayUrl} (link in bio).\n\n#UFO #UAP #Space #Astronomy`,
+        body: caption,
         media: "reel",
         cover: true,
-        first_comment: "Comment LINK and we'll DM you the full story with sources.",
+        first_comment: linkComment,
+      },
+      instagram_post: {
+        body: caption,
+        media: [...SLIDE_IDS],
+        alt_text: [story.title, story.dek, `${tenant.name} — ${displayUrl}`].filter(Boolean),
+        first_comment: linkComment,
+        enabled: false,
       },
       twitter: {
-        body: `${story.title}\n\n${story.dek}\n\n${story.url || displayUrl}`,
-        media: "reel",
+        body: thread.body,
+        media: "slide-cover",
+        alt_text: story.title,
+        thread: thread.thread,
         enabled: false,
       },
     },

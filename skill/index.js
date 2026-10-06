@@ -24,6 +24,8 @@ import { runAutopilot, readQueue, policyOf } from "./scripts/autopilot.mjs";
 import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
 import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
 import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
+import { threadForCampaign } from "./scripts/thread.mjs";
+import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const args = process.argv.slice(2);
@@ -73,7 +75,10 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy stories <slug> [--json]                     the tenant's feed (tenant.json → feed), newest first
   ziggy story <slug> [--index 0] [--name <campaign>] [--force]
                                                     latest story → campaign on the "story" template (kicker, headline, dek, image)
-  ziggy copy <slug> <name> [--json]                show + validate the per-platform copy
+  ziggy copy <slug> <name> [--json]                show + validate the per-platform copy, including thread replies
+  ziggy thread <slug> <name> [--limit 280] [--enable]
+                                                    rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
+  ziggy slides <slug> <name> [--enable]            carousel stills: cover, dek, close (1080×1350)
   ziggy video <slug> <name> [--variants reel,x,post] [--quality high] [--dry-run] [--skip-check]
                                                     scaffold HyperFrames projects, check, render, capture stills
   ziggy post <slug> <name> [--live] [--at <ISO>] [--only twitter,instagram_reel] [--dry-run] [--watch]
@@ -225,14 +230,58 @@ async function main() {
       const t = loadTenant(pos[0]);
       const idx = Number(flag("--index", 0)) || 0;
       const r = await createStoryCampaign(t, { index: idx, name: flag("--name") && flag("--name") !== true ? String(flag("--name")) : undefined, force: has("--force") });
-      return out({ name: r.name, dir: r.dir, story: { ...r.story, raw: undefined } }, `created campaign ${r.name}\n  ${r.story.title}\n  ${r.dir}/campaign.json\nnext: ziggy video ${t.slug} ${r.name} --variants reel && ziggy post ${t.slug} ${r.name}`);
+      return out({ name: r.name, dir: r.dir, story: { ...r.story, raw: undefined } }, `created campaign ${r.name}\n  ${r.story.title}\n  ${r.dir}/campaign.json\nnext: ziggy video ${t.slug} ${r.name} --variants reel\n      ziggy slides ${t.slug} ${r.name}    # carousel stills\n      ziggy thread ${t.slug} ${r.name}    # thread: cover image on the first post, link in the last reply`);
+    }
+
+    case "thread": {
+      const [slug, name] = pos;
+      const c = loadCampaign(slug, name);
+      const limit = Number(flag("--limit", 280)) || 280;
+      const built = threadForCampaign(c, { limit });
+      c.posts = c.posts || {};
+      const prev = c.posts.twitter || { enabled: false };
+      if (has("--enable")) delete prev.enabled;
+      const media = prev.media && prev.media !== "reel" ? prev.media : "slide-cover";
+      c.posts.twitter = { ...prev, body: built.body, thread: built.thread, media };
+      saveCampaign(slug, name, c);
+      const parts = [built.body, ...built.thread.map((t) => t.body)];
+      return out({ limit, enabled: c.posts.twitter.enabled !== false, parts }, (d) => d.parts.map((p, i) => `${i + 1}. (${p.length}/${limit}) ${p}`).join("\n") + (c.posts.twitter.enabled === false ? "\n\ntwitter is disabled — ziggy thread <tenant> <campaign> --enable" : ""));
     }
 
     case "copy": {
       const [slug, name] = pos;
       const c = loadCampaign(slug, name);
-      const rows = Object.entries(c.posts || {}).map(([kind, spec]) => ({ kind, enabled: spec.enabled !== false, chars: (spec.body || "").length, limit: POST_KINDS[kind]?.limits.chars || null, media: spec.media, body: spec.body }));
-      return out(rows, (d) => d.map((r) => `── ${r.kind}${r.enabled ? "" : " (disabled)"} · ${r.chars}${r.limit ? `/${r.limit}` : ""} chars · media ${r.media}${r.limit && r.chars > r.limit ? "  ✗ too long" : ""}\n${r.body}\n`).join("\n"));
+      const rows = Object.entries(c.posts || {}).map(([kind, spec]) => ({
+        kind, enabled: spec.enabled !== false, chars: (spec.body || "").length, limit: POST_KINDS[kind]?.limits.chars || null,
+        media: spec.media, body: spec.body, thread: (spec.thread || []).map((t) => t.body),
+      }));
+      return out(rows, (d) => d.map((r) => {
+        const media = Array.isArray(r.media) ? r.media.join(", ") : r.media;
+        const replies = (r.thread || []).map((t, i) => `\n  ${i + 2}. (${t.length}${r.limit ? `/${r.limit}` : ""}) ${t}`).join("");
+        return `── ${r.kind}${r.enabled ? "" : " (disabled)"} · ${r.chars}${r.limit ? `/${r.limit}` : ""} chars · media ${media}${r.limit && r.chars > r.limit ? "  ✗ too long" : ""}\n${r.body}${replies}\n`;
+      }).join("\n"));
+    }
+
+    case "slides": {
+      const [slug, name] = pos;
+      const t = loadTenant(slug);
+      const c = loadCampaign(slug, name);
+      if (!installedFonts(fontsDir(slug)).length) fail(`no fonts — run: ziggy brand fonts ${slug}`);
+      const manifest = await produceSlides({ tenant: t, campaign: c, version: loadConfig().hyperframesVersion, log: say, skipCheck: has("--skip-check") });
+      const prev = c.posts?.instagram_post || {};
+      const enable = has("--enable") || (prev.enabled === false && Array.isArray(prev.media));
+      c.posts = c.posts || {};
+      const post = {
+        ...prev,
+        body: prev.body || `${c.copy?.headline || t.name}\n\n${c.copy?.dek || ""}`.trim(),
+        media: [...SLIDE_IDS],
+        alt_text: prev.alt_text || [c.copy?.headline, c.copy?.dek, c.copy?.url].filter(Boolean),
+        first_comment: prev.first_comment || "",
+      };
+      if (enable) delete post.enabled;
+      c.posts.instagram_post = post;
+      saveCampaign(slug, name, c);
+      return out(manifest, (m) => SLIDE_IDS.map((id) => `${id.padEnd(12)} ${m.outputs[id].still}`).join("\n") + `\ninstagram_post ${c.posts.instagram_post.enabled === false ? "disabled" : "enabled"}`);
     }
 
     case "video": {

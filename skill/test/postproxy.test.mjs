@@ -55,6 +55,19 @@ test("local media → multipart with bracketed fields, platform params and a cov
   assert.deepEqual(f["platforms[instagram][collaborators][]"], ["a", "b"]);
 });
 
+test("a thread travels with local media as indexed form fields", async () => {
+  const video = join(dir, "tweet.mp4"); writeFileSync(video, Buffer.alloc(128, 3));
+  await client().createPost({
+    body: "the claim", profiles: ["prof_x"], media: [video],
+    thread: [{ body: "https://example.com/story" }],
+    platforms: { twitter: {} },
+  });
+  const f = mock.calls.at(-1).fields;
+  assert.equal(f["post[body]"], "the claim");
+  assert.equal(f["thread[0][body]"], "https://example.com/story");
+  assert.equal(JSON.stringify(f).includes("https://example.com/story"), true);
+});
+
 test("remote media → JSON body with draft/scheduled_at", async () => {
   await client().createPost({ body: "x", profiles: ["twitter"], media: ["https://cdn.example/v.mp4"], platforms: { twitter: {} }, scheduledAt: "2030-01-01T10:00:00Z" });
   const b = mock.calls.at(-1).body;

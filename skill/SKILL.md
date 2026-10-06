@@ -1,6 +1,6 @@
 ---
 name: ziggy
-description: Per-tenant social media manager. Use when the user wants to launch or run a brand's social presence — extract a brand from a site, make profile/header images, produce short HyperFrames videos (reel, X, feed), write and publish posts through Postproxy, read comments/DMs/stats, answer comments, or schedule the autopilot. Triggers on "post this", "publish on X/Instagram", "social launch", "reel", "cover image", "answer the comments", "how are the posts doing", "ziggy", or any tenant name configured in ziggy (e.g. alienwatch).
+description: Per-tenant social media manager. Use when the user wants to launch or run a brand's social presence — extract a brand from a site, make profile/header images, produce short HyperFrames videos (reel, X, feed), Instagram photo carousels, and X text threads, write and publish posts through Postproxy, read comments/DMs/stats, answer comments, or schedule the autopilot. Triggers on "post this", "publish on X/Instagram", "social launch", "reel", "carousel", "thread", "cover image", "answer the comments", "how are the posts doing", "ziggy", or any tenant name configured in ziggy (e.g. alienwatch).
 ---
 
 # Ziggy
@@ -24,6 +24,8 @@ When working from the repo without installing: `node ziggy/skill/index.js …`.
 | 3. Identity | `ziggy assets <slug>` | profile mark 1000/400 px, X header 1500×500 (+@2x) |
 | 4. Campaign | `ziggy campaign add <slug> <name>` → edit `campaign.json`, or `ziggy story <slug>` for the latest story of a publishing tenant | copy + per-platform posts + variants |
 | 5. Video | `ziggy video <slug> <name>` | HyperFrames projects, checked + rendered: reel 9:16, X 16:9, feed 4:5 + stills |
+| 5b. Carousel | `ziggy slides <slug> <name>` | three feed stills (cover, dek, close) for an Instagram carousel |
+| 5c. Thread | `ziggy thread <slug> <name>` | X thread: cover image on the opening post, replies, the link in the last reply |
 | 6. Publish | `ziggy post <slug> <name>` (drafts) → `ziggy publish <slug> <ids>` or `ziggy post … --live` | Postproxy posts, permalinks in `ziggy status` |
 | 7. Listen | `ziggy inbox <slug>` · `ziggy stats <slug>` | new comments, DM threads, engagement |
 | 8. Answer | `ziggy reply …` · `ziggy hide …` · `ziggy dm …` · `ziggy autopilot <slug>` | replies per the tenant playbook |
@@ -51,7 +53,11 @@ Read the reference for the step you are on — `references/tenants.md`, `brand.m
    press, money or unclear is escalated to the queue. Review the queue with the user.
 6. **Instagram links are not clickable** in captions or comments. Story posts ask people to comment
    LINK; the autopilot DMs the URL (`linkReply`). Keep "link in bio" true: the bio must point at the site.
-7. **Report with permalinks and numbers**, never with raw API dumps. `ziggy status`, `ziggy stats`
+7. **X posts always include the image.** The opening post carries the cover still (`slide-cover`,
+   from `ziggy slides`). Never publish a text-only thread, and do not attach the reel instead of
+   the picture. Replies stay text; the story URL is the last reply. Do not delete `media` to make
+   a post go through. Run `ziggy slides` before `ziggy post` so the file exists.
+8. **Report with permalinks and numbers**, never with raw API dumps. `ziggy status`, `ziggy stats`
    and `ziggy inbox` already format them.
 
 ## Quick recipes
@@ -70,7 +76,9 @@ The latest story as a reel (tenant.json → `feed` maps the site's feed):
 ```bash
 ziggy stories alienwatch                                 # what the feed has, newest first
 ziggy story alienwatch                                   # → campaign story-<date>-<slug> on the "story" template (kicker, headline, dek, image)
-ziggy video alienwatch story-… --variants reel
+ziggy video alienwatch story-… --variants reel   # the video
+ziggy slides alienwatch story-…                  # the carousel: cover, dek, close
+ziggy thread alienwatch story-… --enable         # the thread; the cover image is on the first post, the link in the last reply
 ziggy post alienwatch story-… --live --only instagram_reel --watch
 ```
 

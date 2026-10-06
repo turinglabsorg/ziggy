@@ -15,6 +15,11 @@ ziggy video alienwatch first-post --quality draft # fast iteration
 Outputs land in `~/.ziggy/tenants/<slug>/renders/<campaign>/` with a `manifest.json` that
 `ziggy post` reads to find each platform's media.
 
+`ziggy slides <slug> <campaign>` adds three stills to that manifest — `slide-cover`, `slide-dek`,
+`slide-close`, 1080×1350 — and points `posts.instagram_post.media` at them. Two or more images on
+an Instagram feed post publish as a carousel. The stills are static cards, not a video. A story's
+X post uses `slide-cover` on the opening tweet; the reel is not a substitute for that image.
+
 ## Variants
 
 | name | canvas | layout | purpose |
