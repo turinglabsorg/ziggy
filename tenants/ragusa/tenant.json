@@ -1,95 +1,97 @@
 {
-  "name": "Ragusa Buzz",
-  "site": "https://ragusa.buzz/",
-  "language": "it",
-  "postproxy": {
-    "profileGroupId": null,
-    "profileIds": []
-  },
-  "autopilot": {
-    "mode": "draft",
-    "dms": false,
-    "maxPerRun": 10,
-    "skipAuthors": [
-      "ragusabuzz"
-    ],
-    "escalateWords": [
-      "legal",
-      "lawyer",
-      "avvocato",
-      "denuncia",
-      "querela",
-      "diffamazione",
-      "press",
-      "journalist",
-      "giornalista",
-      "sponsor",
-      "partnership",
-      "soldi",
-      "refund"
-    ],
-    "agent": {
-      "command": [
-        "claude",
-        "-p",
-        "--output-format",
-        "json"
-      ],
-      "timeoutMs": 120000
+    "name": "Ragusa Buzz",
+    "site": "https://ragusa.buzz/",
+    "language": "it",
+    "postproxy": {
+        "profileGroupId": "NWFp3R",
+        "profileIds": [
+            "OLU4ab"
+        ]
     },
-    "linkReply": {
-      "keywords": [
-        "link",
-        "fonte",
-        "fonti",
-        "articolo",
-        "articolo completo",
-        "source",
-        "sources"
-      ],
-      "template": "Ecco la storia completa, con le sue fonti: {url}",
-      "ack": "Inviato — controlla i DM 📩"
+    "autopilot": {
+        "mode": "draft",
+        "dms": false,
+        "maxPerRun": 10,
+        "skipAuthors": [
+            "ragusabuzz"
+        ],
+        "escalateWords": [
+            "legal",
+            "lawyer",
+            "avvocato",
+            "denuncia",
+            "querela",
+            "diffamazione",
+            "press",
+            "journalist",
+            "giornalista",
+            "sponsor",
+            "partnership",
+            "soldi",
+            "refund"
+        ],
+        "agent": {
+            "command": [
+                "claude",
+                "-p",
+                "--output-format",
+                "json"
+            ],
+            "timeoutMs": 120000
+        },
+        "linkReply": {
+            "keywords": [
+                "link",
+                "fonte",
+                "fonti",
+                "articolo",
+                "articolo completo",
+                "source",
+                "sources"
+            ],
+            "template": "Ecco la storia completa, con le sue fonti: {url}",
+            "ack": "Inviato \u2014 controlla i DM \ud83d\udce9"
+        }
+    },
+    "handles": {
+        "instagram": "@ragusabuzz",
+        "tiktok": "@ragusabuzz"
+    },
+    "social": {
+        "cta": "La storia completa e le fonti: {site} (link in bio).",
+        "hashtags": "#Ragusa #Sicilia #Cronaca #Notizie",
+        "linkComment": "Commenta LINK e ti mandiamo la storia completa con le fonti in DM.",
+        "bed": "news"
+    },
+    "notes": "Local news for the Ragusa province, multilingual. Social is Italian-first, Instagram + TikTok only.",
+    "feed": {
+        "url": "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=10",
+        "items": "data",
+        "fields": {
+            "title": "title",
+            "dek": "dek",
+            "section": "sector.name",
+            "date": "storyDate",
+            "image": "imageUrl",
+            "slug": "slug",
+            "sources": "sourceCount",
+            "languages": "languageCount"
+        },
+        "imageRewrite": {
+            "match": "^.*?/api/assets/tenants/[0-9a-f-]+/",
+            "replace": "https://ragusa.buzz/assets/"
+        },
+        "sections": {
+            "Crime & Disasters": "Cronaca",
+            "Economy & Markets": "Economia",
+            "Energy & Climate": "Ambiente",
+            "Geopolitics & Politics": "Politica",
+            "Justice & Law": "Giustizia",
+            "Media & Entertainment": "Spettacolo",
+            "Society & Culture": "Societ\u00e0",
+            "Sport": "Sport"
+        },
+        "storyUrl": "https://ragusa.buzz/#/b/{slug}?lang=it",
+        "displayUrl": "ragusa.buzz"
     }
-  },
-  "handles": {
-    "instagram": "@ragusabuzz",
-    "tiktok": "@ragusabuzz"
-  },
-  "social": {
-    "cta": "La storia completa e le fonti: {site} (link in bio).",
-    "hashtags": "#Ragusa #Sicilia #Cronaca #Notizie",
-    "linkComment": "Commenta LINK e ti mandiamo la storia completa con le fonti in DM.",
-    "bed": "news"
-  },
-  "notes": "Local news for the Ragusa province, multilingual. Social is Italian-first, Instagram + TikTok only.",
-  "feed": {
-    "url": "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=10",
-    "items": "data",
-    "fields": {
-      "title": "title",
-      "dek": "dek",
-      "section": "sector.name",
-      "date": "storyDate",
-      "image": "imageUrl",
-      "slug": "slug",
-      "sources": "sourceCount",
-      "languages": "languageCount"
-    },
-    "imageRewrite": {
-      "match": "^.*?/api/assets/tenants/[0-9a-f-]+/",
-      "replace": "https://ragusa.buzz/assets/"
-    },
-    "sections": {
-      "Crime & Disasters": "Cronaca",
-      "Economy & Markets": "Economia",
-      "Energy & Climate": "Ambiente",
-      "Geopolitics & Politics": "Politica",
-      "Justice & Law": "Giustizia",
-      "Media & Entertainment": "Spettacolo",
-      "Society & Culture": "Società",
-      "Sport": "Sport"
-    },
-    "storyUrl": "https://ragusa.buzz/#/b/{slug}?lang=it",
-    "displayUrl": "ragusa.buzz"
-  }
 }

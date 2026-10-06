@@ -46,6 +46,9 @@ __FONT_FACES__
         #__ID__-teaser { position: absolute; left: __PAD__px; right: __PAD__px; top: 50%; margin: 0; font-family: var(--text); font-weight: 300; font-size: __TEASER__px; line-height: 1.3; letter-spacing: 0.005em; color: var(--fg); text-align: center; transform: translateY(-50%); }
         #__ID__-teaser-inner { display: block; }
 
+        #__ID__-logo { width: __LOGO__px; height: __LOGO__px; margin: 0 0 __LOGO_MB__px; }
+        #__ID__-logo svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
         #__ID__-mark { display: flex; flex-direction: __MARK_DIR__; align-items: center; justify-content: center; gap: __MARK_GAP__; font-family: var(--display); font-size: __MARK__px; line-height: 1; letter-spacing: __LETTER_SPACING__; text-transform: __TEXT_TRANSFORM__; color: var(--fg); }
         #__ID__-mark .word { display: block; overflow: hidden; padding: 0.08em 0.1em 0.12em; margin: -0.08em -0.1em -0.12em; white-space: nowrap; }
         #__ID__-mark .ch { display: inline-block; }
@@ -66,6 +69,7 @@ __AUDIO__
 
           <div id="__ID__-content">
             <p id="__ID__-teaser"><span id="__ID__-teaser-inner">__TEASER_TEXT__</span></p>
+            <div id="__ID__-logo">__MARK_SVG__</div>
             <div id="__ID__-mark">
 __WORDS__
             </div>
@@ -137,6 +141,15 @@ __WORDS__
             tl.fromTo($("teaser-inner"), { autoAlpha: 0, y: 18, filter: "blur(10px)" }, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: ease.soft }, 1.0);
             tl.to($("teaser-inner"), { autoAlpha: 0, y: -16, duration: 0.45, ease: "power2.in" }, 2.85);
 
+            /* ── 3.2  the logo mark blooms in, then sways gently until the end ── */
+            var logoEl = $("logo");
+            if (logoEl.querySelector("svg")) {
+              tl.fromTo(logoEl, { autoAlpha: 0, scale: 0.3, rotation: -16 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.75, ease: "back.out(2)" }, 3.2);
+              tl.to(logoEl, { rotation: 3, duration: 1.8, ease: "sine.inOut", yoyo: true, repeat: -1 }, 4.2);
+            } else {
+              logoEl.style.display = "none";
+            }
+
             /* ── 3.4–4.4  wordmark reveal, letter by letter through a mask ── */
             var chars = document.querySelectorAll("#" + ID + "-mark .ch");
             tl.fromTo(chars, { yPercent: 115, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.85, ease: ease.hard, stagger: 0.04 }, 3.4);
@@ -148,9 +161,14 @@ __WORDS__
             /* ── 4.5  tagline ── */
             tl.fromTo($("tagline"), { autoAlpha: 0, y: 22 }, { autoAlpha: 0.86, y: 0, duration: 0.8, ease: ease.soft }, 4.5);
 
-            /* ── 5.4  url + underline sweep, then hold ── */
-            tl.fromTo($("url"), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: ease.soft }, 5.4);
-            tl.fromTo($("url-line"), { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.7, ease: "power3.inOut" }, 5.55);
+            /* ── 5.4  url + underline sweep, then hold (skipped when the campaign drops the url) ── */
+            var urlEl = $("url");
+            if (urlEl.textContent.trim()) {
+              tl.fromTo(urlEl, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: ease.soft }, 5.4);
+              tl.fromTo($("url-line"), { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.7, ease: "power3.inOut" }, 5.55);
+            } else {
+              urlEl.style.display = "none";
+            }
 
             tl.seek(0);
             window.__timelines[ID] = tl;

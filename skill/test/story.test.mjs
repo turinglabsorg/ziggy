@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
-import { campaignFromStory, fetchStories, normalizeStory, pick, slugify, createStoryCampaign } from "../scripts/story.mjs";
+import { campaignFromStory, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, parseSummaryLines, summarizeStory } from "../scripts/story.mjs";
 import { resolveVariants, scaffold } from "../scripts/video.mjs";
 import { makeWorld } from "./helpers.mjs";
 
@@ -20,6 +20,7 @@ const FEED = {
   imageRewrite: { match: "^.*?/api/assets/tenants/[0-9a-f-]+/", replace: "https://acme.example/assets/" },
   storyUrl: "https://acme.example/#/b/{slug}?lang=en",
   displayUrl: "acme.example",
+  agent: null,
 };
 const ITEM = {
   title: "Modelling Suggests Nearby Binary 70 Ophiuchi Could Host Earth-Sized Planet",
@@ -66,7 +67,8 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.posts.tiktok.enabled, false);
   assert.equal(c.posts.tiktok.platform.privacy_status, "PUBLIC_TO_EVERYONE");
   assert.equal(c.posts.tiktok.platform.disable_comment, false);
-  assert.equal(c.duration, 12);
+  assert.deepEqual(c.copy.points, ["A modelled orbit could sustain an Earth-sized world, but no planet has been detected."]);
+  assert.equal(c.duration, 13);
 });
 
 test("campaignFromStory honours the tenant's social copy and Italian sources line", () => {
@@ -95,6 +97,38 @@ test("fetchStories reads the feed through the mapping; createStoryCampaign write
   assert.equal(second.story.title, "Older");
 });
 
+test("the AI summary pre-script: prompt, line parsing, agent run and fallback", async () => {
+  const tenant = { slug: "acme", name: "Acme", site: "https://acme.example/", language: "it", feed: FEED };
+  const prompt = buildSummaryPrompt(tenant, normalizeStory(ITEM, FEED));
+  assert.match(prompt, /Riassumi questa notizia in 3-4 slide/);
+  assert.match(prompt, /Headline: Modelling Suggests/);
+  assert.match(prompt, /Deck: A modelled orbit/);
+  // plain lines, list markers and a JSON-wrapped agent reply all parse to the same slides
+  const slides = ["La filiera lattiero-casearia iblea si allea.",
+    "Confcooperative Ragusa ha lanciato la sfida alla fiera FAM.",
+    "Il 30 novembre produttori e operatori decidono come procedere."];
+  assert.deepEqual(parseSummaryLines(slides.join("\n")), slides);
+  assert.deepEqual(parseSummaryLines("\n- " + slides.join("\n* ") + "\n\n"), slides);
+  assert.deepEqual(parseSummaryLines(JSON.stringify({ result: "1. " + slides.join("\n2) ") + "\n" })), slides);
+  // a fake agent whose stdout we control
+  const spawnImpl = (bin, args, opts) => {
+    assert.equal(bin, "fake-agent");
+    assert.match(opts.input, /Riassumi/);
+    return { status: 0, stdout: JSON.stringify({ result: slides.join("\n") }), stderr: "" };
+  };
+  const got = await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED), { spawnImpl });
+  assert.deepEqual(got, slides);
+  // no agent configured → null (createStoryCampaign falls back to the dek split)
+  assert.equal(await summarizeStory({ ...tenant, feed: { ...FEED, agent: null } }, normalizeStory(ITEM, FEED)), null);
+  // one usable line is not a summary → null
+  assert.equal(await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED),
+    { spawnImpl: () => ({ status: 0, stdout: slides[0], stderr: "" }) }), null);
+  // and a campaign built with the summary points uses them on the reel slides
+  const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED), { points: slides });
+  assert.deepEqual(c.copy.points, slides);
+  assert.equal(c.duration, 22);
+});
+
 test("the story template scaffolds with headline words, kicker, meta, brand and the fetched image", async () => {
   const tenant = loadTenant("acme");
   const campaign = { ...JSON.parse(readFileSync(join(world.repo, "tenants", "acme", "campaigns", "story-2026-10-05-modelling-study-suggests-nearby", "campaign.json"), "utf8")), name: "s", dir: join(world.repo, "tenants", "acme", "campaigns", "s") };
@@ -110,7 +144,9 @@ test("the story template scaffolds with headline words, kicker, meta, brand and 
   assert.match(html, /var HAS_PHOTO = true;/);
   assert.match(html, /<span class="part" style="font-weight: 300">Acme<\/span>/);
   assert.ok(existsSync(join(reel.dir, "assets", "story.jpg")));
-  assert.match(html, /data-duration="12"/);
+  assert.match(html, /data-duration="13"/);
+  assert.match(html, /class="scene point-scene" id="story-reel-s1"/);
+  assert.match(html, /var PN = 1;/);
   const noImage = await scaffold({ tenant, campaign: { ...campaign, image: null }, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "story2"), fetchImpl });
   assert.match(readFileSync(join(noImage[0].dir, "compositions", "story-reel.html"), "utf8"), /style="display: none"/);
 });

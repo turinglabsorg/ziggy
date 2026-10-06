@@ -31,7 +31,7 @@ export const DEFAULT_VARIANTS = {
 /** Per-template layout numbers merged over DEFAULT_VARIANTS (a template may also drop variants). */
 export const TEMPLATE_VARIANTS = {
   story: {
-    reel: { padTop: 250, padBottom: 300, photoTop: 340, photoH: 608, spacer: 690, kicker: 26, headline: 62, dek: 32, dekMax: 840, dekMt: 30, meta: 22, brand: 40 },
+    reel: { padTop: 250, padBottom: 300, photoTop: 340, photoH: 608, spacer: 690, kicker: 26, headline: 62, dek: 38, dekMax: 820, dekMt: 30, meta: 22, brand: 40 },
     post: { padTop: 110, padBottom: 110, photoTop: 180, photoH: 560, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
     x: false,
   },
@@ -169,16 +169,21 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const bgRgb = hexToRgb(brand.palette.bg) || { r: 0, g: 0, b: 0 };
     const headline = copy.headline || copy.title || "";
     const headlineWords = headline.split(/\s+/).filter(Boolean).map((w) => `<span class="w">${escapeHtml(w)}</span>`).join("");
+    const points = (copy.points || []).filter((p) => typeof p === "string" && p.trim()).slice(0, 4);
+    const pointScenes = points.map((p, i) => `              <div class="scene point-scene" id="${id}-s${i + 1}"><span class="p-num">${String(i + 1).padStart(2, "0")}</span><span class="p-line"></span><p class="p-text">${escapeHtml(p.trim())}</p></div>`).join("\n");
 
     let fill = (s) => s
       .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles))
       .replace(/__STARS_JSON__/g, JSON.stringify(stars))
       .replace(/__STARS__/g, starHtml)
       .replace(/__WORDS__/g, words(brand))
+      .replace(/__MARK_SVG__/g, brand.mark?.svg || "")
+      .replace(/__LOGO_MB__/g, String(Math.round(v.mark * 0.45)))
+      .replace(/__LOGO__/g, String(Math.round(v.mark * 0.85)))
       .replace(/__AUDIO__/g, audio)
       .replace(/__TEASER_TEXT__/g, escapeHtml(copy.teaser || ""))
       .replace(/__TAGLINE__/g, escapeHtml(copy.tagline || brand.tagline || ""))
-      .replace(/__URL_TEXT__/g, escapeHtml(copy.url || new URL(brand.site).hostname))
+      .replace(/__URL_TEXT__/g, copy.url === false || copy.url === "" ? "" : escapeHtml(copy.url || new URL(brand.site).hostname))
       .replace(/__ORBIT_INV_K__/g, (1 / v.orbitK).toFixed(4))
       .replace(/__ORBIT_K__/g, v.orbitK.toFixed(3))
       .replace(/__MARK_DIR__/g, stacked ? "column" : "row")
@@ -209,6 +214,9 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__BG_RGB__/g, `${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}`)
       .replace(/__PHOTO_TOP__/g, String(v.photoTop ?? 340)).replace(/__PHOTO_H__/g, String(v.photoH ?? 608))
       .replace(/__PAD_TOP__/g, String(v.padTop ?? 250)).replace(/__PAD_BOTTOM__/g, String(v.padBottom ?? 330)).replace(/__SPACER__/g, String(v.spacer ?? 690))
+      .replace(/__PNUM__/g, String(Math.round((v.headline ?? 64) * 1.15))).replace(/__PTEXT__/g, String(Math.round((v.headline ?? 64) * 0.84)))
+      .replace(/__FLOGO__/g, String(Math.round((v.brand ?? 40) * 1.3)))
+      .replace(/__POINTS__/g, pointScenes).replace(/__POINT_N__/g, String(points.length))
       .replace(/__KICKER__/g, String(v.kicker ?? 26)).replace(/__HEADLINE__/g, String(v.headline ?? 64))
       .replace(/__DEK_MAX__/g, String(v.dekMax ?? 840)).replace(/__DEK_MT__/g, String(v.dekMt ?? 30)).replace(/__DEK__/g, String(v.dek ?? 33))
       .replace(/__META__/g, String(v.meta ?? 22)).replace(/__BRAND__/g, String(v.brand ?? 40))
