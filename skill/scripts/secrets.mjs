@@ -21,6 +21,15 @@ export function hushBin() {
   return process.env.ZIGGY_HUSH_BIN || "hush";
 }
 
+/**
+ * Binary used to re-launch the CLI as hush's child. Defaults to "node" (resolved through the
+ * child's PATH): process.execPath can point at a node that only exists in the caller's
+ * filesystem view (e.g. a container sharing the user's home), where the child would not start.
+ */
+export function nodeBin() {
+  return process.env.ZIGGY_NODE_BIN || "node";
+}
+
 /** Names hush holds. `{ ok:false }` when hush is missing/locked — never read that as "absent". */
 export function hushNames() {
   const bin = hushBin();
@@ -76,7 +85,7 @@ export function pullKey(slug, { send, passwordEnv, email, codeCmd } = {}) {
  * `self` is the absolute path of the CLI entry (index.js). Output is redacted by hush.
  */
 export function runUnderHush(slug, self, argv, { stdio = "inherit" } = {}) {
-  const args = ["run", "--name", postproxySecretName(slug), "--env", KEY_ENV, "--redact", "--", process.execPath, self, ...argv];
+  const args = ["run", "--name", postproxySecretName(slug), "--env", KEY_ENV, "--redact", "--", nodeBin(), self, ...argv];
   const result = spawnSync(hushBin(), args, { stdio, encoding: "utf8" });
   if (result.error) throw new Error(result.error.code === "ENOENT" ? `hush is not installed (${hushBin()})` : result.error.message);
   return result;

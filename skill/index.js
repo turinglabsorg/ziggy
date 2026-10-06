@@ -351,7 +351,15 @@ async function main() {
       const client = createClient();
       const want = ids.length ? ids : [...new Set(readPostLog(slug).map((r) => r.postId).filter(Boolean))].slice(-12);
       const posts = [];
-      for (const id of want) posts.push(await client.getPost(id));
+      for (const id of want) {
+        try {
+          posts.push(await client.getPost(id));
+        } catch (e) {
+          posts.push({ id, error: String(e.message || e) });
+        }
+      }
+      return out(posts.map((p) => ({ post: p, permalinks: p.error ? [] : postPermalinks(p) })),
+        (d) => d.map((r) => (r.post.error ? `${r.post.id}  unavailable: ${r.post.error}` : summarizePost(r.post))).join("\n") || "(no posts yet)");
       return out(posts.map((p) => ({ post: p, permalinks: postPermalinks(p) })), (d) => d.map((r) => summarizePost(r.post)).join("\n") || "(no posts yet)");
     }
 
