@@ -43,6 +43,9 @@ working **with** Ziggy.
   campaigns. "ambient" stays byte-stable — never change its defaults.
 - An X story post always carries the cover image: `posts.twitter.media` is `slide-cover`. Do not
   ship a text-only thread, and do not put the reel on that post instead of the still.
+- Story captions carry the whole story: headline, dek, one paragraph per summary slide, then
+  sources/CTA/hashtags. `ziggy delete <slug> <postId…>` removes drafts or scheduled posts (no
+  media cleanup — recreating a scheduled post re-uploads).
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
   threads, bluesky, linkedin, facebook. TikTok is video-only, always needs media, and its boolean
   params must keep their type: multipart posts send platforms with boolean/number params as one
