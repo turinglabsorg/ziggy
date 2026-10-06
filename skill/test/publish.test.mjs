@@ -138,3 +138,15 @@ test("status lists the tenant's own posts from its log", async () => {
   assert.ok(out.length >= 3);
   assert.ok(existsSync(join(world.home, "tenants", "acme", "posts.jsonl")));
 });
+
+test("delete removes a scheduled post through the mock server", async () => {
+  const first = await run(["post", "acme", "launch", "--only", "twitter", "--json"]);
+  assert.equal(first.status, 0, first.stderr);
+  const postId = JSON.parse(first.stdout)[0].post.id;
+  const r = await run(["delete", "acme", postId, "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout), [{ id: postId, deleted: true }]);
+  const gone = await run(["delete", "acme", postId, "--json"]);
+  assert.equal(gone.status, 0, gone.stderr);
+  assert.match(JSON.parse(gone.stdout)[0].deleted, /404|not found/);
+});

@@ -84,6 +84,7 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy post <slug> <name> [--live] [--at <ISO>] [--only twitter,instagram_reel] [--dry-run] [--watch]
                                                     create the posts as DRAFTS (default) or publish/schedule
   ziggy publish <slug> <postId…> [--watch]          publish reviewed drafts
+  ziggy delete <slug> <postId…>                     delete drafts or scheduled posts
   ziggy status <slug> [<postId…>] [--json]          post status + permalinks (defaults to the tenant's log)
 
 Inbox & engagement
@@ -111,7 +112,7 @@ autopilot) wraps itself in \`hush run\` when ${KEY_ENV} is not already set.`);
 
 /* ── key-needing commands re-exec under hush ─────────────────────────────── */
 
-const NEEDS_KEY = new Set(["post", "publish", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
+const NEEDS_KEY = new Set(["post", "publish", "delete", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
 
 function ensureKey(slug) {
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
@@ -343,6 +344,16 @@ async function main() {
       let posts = await publishDrafts({ tenant: t, postIds: ids, log: () => {} });
       if (has("--watch")) posts = await awaitPosts({ postIds: ids });
       return out(posts.map((p) => ({ post: p, permalinks: postPermalinks(p) })), (d) => d.map((r) => summarizePost(r.post)).join("\n"));
+    }
+
+    case "delete": {
+      const [slug, ...ids] = pos;
+      loadTenant(slug); ensureKey(slug);
+      if (!ids.length) fail("usage: ziggy delete <slug> <postId…>");
+      const client = createClient();
+      const results = [];
+      for (const id of ids) results.push({ id, deleted: await client.deletePost(id).then(() => true, (e) => String(e.message || e)) });
+      return out(results, (d) => d.map((r) => `${r.id}  ${r.deleted === true ? "deleted" : `error: ${r.deleted}`}`).join("\n"));
     }
 
     case "status": {
