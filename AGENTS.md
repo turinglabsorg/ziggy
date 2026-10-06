@@ -7,9 +7,11 @@ working **with** Ziggy.
 ## Layout
 
 - `skill/index.js` — the CLI. Thin: argument parsing, output, and the hush re-exec. Logic lives in
-  `skill/scripts/*.mjs`, each one a module with no side effects on import.
+  `skill/scripts/*.mjs`, each one a module with no side effects on import. `thread.mjs` splits an
+  X thread (URL last). `slides.mjs` renders the three 1080×1350 stills.
 - `skill/templates/` — HyperFrames templates (`hyperframes/<name>/{host,sub}.html.tpl`) and the
-  static social compositions. `__TOKEN__` placeholders, filled by `video.mjs` / `assets.mjs`.
+  static social compositions, including `social/slide.html.tpl`. `__TOKEN__` placeholders, filled
+  by `video.mjs` / `assets.mjs` / `slides.mjs`.
 - `tenants/<slug>/` — versioned tenant definitions. Never put secrets, renders or fonts here.
 - `skill/test/` — `node:test`. Every external dependency is faked: mock Postproxy on localhost
   (`helpers.mjs`), fake `hush`, fake agent, fake HyperFrames CLI via `ZIGGY_HYPERFRAMES_BIN`.
@@ -26,6 +28,8 @@ working **with** Ziggy.
   one paused GSAP timeline per composition, no CSS-transform/GSAP conflicts, fonts shipped locally,
   `data-layout-allow-overflow` on intentional masks. Test a template change with a real render.
 - Keep per-tenant isolation: a command takes one slug and touches only that tenant's paths and secret.
+- An X story post always carries the cover image: `posts.twitter.media` is `slide-cover`. Do not
+  ship a text-only thread, and do not put the reel on that post instead of the still.
 - MIT license. No co-authorship lines in commits, PRs or comments.
 
 ## Commands
