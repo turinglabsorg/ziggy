@@ -6,7 +6,9 @@ working **with** Ziggy.
 
 ## Layout
 
-- `skill/index.js` — the CLI. Thin: argument parsing, output, and the hush re-exec. Logic lives in
+- `skill/index.js` — the CLI. Thin: argument parsing, output, and the hush re-exec (the child is
+  `node` resolved via PATH, overridable with `ZIGGY_NODE_BIN`: `process.execPath` may not exist in
+  the filesystem view where hush runs its child). Logic lives in
   `skill/scripts/*.mjs`, each one a module with no side effects on import. `thread.mjs` splits an
   X thread (URL last). `slides.mjs` renders the three 1080×1350 stills.
 - `skill/templates/` — HyperFrames templates (`hyperframes/<name>/{host,sub}.html.tpl`) and the
@@ -30,6 +32,10 @@ working **with** Ziggy.
 - Keep per-tenant isolation: a command takes one slug and touches only that tenant's paths and secret.
 - An X story post always carries the cover image: `posts.twitter.media` is `slide-cover`. Do not
   ship a text-only thread, and do not put the reel on that post instead of the still.
+- Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
+  threads, bluesky, linkedin, facebook. TikTok is video-only, always needs media, and its boolean
+  params must keep their type: multipart posts send platforms with boolean/number params as one
+  JSON `platforms` field; platforms with a `*_file` upload stay flattened.
 - MIT license. No co-authorship lines in commits, PRs or comments.
 
 ## Commands
