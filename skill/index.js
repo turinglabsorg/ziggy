@@ -25,6 +25,7 @@ import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
 import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
 import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
 import { runDaily } from "./scripts/daily.mjs";
+import { buildReport } from "./scripts/report.mjs";
 import { threadForCampaign } from "./scripts/thread.mjs";
 import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
 
@@ -95,6 +96,9 @@ Inbox & engagement
   ziggy profiles <slug> [--json]
   ziggy inbox <slug> [--all] [--no-dms] [--json]    new comments on our posts + inbound DM threads
   ziggy stats <slug> [--json]                       per-post and per-profile engagement
+  ziggy report <slug> [--all] [--json]              one-shot tenant report as plain text: published with
+                                                    permalinks, scheduled, profile stats, inbox — pipe it
+                                                    anywhere (grog telegram-send --to me "$(ziggy report ragusa)")
   ziggy reply <slug> <postId> <commentId> --text "…" [--profile prof_…]
   ziggy comment <slug> <postId> --text "…" [--profile prof_…]          top-level comment on our post
   ziggy dmlink <slug> <postId> <commentId> --text "…" [--profile prof_…] private reply (DM) to a commenter — links are clickable there
@@ -116,7 +120,7 @@ autopilot) wraps itself in \`hush run\` when ${KEY_ENV} is not already set.`);
 
 /* ── key-needing commands re-exec under hush ─────────────────────────────── */
 
-const NEEDS_KEY = new Set(["post", "publish", "delete", "daily", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
+const NEEDS_KEY = new Set(["post", "publish", "delete", "daily", "report", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
 
 function ensureKey(slug) {
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
@@ -403,6 +407,12 @@ async function main() {
         ...r.chats.filter((ch) => has("--all") || ch.isNew).map((ch) => `✉️  ${ch.platform} chat ${ch.id} · @${ch.participant || "?"}${ch.unread ? ` (${ch.unread} unread)` : ""}\n   ${ch.lastMessage || ""}`),
         ...(r.errors.length ? [`\nerrors:\n  ${r.errors.join("\n  ")}`] : []),
       ].join("\n") || "inbox empty");
+    }
+
+    case "report": {
+      const t = loadTenant(pos[0]); ensureKey(t.slug);
+      const r = await buildReport({ tenant: t, inboxNewOnly: !has("--all") });
+      return out(r, (d) => d.text + (d.errors.length ? `\nerrors: ${d.errors.join("; ")}` : ""));
     }
 
     case "stats": {

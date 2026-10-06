@@ -52,6 +52,9 @@ working **with** Ziggy.
   a post exists in posts.jsonl, matched by slug *and* headline tokens (the feed re-slugs stories
   on update) — a campaign that crashed mid-run is reused, never resummarized. `--dry-run` writes
   nothing. A story whose image fails to fetch renders without the photo, never fails.
+- `ziggy report <slug>` (report.mjs) prints the tenant report as plain text on stdout: published
+  (with permalinks), scheduled (with times), profile stats, new inbox items. A scheduler pipes it
+  wherever (`grog telegram-send --to me "$(ziggy report ragusa)"`). Deleted posts drop out.
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
   threads, bluesky, linkedin, facebook. TikTok is video-only, always needs media, and its boolean
   params must keep their type: multipart posts send platforms with boolean/number params as one
