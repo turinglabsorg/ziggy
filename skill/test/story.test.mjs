@@ -61,6 +61,11 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.posts.twitter.thread[0].body, c.copy.dek);
   assert.deepEqual(c.posts.instagram_post.media, ["slide-cover", "slide-dek", "slide-close"]);
   assert.equal(c.posts.instagram_post.enabled, false);
+  assert.equal(c.posts.tiktok.media, "reel");
+  assert.equal(c.posts.tiktok.body, c.posts.instagram_reel.body);
+  assert.equal(c.posts.tiktok.enabled, false);
+  assert.equal(c.posts.tiktok.platform.privacy_status, "PUBLIC_TO_EVERYONE");
+  assert.equal(c.posts.tiktok.platform.disable_comment, false);
   assert.equal(c.duration, 12);
 });
 

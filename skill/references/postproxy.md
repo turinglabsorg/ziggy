@@ -47,4 +47,14 @@ honour the 24-hour window; a private reply to a commenter bypasses it once.
 
 Rate limits: Instagram 100 posts per rolling 24 h per account.
 
+## TikTok
+
+The `tiktok` post kind (`format: video`, one mp4/mov/webm, 3 s–10 min, caption ≤ 2200) publishes the
+same reel as Instagram. Defaults that matter: Postproxy sets `disable_comment/duet/stitch` to `true`
+unless told otherwise — the story campaign template passes `disable_comment: false` explicitly.
+`privacy_status` defaults to `PUBLIC_TO_EVERYONE`; on unaudited apps TikTok rejects public posts, but
+profiles connected on/after 2026-09-30 (Business API) publish publicly. The tiktok entry in new story
+campaigns is `enabled: false` until the tenant connects a TikTok profile. TikTok has no comment API
+on Postproxy, so the comment-LINK → DM flow does not fire there; inbox/autopilot stay on Instagram.
+
 Full reference, every platform in one file: https://postproxy.dev/postproxy-docs.md

@@ -111,6 +111,14 @@ export function campaignFromStory(tenant, story, { name } = {}) {
         thread: thread.thread,
         enabled: false,
       },
+      // Off until a TikTok profile is connected on Postproxy. Postproxy defaults
+      // disable_comment to true, so comments are turned on explicitly here.
+      tiktok: {
+        body: caption,
+        media: "reel",
+        platform: { privacy_status: "PUBLIC_TO_EVERYONE", disable_comment: false, disable_duet: true, disable_stitch: true },
+        enabled: false,
+      },
     },
   };
 }

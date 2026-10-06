@@ -26,6 +26,7 @@ export const POST_KINDS = {
   instagram_post: { platform: "instagram", format: "post", limits: LIMITS.instagram_post },
   instagram_reel: { platform: "instagram", format: "reel", limits: LIMITS.instagram_reel },
   instagram_story: { platform: "instagram", format: "story", limits: LIMITS.instagram_story },
+  tiktok: { platform: "tiktok", format: "video", limits: LIMITS.tiktok },
   threads: { platform: "threads", format: null, limits: { chars: 500 } },
   bluesky: { platform: "bluesky", format: null, limits: { chars: 300 } },
   linkedin: { platform: "linkedin", format: null, limits: { chars: 3000 } },
@@ -66,12 +67,13 @@ export function validatePost(kind, spec, mediaPaths) {
   let videos = 0;
   for (const mediaPath of paths) {
     if (!mediaPath || /^https?:\/\//i.test(mediaPath)) {
-      if (mediaPath && /\.(mp4|mov)(\?|$)/i.test(mediaPath)) videos++;
+      if (mediaPath && /\.(mp4|mov|webm)(\?|$)/i.test(mediaPath)) videos++;
       else if (mediaPath) images++;
       continue;
     }
     const ext = mediaPath.split(".").pop().toLowerCase();
-    const isVideo = ["mp4", "mov"].includes(ext);
+    const videoFormats = def.limits.video?.formats || ["mp4", "mov"];
+    const isVideo = videoFormats.includes(ext);
     const limit = isVideo ? def.limits.video : def.limits.image;
     if (isVideo) videos++; else images++;
     if (limit) {
@@ -85,7 +87,8 @@ export function validatePost(kind, spec, mediaPaths) {
   if (videos > 1) problems.push(`${kind}: only one video per post`);
   if (videos && images && def.platform === "twitter") problems.push(`${kind}: X cannot mix images and video`);
   if (def.format === "reel" && paths.length !== 1) problems.push(`${kind}: a reel takes one video`);
-  if (!paths.length && def.platform === "instagram") problems.push(`${kind}: Instagram requires media`);
+  if (!paths.length && ["instagram", "tiktok"].includes(def.platform)) problems.push(`${kind}: ${def.platform} requires media`);
+  if (def.platform === "tiktok" && def.format === "video" && images) problems.push(`${kind}: a TikTok video post cannot take images`);
   return problems;
 }
 

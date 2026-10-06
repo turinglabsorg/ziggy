@@ -17,6 +17,7 @@ export const LIMITS = {
   instagram_post: { image: { maxBytes: 8 * 1024 * 1024, formats: ["jpg", "jpeg", "png"], count: 10 }, video: { maxBytes: 300 * 1024 * 1024, formats: ["mp4", "mov"], seconds: [3, 3600] }, chars: 2200 },
   instagram_reel: { video: { maxBytes: 300 * 1024 * 1024, formats: ["mp4", "mov"], seconds: [3, 5400] }, chars: 2200 },
   instagram_story: { image: { maxBytes: 8 * 1024 * 1024, formats: ["jpg", "jpeg", "png"] }, video: { maxBytes: 100 * 1024 * 1024, formats: ["mp4", "mov"], seconds: [1, 3600] } },
+  tiktok: { video: { maxBytes: 4 * 1024 * 1024 * 1024, formats: ["mp4", "mov", "webm"], seconds: [3, 600] }, image: { maxBytes: 20 * 1024 * 1024, formats: ["jpg", "gif"], count: 35 }, chars: 2200 },
 };
 
 const MIME = { mp4: "video/mp4", mov: "video/quicktime", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" };

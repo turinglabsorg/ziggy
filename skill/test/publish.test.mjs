@@ -96,6 +96,40 @@ test("keys pull wraps hush pull with the tenant's secret name", async () => {
   assert.deepEqual(JSON.parse(r.stdout), { event: "stored", name: "ziggy.acme.postproxy", sender: "self", replaced: false });
 });
 
+test("post → tiktok kind: reel media, format=video and the tiktok platform params on the wire", async () => {
+  const campaign = join(world.repo, "tenants", "acme", "campaigns", "launch", "campaign.json");
+  const c = JSON.parse(readFileSync(campaign, "utf8"));
+  c.posts.tiktok = { body: "Acme is live.", media: "reel", platform: { privacy_status: "PUBLIC_TO_EVERYONE", disable_comment: false, disable_duet: true, disable_stitch: true } };
+  writeFileSync(campaign, JSON.stringify(c));
+  mock.state.profiles.push({ id: "prof_tt", name: "Brand", platform: "tiktok", status: "active", profile_group_id: "grp_1" });
+  const r = await run(["post", "acme", "launch", "--only", "tiktok", "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  const create = mock.calls.filter((x) => x.method === "POST" && x.path === "/api/posts").at(-1).fields;
+  assert.equal(create["platforms[tiktok][format]"], "video");
+  assert.equal(create["platforms[tiktok][privacy_status]"], "PUBLIC_TO_EVERYONE");
+  assert.equal(create["platforms[tiktok][disable_comment]"], "false");
+  assert.equal(create["platforms[tiktok][disable_duet]"], "true");
+  assert.match(create["media[]"][0].filename, /reel-1080x1920\.mp4$/);
+  const log = readFileSync(join(world.home, "tenants", "acme", "posts.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
+  assert.equal(log.at(-1).kind, "tiktok");
+  assert.equal(log.at(-1).platform, "tiktok");
+});
+
+test("tiktok requires media and rejects images on a video post", async () => {
+  const campaign = join(world.repo, "tenants", "acme", "campaigns", "launch", "campaign.json");
+  const c = JSON.parse(readFileSync(campaign, "utf8"));
+  c.posts.tiktok = { body: "Acme is live." };
+  writeFileSync(campaign, JSON.stringify(c));
+  let r = await run(["post", "acme", "launch", "--only", "tiktok"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /tiktok: tiktok requires media/);
+  c.posts.tiktok = { body: "Acme is live.", media: "post-still" };
+  writeFileSync(campaign, JSON.stringify(c));
+  r = await run(["post", "acme", "launch", "--only", "tiktok"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /tiktok: a TikTok video post cannot take images/);
+});
+
 test("status lists the tenant's own posts from its log", async () => {
   const r = await run(["status", "acme", "--json"]);
   assert.equal(r.status, 0, r.stderr);
