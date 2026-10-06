@@ -69,6 +69,19 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.duration, 12);
 });
 
+test("campaignFromStory honours the tenant's social copy and Italian sources line", () => {
+  const tenant = {
+    slug: "acme", name: "Acme", site: "https://acme.example/", language: "it", feed: FEED,
+    social: { cta: "La storia completa: {site} (link in bio).", hashtags: "#Ragusa #Sicilia", linkComment: "Commenta LINK e te la mandiamo in DM." },
+  };
+  const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED));
+  assert.match(c.posts.instagram_reel.body, /Basato su 2 fonti in 2 lingue\./);
+  assert.match(c.posts.instagram_reel.body, /La storia completa: acme\.example \(link in bio\)\./);
+  assert.match(c.posts.instagram_reel.body, /#Ragusa #Sicilia$/);
+  assert.ok(!c.posts.instagram_reel.body.includes("#UFO"));
+  assert.equal(c.posts.instagram_reel.first_comment, "Commenta LINK e te la mandiamo in DM.");
+});
+
 test("fetchStories reads the feed through the mapping; createStoryCampaign writes the campaign once", async () => {
   const tenant = { ...loadTenant("acme"), feed: FEED };
   const fetchImpl = async (url) => { assert.equal(String(url), FEED.url); return new Response(JSON.stringify({ data: [ITEM, { ...ITEM, slug: "older", title: "Older" }] }), { status: 200 }); };

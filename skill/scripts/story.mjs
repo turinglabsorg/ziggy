@@ -42,10 +42,11 @@ export function normalizeStory(item, feed) {
   let image = get("image", null);
   if (image && feed.imageRewrite?.match) image = String(image).replace(new RegExp(feed.imageRewrite.match), feed.imageRewrite.replace || "");
   const slug = get("slug", null) || slugify(get("title", "story"));
+  const section = get("section", null);
   return {
     title: get("title", ""),
     dek: get("dek", ""),
-    section: get("section", null),
+    section: (feed.sections || {})[section] || section,
     date: get("date", null) || get("publishedAt", null),
     image,
     slug,
@@ -75,11 +76,22 @@ export function campaignFromStory(tenant, story, { name } = {}) {
   const campaignName = name || `story-${date}-${story.slug.split("-").slice(0, 4).join("-")}`.slice(0, 48).replace(/-+$/, "");
   const displayUrl = feed.displayUrl || (tenant.site ? new URL(tenant.site).hostname : "");
   const kicker = [story.section, formatDate(story.date, lang)].filter(Boolean).join(" · ");
-  const meta = [story.sources != null ? `${story.sources} source${story.sources === 1 ? "" : "s"}` : null, story.languages != null ? `${story.languages} language${story.languages === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ");
+  const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const metaWords = (kind) => (lang === "it" ? (kind === "source" ? ["fonte", "fonti"] : ["lingua", "lingue"]) : [kind, `${kind}s`]);
+  const meta = [story.sources != null ? count(story.sources, ...metaWords("source")) : null, story.languages != null ? count(story.languages, ...metaWords("language")) : null].filter(Boolean).join(" · ");
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-  const sourcesLine = story.sources != null ? ` Sourced from ${plural(story.sources, "report")}${story.languages ? ` in ${plural(story.languages, "language")}` : ""}.` : "";
-  const caption = `${story.title}\n\n${story.dek}${sourcesLine}\n\nWant the full story with its sources? Comment LINK and we'll send it to you. Also at ${displayUrl} (link in bio).\n\n#UFO #UAP #Space #Astronomy`;
-  const linkComment = "Comment LINK and we'll DM you the full story with sources.";
+  const social = tenant.social || {};
+  const sourcesPart = lang === "it" ? count(story.sources, "fonte", "fonti") : plural(story.sources, "report");
+  const langsPart = story.languages ? (lang === "it" ? count(story.languages, "lingua", "lingue") : plural(story.languages, "language")) : null;
+  const sourcesLine = story.sources != null
+    ? lang === "it"
+      ? ` Basato su ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
+      : ` Sourced from ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
+    : "";
+  const cta = (social.cta || "Want the full story with its sources? Comment LINK and we'll send it to you. Also at {site} (link in bio).").replace("{site}", displayUrl);
+  const hashtags = (social.hashtags || "#UFO #UAP #Space #Astronomy").trim();
+  const caption = `${story.title}\n\n${story.dek}${sourcesLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
+  const linkComment = social.linkComment || "Comment LINK and we'll DM you the full story with sources.";
   const thread = composeThread({ title: story.title, dek: story.dek, url: story.url, limit: 280 });
   return {
     template: "story",
