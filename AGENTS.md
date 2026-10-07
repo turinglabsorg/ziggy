@@ -56,9 +56,11 @@ working **with** Ziggy.
   a post exists in posts.jsonl, matched by slug *and* headline tokens (the feed re-slugs stories
   on update) — a campaign that crashed mid-run is reused, never resummarized. `--dry-run` writes
   nothing. A story whose image fails to fetch renders without the photo, never fails.
-- `ziggy report <slug>` (report.mjs) prints the tenant report as plain text on stdout: published
-  (with permalinks), scheduled (with times), profile stats, new inbox items. A scheduler pipes it
-  wherever (`grog telegram-send --to me "$(ziggy report ragusa)"`). Deleted posts drop out.
+- `ziggy report <slug>` (report.mjs) prints a compact emoji digest on stdout: count + last
+  permalink of published posts, the next four scheduled slots in the tenant's `daily.tz`
+  timezone, one stats line per profile (only non-zero numbers), inbox count + up to three
+  comments. A scheduler pipes it wherever (`ZIGGY_REPORT_HOOK='grog telegram-send --to me
+  "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
   repo's `Dockerfile`) re-runs each tenant's loops on timers (`--every-daily`, `--every-report`,
   `--once`, `--port` → GET /healthz). Every run is a child CLI invocation, so keys resolve as
