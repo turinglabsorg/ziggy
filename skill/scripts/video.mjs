@@ -31,8 +31,8 @@ export const DEFAULT_VARIANTS = {
 /** Per-template layout numbers merged over DEFAULT_VARIANTS (a template may also drop variants). */
 export const TEMPLATE_VARIANTS = {
   story: {
-    reel: { padTop: 250, padBottom: 300, photoTop: 340, photoH: 608, spacer: 690, kicker: 26, headline: 62, dek: 38, dekMax: 820, dekMt: 30, meta: 22, brand: 40 },
-    post: { padTop: 110, padBottom: 110, photoTop: 180, photoH: 560, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
+    reel: { padTop: 250, padBottom: 300, photoTop: 0, photoH: 960, spacer: 690, kicker: 26, headline: 62, dek: 38, dekMax: 820, dekMt: 30, meta: 22, brand: 40 },
+    post: { padTop: 110, padBottom: 110, photoTop: 0, photoH: 675, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
     x: false,
   },
 };
@@ -216,7 +216,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__HAS_PHOTO__/g, imageSrc ? "true" : "false")
       .replace(/__PHOTO_DISPLAY__/g, imageSrc ? "block" : "none")
       .replace(/__BG_RGB__/g, `${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}`)
-      .replace(/__PHOTO_TOP__/g, String(v.photoTop ?? 340)).replace(/__PHOTO_H__/g, String(v.photoH ?? 608))
+      .replace(/__PHOTO_TOP__/g, String(v.photoTop ?? 0)).replace(/__PHOTO_H__/g, String(v.photoH ?? 960))
       .replace(/__PAD_TOP__/g, String(v.padTop ?? 250)).replace(/__PAD_BOTTOM__/g, String(v.padBottom ?? 330)).replace(/__SPACER__/g, String(v.spacer ?? 690))
       .replace(/__PNUM__/g, String(Math.round((v.headline ?? 64) * 1.15))).replace(/__PTEXT__/g, String(Math.round((v.headline ?? 64) * 0.84)))
       .replace(/__FLOGO__/g, String(Math.round((v.brand ?? 40) * 1.3)))

@@ -21,11 +21,12 @@ __FONT_FACES__
         #__ID__-stars .star.fg { background: var(--fg); }
         #__ID__-stars .star.muted { background: var(--muted); }
 
-        /* the story image: full width, blended into the sky top and bottom */
+        /* the story image fills the whole top, shown completely (contain, never cropped),
+           blended into the sky only at its own bottom edge */
         #__ID__-photo { position: absolute; left: 0; right: 0; top: __PHOTO_TOP__px; height: __PHOTO_H__px; overflow: hidden;
-          -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%); }
-        #__ID__-photo-img { display: block; width: 100%; height: 100%; object-fit: cover; }
-        #__ID__-photo-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.15), rgba(__BG_RGB__, 0) 40%, rgba(__BG_RGB__, 0.35)); }
+          -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); }
+        #__ID__-photo-img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center top; }
+        #__ID__-photo-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.8), rgba(__BG_RGB__, 0.25) 45%, rgba(__BG_RGB__, 0.65)); }
 
         /* content column — title-safe for Reels: nothing above __PAD_TOP__ or below the footer */
         #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: __PAD_TOP__px; bottom: __PAD_BOTTOM__px; display: flex; flex-direction: column; }
