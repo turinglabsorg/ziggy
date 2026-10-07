@@ -3,10 +3,11 @@
   "site": "https://alienwatch.buzz/",
   "language": "en",
   "postproxy": {
-    "profileGroupId": null,
+    "profileGroupId": "AnFA46",
     "profileIds": [
       "DaUWBa",
-      "j3Ulwd"
+      "j3Ulwd",
+      "mxU8Vn"
     ]
   },
   "autopilot": {

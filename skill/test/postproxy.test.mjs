@@ -107,6 +107,19 @@ test("publish, get, comments, hide, stats and DMs hit the documented routes", as
 test("pickProfile prefers active profiles of the platform, optionally in a group", () => {
   const profiles = [{ id: "a", platform: "instagram", status: "expired" }, { id: "b", platform: "instagram", status: "active", profile_group_id: "g2" }, { id: "c", platform: "twitter", status: "active" }];
   assert.equal(pickProfile(profiles, "instagram").id, "b");
-  assert.equal(pickProfile(profiles, "instagram", "g1"), null);
+  assert.equal(pickProfile(profiles, "instagram", { groupId: "g1" }), null);
   assert.match(summarizePost({ id: "p", status: "processed", platforms: [{ platform: "twitter", status: "published", permalink: "https://x.com/a/status/1" }] }), /x\.com/);
+});
+
+test("pickProfile with profileIds never crosses tenants on a shared account", () => {
+  // a shared Postproxy account holds both tenants' profiles: exact ids must win over order
+  const profiles = [
+    { id: "OLU4ab", platform: "instagram", status: "active", profile_group_id: "gR", name: "Ragusa Buzz" },
+    { id: "j3Ulwd", platform: "instagram", status: "active", profile_group_id: "gA", name: "Alien Watch" },
+    { id: "mxU8Vn", platform: "tiktok", status: "active", profile_group_id: "gA", name: "alienwtch" },
+  ];
+  assert.equal(pickProfile(profiles, "instagram", { profileIds: ["DaUWBa", "j3Ulwd", "mxU8Vn"] }).id, "j3Ulwd");
+  assert.equal(pickProfile(profiles, "tiktok", { profileIds: ["DaUWBa", "j3Ulwd", "mxU8Vn"] }).id, "mxU8Vn");
+  assert.equal(pickProfile(profiles, "instagram", { profileIds: ["OLU4ab"] }).id, "OLU4ab");
+  assert.equal(pickProfile(profiles, "linkedin", { profileIds: ["DaUWBa", "j3Ulwd"] }), null);
 });

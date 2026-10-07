@@ -96,7 +96,7 @@ export async function pullInbox({ tenant, client = createClient(), markSeen = tr
     const platforms = post.platforms?.length ? post.platforms : [{ platform: post.platform, profileId: post.profileId }];
     for (const pl of platforms) {
       if (!COMMENT_PLATFORMS.has(pl.platform)) continue;
-      const profileId = pl.profileId || pickProfile(profiles, pl.platform)?.id;
+      const profileId = pl.profileId || pickProfile(profiles, pl.platform, { groupId: tenant.postproxy?.profileGroupId, profileIds: tenant.postproxy?.profileIds })?.id;
       if (!profileId) continue;
       try {
         const raw = await client.listComments(post.id, profileId);

@@ -160,9 +160,19 @@ export function normalizeComment(c) {
   };
 }
 
-/** Pick the first active profile for a platform (optionally inside a profile group). */
-export function pickProfile(profiles, platform, groupId) {
-  const list = (profiles || []).filter((p) => p.platform === platform && (p.status ?? "active") === "active" && (!groupId || p.profile_group_id === groupId));
+/**
+ * Pick a profile for a platform. Exact ids (`profileIds`, tenant.postproxy.profileIds) win,
+ * then the profile group, and only as a last resort the first active profile of the platform.
+ * Cross-tenant safety: on a shared Postproxy account, picking "the first instagram profile"
+ * would happily send tenant A's reel to tenant B's account.
+ */
+export function pickProfile(profiles, platform, { groupId = null, profileIds = null } = {}) {
+  const active = (profiles || []).filter((p) => p.platform === platform && (p.status ?? "active") === "active");
+  if (profileIds?.length) {
+    const byId = profileIds.map((id) => active.find((p) => p.id === id)).find(Boolean);
+    if (byId) return byId;
+  }
+  const list = active.filter((p) => !groupId || p.profile_group_id === groupId);
   return list[0] || null;
 }
 

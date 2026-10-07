@@ -131,7 +131,7 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
   for (const [kind, spec] of entries) {
     const def = POST_KINDS[kind];
     if (!def) throw new Error(`unknown post kind ${JSON.stringify(kind)}`);
-    const profile = pickProfile(profiles, def.platform, tenant.postproxy?.profileGroupId);
+    const profile = pickProfile(profiles, def.platform, { groupId: tenant.postproxy?.profileGroupId, profileIds: tenant.postproxy?.profileIds });
     if (!profile) throw new Error(`no active ${def.platform} profile connected on Postproxy for ${tenant.slug}`);
     plans.push({ ...buildRequest(kind, spec, { profile, manifest, draft: !live, scheduledAt }), profile });
   }
