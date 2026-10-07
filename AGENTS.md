@@ -71,10 +71,12 @@ working **with** Ziggy.
   comments. A scheduler pipes it wherever (`ZIGGY_REPORT_HOOK='grog telegram-send --to me
   "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
-  repo's `Dockerfile`) re-runs each tenant's loops on timers (`--every-daily`, `--every-report`,
-  `--once`, `--port` → GET /healthz). Every run is a child CLI invocation, so keys resolve as
-  usual: in containers via `POSTPROXY_API_KEY_<SLUG>` env vars (uppercased slug; the global
-  `POSTPROXY_API_KEY` passes through only when serving a single tenant), locally via hush.
+  repo's `Dockerfile` + `docker-compose.yml`: keys via `.env.docker`, state volume `ziggy-data`,
+  reports to Telegram via `docker/telegram-notify.mjs` as `ZIGGY_REPORT_HOOK`) re-runs each
+  tenant's loops on timers (`--every-daily`, `--every-report`, `--once`, `--port` → GET /healthz).
+  Every run is a child CLI invocation, so keys resolve as usual: in containers via
+  `POSTPROXY_API_KEY_<SLUG>` env vars (uppercased slug; the global `POSTPROXY_API_KEY` passes
+  through only when serving a single tenant), locally via hush.
   `ZIGGY_REPORT_HOOK` is an optional shell command fired once per report cycle with every
   tenant's digest combined as `ZIGGY_REPORT_TEXT` (blank line between tenants) and
   `ZIGGY_REPORT_TENANT` as the comma list (e.g. a grog send). A failing run is logged in

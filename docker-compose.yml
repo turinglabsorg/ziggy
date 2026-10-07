@@ -1,0 +1,28 @@
+# Ziggy in production: one container per host, one named volume for state.
+#
+#   1. cp .env.docker.example .env.docker   # fill in the values (never commit it)
+#   2. seed the state volume once, from this machine's ~/.ziggy:
+#        docker run --rm -v ziggy_ziggy-data:/data -v "$HOME/.ziggy:/seed:ro" \
+#          --entrypoint sh ziggy -c 'cp -a /seed/. /data/ && chown -R node:node /data'
+#   3. docker compose up -d
+#
+# Update: git pull && docker compose build && docker compose up -d — state survives,
+# the campaigns the loop writes live in the named volume via a symlink (see Dockerfile).
+services:
+  ziggy:
+    build: .
+    image: ziggy:latest
+    restart: unless-stopped
+    command: ["serve", "ragusa", "alienwatch"]
+    env_file:
+      - path: .env.docker
+        required: false
+    environment:
+      ZIGGY_REPORT_HOOK: node /app/docker/telegram-notify.mjs
+    volumes:
+      - ziggy-data:/data
+    ports:
+      - "8080:8080"
+
+volumes:
+  ziggy-data:
