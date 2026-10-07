@@ -3,23 +3,37 @@
 # (fonts, renders, posts.jsonl, and — via symlinks — the campaigns the loop writes) lives
 # in the /data volume. Campaigns are story content (gitignored): they must outlive the
 # container, so each tenant's campaigns dir points into /data.
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
-# the shared libraries the HyperFrames renderer's headless Chromium needs
+# the shared libraries the HyperFrames renderer's headless Chromium needs, plus ffmpeg/ffprobe
+# (the renderer shells out to them for the mp4) and unzip (what puppeteer extracts its browser
+# zip with). Each missing one is a silent render failure, not a crash.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
-      libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2 libpango-1.0-0 \
-      libcairo2 fonts-liberation ca-certificates \
+      libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 \
+      libcairo2 libx11-xcb1 libxcb1 libxrender1 libxext6 libxss1 libxtst6 libxi6 \
+      fonts-liberation ca-certificates ffmpeg unzip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --chown=node:node . .
+RUN chown node:node /app
 
 # `claude -p` writes the reel summaries (tenant.json → feed.agent); needs ANTHROPIC_API_KEY,
 # and a tenant with feed.agent: null never spawns it
 RUN npm install --global @anthropic-ai/claude-code && npm cache clean --force
 
-# tenents/campaigns → /data/campaigns/<slug>: created fresh on a new volume, seeded on an
+# The headless Chrome HyperFrames renders with, fetched here rather than on the first render:
+# a container that starts with no browser would fail (or stall) on its very first story. The
+# version tracks hyperframes 0.8.133 (DEFAULT_HYPERFRAMES_VERSION in skill/scripts/video.mjs) —
+# bump both together. PUPPETEER_CACHE_DIR is puppeteer's own default, spelled out so a future
+# base image that moves $HOME cannot silently lose the browser.
+ENV PUPPETEER_CACHE_DIR=/home/node/.cache/puppeteer
+RUN npx --yes @puppeteer/browsers install chrome-headless-shell@152.0.7977.30 \
+      --path "$PUPPETEER_CACHE_DIR" \
+    && chown -R node:node /home/node/.cache
+
+# tenants/<slug>/campaigns → /data/campaigns/<slug>: created fresh on a new volume, seeded on an
 # existing one; the loop keeps working with a brand-new volume because a covered story is
 # re-created from the feed, never lost
 RUN for slug in ragusa alienwatch; do \

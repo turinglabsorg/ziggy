@@ -1,9 +1,15 @@
 # Ziggy in production: one container per host, one named volume for state.
 #
 #   1. cp .env.docker.example .env.docker   # fill in the values (never commit it)
-#   2. seed the state volume once, from this machine's ~/.ziggy:
+#   2. seed the state volume once, from this machine's ~/.ziggy — plus the campaigns, which
+#      live in the repo (gitignored) and decide what counts as already covered, so a container
+#      that starts without them would re-publish stories that are already out:
 #        docker run --rm -v ziggy_ziggy-data:/data -v "$HOME/.ziggy:/seed:ro" \
 #          --entrypoint sh ziggy -c 'cp -a /seed/. /data/ && chown -R node:node /data'
+#        docker run --rm -v ziggy_ziggy-data:/data -v "$PWD/tenants:/seed:ro" \
+#          --entrypoint sh ziggy -c 'cp -a /seed/ragusa/campaigns/. /data/campaigns/ragusa/ \
+#            && cp -a /seed/alienwatch/campaigns/. /data/campaigns/alienwatch/ \
+#            && chown -R node:node /data/campaigns'
 #   3. docker compose up -d
 #
 # Update: git pull && docker compose build && docker compose up -d — state survives,
