@@ -14,7 +14,9 @@ working **with** Ziggy.
 - `skill/templates/` — HyperFrames templates (`hyperframes/<name>/{host,sub}.html.tpl`) and the
   static social compositions, including `social/slide.html.tpl`. `__TOKEN__` placeholders, filled
   by `video.mjs` / `assets.mjs` / `slides.mjs`.
-- `tenants/<slug>/` — versioned tenant definitions. Never put secrets, renders or fonts here.
+- `tenants/<slug>/` — versioned tenant definitions. Never put secrets, renders or fonts here —
+  and never put **campaigns** here either: `tenants/*/campaigns/` is gitignored, the pipeline
+  writes them on disk but story content is not code and must not be pushed.
 - `skill/test/` — `node:test`. Every external dependency is faked: mock Postproxy on localhost
   (`helpers.mjs`), fake `hush`, fake agent, fake HyperFrames CLI via `ZIGGY_HYPERFRAMES_BIN`.
 
