@@ -86,6 +86,9 @@ working **with** Ziggy.
   shared libs. A slim base missing any one of them fails every render *silently*: the campaign
   stays on disk unfinished and the next tick retries it, so `check ok` in the log is the signal
   that rendering actually works.
+  A fresh volume starts with no campaigns; seed `tenants/<slug>/campaigns` into
+  `/data/campaigns/<slug>` (the compose header has the command). They are what coverage is
+  computed from, so a container without them re-publishes stories that are already out.
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
   threads, bluesky, linkedin, facebook. TikTok is video-only, always needs media, and its boolean
   params must keep their type: multipart posts send platforms with boolean/number params as one
