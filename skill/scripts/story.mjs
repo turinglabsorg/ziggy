@@ -173,6 +173,9 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
   const pointsBlock = points.length ? `\n\n${points.join("\n\n")}` : "";
   const caption = `${story.title}\n\n${story.dek}${pointsBlock}${sourcesLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
   const thread = composeThread({ title: story.title, dek: story.dek, url: story.url, limit: 280 });
+  // tenant.social.platforms opts a tenant into extra kinds: ["tiktok", "instagram_post"] —
+  // reels are always on, the X thread stays manual (it needs the slide-cover still)
+  const extra = new Set(social.platforms || []);
   return {
     template: "story",
     language: lang,
@@ -193,7 +196,7 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
         body: caption,
         media: [...SLIDE_IDS],
         alt_text: [story.title, story.dek, `${tenant.name} — ${displayUrl}`].filter(Boolean),
-        enabled: false,
+        enabled: extra.has("instagram_post"),
       },
       twitter: {
         body: thread.body,
@@ -202,13 +205,13 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
         thread: thread.thread,
         enabled: false,
       },
-      // Off until a TikTok profile is connected on Postproxy. Postproxy defaults
-      // disable_comment to true, so comments are turned on explicitly here.
+      // TikTok publishes the same reel. Postproxy defaults disable_comment to true,
+      // so comments are turned on explicitly here.
       tiktok: {
         body: caption,
         media: "reel",
         platform: { privacy_status: "PUBLIC_TO_EVERYONE", disable_comment: false, disable_duet: true, disable_stitch: true },
-        enabled: false,
+        enabled: extra.has("tiktok"),
       },
     },
   };

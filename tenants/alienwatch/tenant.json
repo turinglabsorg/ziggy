@@ -63,5 +63,22 @@
     },
     "storyUrl": "https://alienwatch.buzz/#/b/{slug}?lang=en",
     "displayUrl": "alienwatch.buzz"
+  },
+  "social": {
+    "platforms": [
+      "tiktok"
+    ]
+  },
+  "daily": {
+    "slots": [
+      "14:00",
+      "19:00"
+    ],
+    "tz": "Z",
+    "maxAgeHours": 72,
+    "only": [
+      "instagram_reel",
+      "tiktok"
+    ]
   }
 }

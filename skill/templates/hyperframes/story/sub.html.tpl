@@ -27,6 +27,9 @@ __FONT_FACES__
           -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); }
         #__ID__-photo-img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center top; }
         #__ID__-photo-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.8), rgba(__BG_RGB__, 0.25) 45%, rgba(__BG_RGB__, 0.65)); }
+        /* the kicker needs 3:1 contrast no matter how bright the photo is: a hard vignette
+           on the top strip, on top of the general shade */
+        #__ID__-photo-top { position: absolute; left: 0; right: 0; top: 0; height: 380px; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.9), rgba(__BG_RGB__, 0)); }
 
         /* content column — title-safe for Reels: nothing above __PAD_TOP__ or below the footer */
         #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: __PAD_TOP__px; bottom: __PAD_BOTTOM__px; display: flex; flex-direction: column; }
@@ -69,7 +72,7 @@ __AUDIO__
         <div id="__ID__-stage">
           <div id="__ID__-progress"><span id="__ID__-progress-fill"></span></div>
           <div id="__ID__-stars">__STARS__</div>
-          <div id="__ID__-photo" style="display: __PHOTO_DISPLAY__" data-layout-allow-overflow="true"><img id="__ID__-photo-img" src="__IMAGE_SRC__" alt="" /><div id="__ID__-photo-shade"></div></div>
+          <div id="__ID__-photo" style="display: __PHOTO_DISPLAY__" data-layout-allow-overflow="true"><img id="__ID__-photo-img" src="__IMAGE_SRC__" alt="" /><div id="__ID__-photo-shade"></div><div id="__ID__-photo-top"></div></div>
           <div id="__ID__-content">
             <p id="__ID__-kicker"><span class="k-dot"></span><span id="__ID__-kicker-text">__COPY_KICKER__</span></p>
             <div id="__ID__-middle">
