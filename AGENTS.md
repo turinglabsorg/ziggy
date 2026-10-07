@@ -30,6 +30,10 @@ working **with** Ziggy.
   one paused GSAP timeline per composition, no CSS-transform/GSAP conflicts, fonts shipped locally,
   `data-layout-allow-overflow` on intentional masks. Test a template change with a real render.
 - Keep per-tenant isolation: a command takes one slug and touches only that tenant's paths and secret.
+  When several tenants share one Postproxy account, every tenant.json **must** pin its targets:
+  `postproxy.profileGroupId` and `postproxy.profileIds` (exact profile ids win over list order in
+  `pickProfile` — without them, the first active profile of a platform gets the post, whichever
+  tenant it belongs to).
 - Story campaigns ask an agent for the reel slides before the campaign is written
   (`story.mjs`: `feed.agent` in tenant.json, same shape as `autopilot.agent`, default
   `claude -p`; `null` disables). The agent prints 3–4 short slides, one story beat per line;
