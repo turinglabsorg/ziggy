@@ -7,8 +7,9 @@
  *
  *   POSTPROXY_API_KEY_RAGUSA=…  — that tenant's Postproxy key (never logged, never read back)
  *   ZIGGY_DAILY_EVERY_S / ZIGGY_REPORT_EVERY_S — intervals, seconds (defaults below)
- *   ZIGGY_REPORT_HOOK — shell command run after each report with ZIGGY_REPORT_TENANT and
- *                       ZIGGY_REPORT_TEXT in its environment (e.g. a grog telegram-send)
+ *   ZIGGY_REPORT_HOOK — shell command run once per report cycle with ZIGGY_REPORT_TENANT
+ *                       (the comma list of tenants) and ZIGGY_REPORT_TEXT (all digests
+ *                       joined by a blank line) in its environment (e.g. a grog telegram-send)
  */
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
@@ -53,35 +54,46 @@ export function serve({ slugs, dailyEveryS = SERVER_DEFAULTS.dailyEveryS, report
 
   async function runOnce(slug, kind) {
     const st = (state[slug][kind] ||= { runs: 0, lastOk: null, error: null, running: false });
-    if (st.running) return log(`serve: ${slug} ${kind} still running — skipping this tick`);
+    if (st.running) return (log(`serve: ${slug} ${kind} still running — skipping this tick`), null);
     st.running = true;
     st.runs += 1;
-    const started = stamp();
     log(`serve: ${slug} ${kind} → running`);
     try {
-      const r = kind === "report" ? await captureReport({ slug, cmd: kind, slugs }) : await Promise.resolve(spawnImpl({ slug, cmd: kind, slugs }));
+      const r = await Promise.resolve(spawnImpl({ slug, cmd: kind, slugs }));
       for (const line of (r.stdout || "").trim().split("\n").filter(Boolean)) log(`serve: ${slug} ${kind} | ${line}`);
       st.error = r.ok ? null : (r.stderr || "").trim().split("\n")[0] || `exit ${r.code}`;
       if (!r.ok) log(`serve: ${slug} ${kind} ✗ ${st.error}`);
-      st.lastOk = r.ok ? stamp() : st.lastOk;
+      else st.lastOk = stamp();
+      return { ...r, text: r.ok ? (r.stdout || "").trim() : null };
     } catch (e) {
       st.error = e.message;
       log(`serve: ${slug} ${kind} ✗ ${e.message}`);
+      return null;
     } finally {
       st.running = false;
     }
-
-    if (kind === "report" && state[slug].report.error === null && process.env.ZIGGY_REPORT_HOOK) {
-      const out = lastReportText[slug];
-      if (out) await hook(slug, out).catch((e) => log(`serve: ${slug} report hook ✗ ${e.message}`));
-    }
   }
 
-  const lastReportText = {};
-  async function captureReport({ slug, cmd, slugs: all }) {
-    const r = await Promise.resolve(spawnImpl({ slug, cmd, slugs: all }));
-    if (r.ok) lastReportText[slug] = (r.stdout || "").trim();
-    return r;
+  /* Reports go out together: one timer for all tenants, one hook call with every
+     tenant's digest in a single text (ZIGGY_REPORT_TENANT = the comma list). A skipped
+     or failed tenant does not block the others — its digest is simply missing. */
+  let reportsRunning = false;
+  async function runReports() {
+    if (reportsRunning) return log(`serve: reports still running — skipping this tick`);
+    reportsRunning = true;
+    try {
+      const texts = [];
+      for (const t of tenants) {
+        const r = await runOnce(t.slug, "report");
+        if (r?.text) texts.push(r.text);
+      }
+      if (process.env.ZIGGY_REPORT_HOOK && texts.length) {
+        await hook(tenants.map((t) => t.slug).join(","), texts.join("\n\n"))
+          .catch((e) => log(`serve: report hook ✗ ${e.message}`));
+      }
+    } finally {
+      reportsRunning = false;
+    }
   }
 
   function hook(slug, text) {
@@ -95,12 +107,10 @@ export function serve({ slugs, dailyEveryS = SERVER_DEFAULTS.dailyEveryS, report
   const runs = [];
   for (const t of tenants) {
     runs.push(runOnce(t.slug, "daily"));
-    runs.push(runOnce(t.slug, "report"));
-    if (!once) {
-      timers.push(setInterval(() => runOnce(t.slug, "daily"), dailyEveryS * 1000));
-      timers.push(setInterval(() => runOnce(t.slug, "report"), reportEveryS * 1000));
-    }
+    if (!once) timers.push(setInterval(() => runOnce(t.slug, "daily"), dailyEveryS * 1000));
   }
+  runs.push(runReports());
+  if (!once) timers.push(setInterval(runReports, reportEveryS * 1000));
 
   let http = null;
   if (!once && port) {

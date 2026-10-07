@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
@@ -75,6 +75,27 @@ test("the report hook receives the report text per tenant", async () => {
     await r.stop();
     await sleep(50);
     assert.equal(readFileSync(file, "utf8"), "acme: the report body\n");
+  } finally {
+    delete process.env.ZIGGY_REPORT_HOOK;
+    rmSync(file, { force: true });
+  }
+});
+
+test("with several tenants the hook fires once with every digest combined", async () => {
+  const file = join(world.root, "hook-out.txt");
+  // a second tenant in the test world
+  const bdir = join(world.repo, "tenants", "beta");
+  mkdirSync(bdir, { recursive: true });
+  writeFileSync(join(bdir, "tenant.json"), JSON.stringify({ name: "Beta", site: "https://beta.example/", language: "en" }));
+  process.env.ZIGGY_REPORT_HOOK = `printf '%s\\n' "$ZIGGY_REPORT_TENANT: $ZIGGY_REPORT_TEXT" >> ${file}`;
+  try {
+    const spawnImpl = async ({ slug, cmd }) => ({ ok: true, code: 0, stdout: cmd === "report" ? `report of ${slug}` : "", stderr: "" });
+    const r = serve({ slugs: ["acme", "beta"], once: true, spawnImpl, log: quiet });
+    await r.boot;
+    await r.stop();
+    await sleep(50);
+    // one hook call, not two: the tenants' digests in a single message
+    assert.equal(readFileSync(file, "utf8"), "acme,beta: report of acme\n\nreport of beta\n");
   } finally {
     delete process.env.ZIGGY_REPORT_HOOK;
     rmSync(file, { force: true });
