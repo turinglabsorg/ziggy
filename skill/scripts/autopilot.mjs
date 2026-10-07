@@ -18,7 +18,7 @@
  *   skipAuthors:     usernames never answered (our own handles, bots)
  *   escalateWords:   words that force escalation (legal, refund, press, …)
  *   dms:             true to also answer inbound DMs (default false)
- *   linkReply:       Instagram never makes caption or comment links clickable; DMs do. When a comment
+ *   linkReply:       opt-in (captions already carry the full story link). When set and a comment
  *                    on a post that carries a link contains one of `keywords`, the autopilot sends the
  *                    link as a private reply (DM) and acknowledges publicly — no agent involved.
  *                    { enabled: true, keywords: ["link", "source", "sources", "fonte", "fonti"],
@@ -41,13 +41,15 @@ export function policyOf(tenant) {
     skipAuthors: (a.skipAuthors || []).map((s) => s.toLowerCase().replace(/^@/, "")),
     escalateWords: (a.escalateWords || ["legal", "lawyer", "refund", "press", "journalist", "lawsuit", "copyright", "dmca"]).map((w) => w.toLowerCase()),
     dms: Boolean(a.dms),
-    linkReply: a.linkReply === false ? null : {
+    // opt-in: story captions already carry the full link, so nobody is asked to comment
+    // LINK for a DM; enable per tenant only if a campaign still promises it
+    linkReply: a.linkReply ? {
       enabled: true,
       keywords: ["link", "source", "sources", "fonte", "fonti", "article", "articolo"],
       template: "Here is the full story, with sources: {url}",
       ack: "Sent — check your DMs.",
-      ...(a.linkReply || {}),
-    },
+      ...(a.linkReply === true ? {} : a.linkReply),
+    } : null,
     agent: a.agent === null ? null : { ...DEFAULT_AGENT, ...(a.agent || {}) },
     language: a.language || tenant.language || "en",
   };

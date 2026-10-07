@@ -37,18 +37,6 @@
         "json"
       ],
       "timeoutMs": 120000
-    },
-    "linkReply": {
-      "keywords": [
-        "link",
-        "source",
-        "sources",
-        "fonte",
-        "fonti",
-        "article"
-      ],
-      "template": "Here is the full story, with its sources: {url}",
-      "ack": "Sent — check your DMs 📩"
     }
   },
   "handles": {

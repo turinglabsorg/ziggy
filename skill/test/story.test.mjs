@@ -51,8 +51,8 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.copy.url, "acme.example");
   assert.equal(c.posts.instagram_reel.media, "reel");
   assert.equal(c.posts.instagram_reel.cover, true);
-  assert.match(c.posts.instagram_reel.body, /Comment LINK/);
-  assert.equal(c.posts.instagram_reel.first_comment, "Comment LINK and we'll DM you the full story with sources.");
+  assert.ok(c.posts.instagram_reel.body.includes(`Full story with sources: ${c.story.url}`));
+  assert.equal(c.posts.instagram_reel.first_comment, undefined, "no comment-LINK flow: the caption carries the link");
   assert.equal(c.posts.twitter.media, "slide-cover");
   assert.equal(c.posts.twitter.alt_text, c.copy.headline);
   assert.equal(c.posts.twitter.enabled, false);
@@ -74,14 +74,14 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
 test("campaignFromStory honours the tenant's social copy and Italian sources line", () => {
   const tenant = {
     slug: "acme", name: "Acme", site: "https://acme.example/", language: "it", feed: FEED,
-    social: { cta: "La storia completa: {site} (link in bio).", hashtags: "#Ragusa #Sicilia", linkComment: "Commenta LINK e te la mandiamo in DM." },
+    social: { cta: "La storia completa: {url}", hashtags: "#Ragusa #Sicilia" },
   };
   const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED));
   assert.match(c.posts.instagram_reel.body, /Basato su 2 fonti in 2 lingue\./);
-  assert.match(c.posts.instagram_reel.body, /La storia completa: acme\.example \(link in bio\)\./);
+  assert.match(c.posts.instagram_reel.body, /La storia completa: https:\/\/acme\.example\/#\/b\/modelling/);
   assert.match(c.posts.instagram_reel.body, /#Ragusa #Sicilia$/);
   assert.ok(!c.posts.instagram_reel.body.includes("#UFO"));
-  assert.equal(c.posts.instagram_reel.first_comment, "Commenta LINK e te la mandiamo in DM.");
+  assert.equal(c.posts.instagram_reel.first_comment, undefined);
 });
 
 test("fetchStories reads the feed through the mapping; createStoryCampaign writes the campaign once", async () => {

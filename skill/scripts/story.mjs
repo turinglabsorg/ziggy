@@ -160,7 +160,9 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
       ? ` Basato su ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
       : ` Sourced from ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
     : "";
-  const cta = (social.cta || "Want the full story with its sources? Comment LINK and we'll send it to you. Also at {site} (link in bio).").replace("{site}", displayUrl);
+  // the caption carries the full story link: Instagram captions are not clickable, but
+  // whoever wants the sources copies the URL — no "comment LINK" DM round-trip
+  const cta = (social.cta || "Full story with sources: {url}").replace("{url}", story.url).replace("{site}", displayUrl);
   const hashtags = (social.hashtags || "#UFO #UAP #Space #Astronomy").trim();
   // reel slides: the AI summary when present, else the dek split at sentence
   // ends, one point per slide (edit them in campaign.json)
@@ -170,7 +172,6 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
   // carry the whole story, not make the reader leave Instagram to understand it
   const pointsBlock = points.length ? `\n\n${points.join("\n\n")}` : "";
   const caption = `${story.title}\n\n${story.dek}${pointsBlock}${sourcesLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
-  const linkComment = social.linkComment || "Comment LINK and we'll DM you the full story with sources.";
   const thread = composeThread({ title: story.title, dek: story.dek, url: story.url, limit: 280 });
   return {
     template: "story",
@@ -187,13 +188,11 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
         body: caption,
         media: "reel",
         cover: true,
-        first_comment: linkComment,
       },
       instagram_post: {
         body: caption,
         media: [...SLIDE_IDS],
         alt_text: [story.title, story.dek, `${tenant.name} — ${displayUrl}`].filter(Boolean),
-        first_comment: linkComment,
         enabled: false,
       },
       twitter: {

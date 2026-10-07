@@ -137,7 +137,8 @@ test("a LINK comment on a post that carries a link gets the link by DM (private 
     { id: "cmt_link", body: "Link please!", author_username: "reader" },
     { id: "cmt_linked", body: "I linked this to my cousin", author_username: "other" },
   ];
-  setTenant({ autopilot: { mode: "auto", agent: null, skipAuthors: ["acme"] } });
+  // linkReply is opt-in: story captions already carry the full link
+  setTenant({ autopilot: { mode: "auto", agent: null, linkReply: true, skipAuthors: ["acme"] } });
   const r = await run(["autopilot", "acme", "--json"]);
   assert.equal(r.status, 0, r.stderr);
   const report = JSON.parse(r.stdout);
@@ -150,7 +151,7 @@ test("a LINK comment on a post that carries a link gets the link by DM (private 
   assert.ok(report.queued.some((q) => q.item.id === "cmt_linked"), "the other comment is escalated (no agent)");
   // draft mode only proposes
   writeFileSync(join(world.home, "tenants", "acme", "inbox", "seen.json"), JSON.stringify({ comments: {}, messages: {} }));
-  setTenant({ autopilot: { mode: "draft", agent: null, skipAuthors: ["acme"] } });
+  setTenant({ autopilot: { mode: "draft", agent: null, linkReply: true, skipAuthors: ["acme"] } });
   const before = mock.calls.filter((c) => c.path.endsWith("/private_reply")).length;
   const d = JSON.parse((await run(["autopilot", "acme", "--json"])).stdout);
   assert.equal(mock.calls.filter((c) => c.path.endsWith("/private_reply")).length, before);

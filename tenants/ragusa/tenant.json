@@ -38,19 +38,6 @@
         "json"
       ],
       "timeoutMs": 120000
-    },
-    "linkReply": {
-      "keywords": [
-        "link",
-        "fonte",
-        "fonti",
-        "articolo",
-        "articolo completo",
-        "source",
-        "sources"
-      ],
-      "template": "Ecco la storia completa, con le sue fonti: {url}",
-      "ack": "Inviato — controlla i DM 📩"
     }
   },
   "handles": {
@@ -58,9 +45,8 @@
     "tiktok": "@ragusabuzz"
   },
   "social": {
-    "cta": "La storia completa e le fonti: {site} (link in bio).",
+    "cta": "La storia completa: {url}",
     "hashtags": "#Ragusa #Sicilia #Cronaca #Notizie",
-    "linkComment": "Commenta LINK e ti mandiamo la storia completa con le fonti in DM.",
     "bed": "news"
   },
   "notes": "Local news for the Ragusa province, multilingual. Social is Italian-first, Instagram + TikTok only.",
