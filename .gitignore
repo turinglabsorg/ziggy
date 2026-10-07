@@ -12,3 +12,4 @@ tenants/*/videos/
 *.mp4
 *.wav
 *.woff2
+tenants/*/campaigns/
