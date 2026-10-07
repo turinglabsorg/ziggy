@@ -22,7 +22,8 @@ services:
     volumes:
       - ziggy-data:/data
     ports:
-      - "8080:8080"
+      # host side 8787: 8080 is busy with other projects on this machine
+      - "8787:8080"
 
 volumes:
   ziggy-data:
