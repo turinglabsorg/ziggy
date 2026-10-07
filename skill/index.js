@@ -26,6 +26,7 @@ import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
 import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
 import { runDaily } from "./scripts/daily.mjs";
 import { buildReport } from "./scripts/report.mjs";
+import { serve, SERVER_DEFAULTS } from "./scripts/server.mjs";
 import { threadForCampaign } from "./scripts/thread.mjs";
 import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
 
@@ -46,7 +47,7 @@ const quiet = has("--quiet");
 const positional = () => {
   const out = [];
   for (let i = 1; i < args.length; i++) {
-    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch"].includes(args[i])) i++; continue; }
+    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once"].includes(args[i])) i++; continue; }
     out.push(args[i]);
   }
   return out;
@@ -108,6 +109,12 @@ Inbox & engagement
   ziggy queue <slug> [--json]                       what autopilot left for a human
   ziggy watch <slug> --install [--interval 900] | --uninstall | --status
                                                     schedule autopilot (launchd on macOS, cron elsewhere)
+
+Server (the durable loop — one always-on process, or the Docker image)
+  ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800] [--every-report 14400]
+                                                    re-runs daily + report per tenant on a timer;
+                                                    keys from POSTPROXY_API_KEY_<SLUG> (or hush locally);
+                                                    GET /healthz, SIGTERM stops cleanly
 
 Keys (hush — never pasted, never printed)
   ziggy keys status <slug>
@@ -413,6 +420,25 @@ async function main() {
       const t = loadTenant(pos[0]); ensureKey(t.slug);
       const r = await buildReport({ tenant: t, inboxNewOnly: !has("--all") });
       return out(r, (d) => d.text + (d.errors.length ? `\nerrors: ${d.errors.join("; ")}` : ""));
+    }
+
+    case "serve": {
+      if (!pos.length) fail("usage: ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800] [--every-report 14400]", 2);
+      const secs = (name, env, d) => { const v = flag(name); if (v !== undefined && v !== true) return Number(v); return process.env[env] ? Number(process.env[env]) : d; };
+      const r = serve({
+        slugs: pos,
+        dailyEveryS: secs("--every-daily", "ZIGGY_DAILY_EVERY_S", SERVER_DEFAULTS.dailyEveryS),
+        reportEveryS: secs("--every-report", "ZIGGY_REPORT_EVERY_S", SERVER_DEFAULTS.reportEveryS),
+        port: secs("--port", "ZIGGY_SERVE_PORT", SERVER_DEFAULTS.port),
+        once: has("--once"),
+        log: (s) => console.log(s),
+      });
+      if (has("--once")) {
+        await r.boot;
+        const failed = Object.values(r.state).some((s) => Object.values(s).some((k) => k.error));
+        process.exit(failed ? 1 : 0);
+      }
+      return; // intervals + the health endpoint keep the process alive
     }
 
     case "stats": {
