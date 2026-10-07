@@ -73,8 +73,9 @@ working **with** Ziggy.
   `--once`, `--port` → GET /healthz). Every run is a child CLI invocation, so keys resolve as
   usual: in containers via `POSTPROXY_API_KEY_<SLUG>` env vars (uppercased slug; the global
   `POSTPROXY_API_KEY` passes through only when serving a single tenant), locally via hush.
-  `ZIGGY_REPORT_HOOK` is an optional shell command that receives each report as
-  `ZIGGY_REPORT_TEXT`/`ZIGGY_REPORT_TENANT` (e.g. a grog send). A failing run is logged in
+  `ZIGGY_REPORT_HOOK` is an optional shell command fired once per report cycle with every
+  tenant's digest combined as `ZIGGY_REPORT_TEXT` (blank line between tenants) and
+  `ZIGGY_REPORT_TENANT` as the comma list (e.g. a grog send). A failing run is logged in
   `state` and never stops the loop.
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
   threads, bluesky, linkedin, facebook. TikTok is video-only, always needs media, and its boolean
