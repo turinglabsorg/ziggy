@@ -37,11 +37,13 @@ test("the report lists published with permalinks, scheduled with times, stats an
   const unlog = logTwoPosts();
   const r = await runCli(["report", "acme"], ENV());
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /✓ story-one → https:\/\/instagram\.com\/p\/abc123/);
-  assert.match(r.stdout, /⏳ story-two → 2026-10-07T05:30:00Z/);
-  assert.match(r.stdout, /instagram Brand: followers 3 · views 7d 40/);
-  assert.match(r.stdout, /Inbox: 1 comment/);
-  assert.match(r.stdout, /@reader: Bella questa/);
+  assert.match(r.stdout, /📊 Acme — \d{2}:\d{2} UTC/);
+  assert.match(r.stdout, /✅ 1 pubblicati — ultimo: story one/);
+  assert.match(r.stdout, / {3}https:\/\/instagram\.com\/p\/abc123/);
+  assert.match(r.stdout, /⏳ in programma:\n {3}🕒 05:30 — story two/);
+  assert.match(r.stdout, /📈 instagram Brand: 3 follower · 40 views\/7gg · reach 21\/7gg/);
+  assert.match(r.stdout, /📥 inbox: 1 commento 👀/);
+  assert.match(r.stdout, /💬 @reader: Bella questa/);
   const j = await runCli(["report", "acme", "--json"], ENV());
   const d = JSON.parse(j.stdout);
   assert.equal(d.published.length, 1);

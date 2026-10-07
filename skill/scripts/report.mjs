@@ -7,8 +7,6 @@ import { pullStats, pullInbox } from "./inbox.mjs";
 import { createClient } from "./postproxy.mjs";
 import { readPostLog } from "./config.mjs";
 
-const STATS_KEYS = ["followers_count", "views_1d", "reach_1d", "total_interactions_1d", "views_7d", "reach_7d", "total_interactions_7d", "profile_views_7d"];
-
 /**
  * The report as data + text. `statuses` comes from the tenant's post log refreshed against
  * Postproxy, one line per post: published with permalink, scheduled with its time.
@@ -24,20 +22,45 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
 
   const published = statuses.posts.filter((p) => p.link);
   const queued = statuses.posts.filter((p) => !p.link && p.scheduledAt);
-  if (published.length) lines.push("Published:", ...published.map((p) => `  ✓ ${p.campaign || p.id} → ${p.link}`));
-  if (queued.length) lines.push("Scheduled:", ...queued.map((p) => `  ⏳ ${p.campaign || p.id} → ${p.scheduledAt}`));
+  const tz = tenant.daily?.tz || "Z";
+  const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, "").replace(/-+$/, "").replace(/-/g, " ");
+  const localTime = (iso) => {
+    if (tz === "Z") return iso.slice(11, 16);
+    const offsetMs = Date.parse("2000-01-01T00:00:00Z") - Date.parse(`2000-01-01T00:00:00${tz}`);
+    return new Date(Date.parse(iso) + offsetMs).toISOString().slice(11, 16);
+  };
+  const now = new Date();
+  lines.push(`📊 ${tenant.brand?.name || tenant.name} — ${localTime(now.toISOString())}${tz === "Z" ? " UTC" : ""}`);
+
+  if (published.length) {
+    const last = published[published.length - 1];
+    lines.push(`✅ ${published.length} pubblicati — ultimo: ${short(last.campaign || last.id)}`);
+    lines.push(`   ${last.link}`);
+  }
+  if (queued.length) {
+    lines.push(`⏳ in programma:`);
+    for (const p of queued.slice(0, 4)) lines.push(`   🕒 ${localTime(p.scheduledAt)} — ${short(p.campaign || p.id)}`);
+    if (queued.length > 4) lines.push(`   …altri ${queued.length - 4}`);
+  }
 
   for (const p of stats.profiles) {
     const s = p.stats || {};
-    const nz = STATS_KEYS.filter((k) => s[k]).map((k) => `${k.replace(/_count$/, "").replace(/_/g, " ")} ${s[k]}`);
-    lines.push(`${p.platform} ${p.name}: ${nz.join(" · ") || "no stats yet"}${p.recordedAt ? ` (snapshot ${p.recordedAt})` : ""}`);
+    const parts = [];
+    if (s.followers_count) parts.push(`${s.followers_count} follower`);
+    if (s.views_1d) parts.push(`${s.views_1d} views/24h`);
+    else if (s.views_7d) parts.push(`${s.views_7d} views/7gg`);
+    if (s.reach_1d) parts.push(`reach ${s.reach_1d}`);
+    else if (s.reach_7d) parts.push(`reach ${s.reach_7d}/7gg`);
+    if (s.total_interactions_1d) parts.push(`${s.total_interactions_1d} interazioni`);
+    lines.push(`📈 ${p.platform} ${p.name}: ${parts.join(" · ") || "ancora nessun dato"}`);
   }
-  if (!stats.profiles.length) lines.push("(no profiles)");
 
   const fresh = inboxNewOnly ? inbox.comments.new : inbox.comments.all;
   const dms = inbox.chats.filter((ch) => !inboxNewOnly || ch.isNew);
-  lines.push(`Inbox: ${fresh.length} comment(s)${dms.length ? `, ${dms.length} DM thread(s)` : ""}`);
-  lines.push(...fresh.map((c) => `  💬 ${c.platform} @${c.author || "?"}: ${String(c.body || "").slice(0, 140)}`));
+  lines.push(fresh.length || dms.length
+    ? `📥 inbox: ${fresh.length} ${fresh.length === 1 ? "commento" : "commenti"}${dms.length ? `, ${dms.length} DM` : ""} 👀`
+    : `📥 inbox: niente di nuovo`);
+  for (const c of fresh.slice(0, 3)) lines.push(`   💬 @${c.author || "?"}: ${String(c.body || "").slice(0, 100)}`);
 
   const text = lines.join("\n") || "(nothing to report)";
   return { text, published, queued, profiles: stats.profiles, inbox: { comments: fresh, dms }, errors };

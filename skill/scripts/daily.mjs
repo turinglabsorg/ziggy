@@ -93,7 +93,7 @@ export function uncoveredStories(tenant, stories, { from = new Date(), daily = d
  * `tz` is a fixed offset string ("+02:00") — no DST, the tenant pins its own offset.
  */
 export function nextSlotTimes(slots, tz, { from = new Date() } = {}) {
-  const offsetMs = Date.parse(`2000-01-01T00:00:00${tz}`) - Date.parse("2000-01-01T00:00:00Z");
+  const offsetMs = Date.parse("2000-01-01T00:00:00Z") - Date.parse(`2000-01-01T00:00:00${tz}`);
   const localDate = new Date(from.getTime() + offsetMs).toISOString().slice(0, 10);
   return slots.map((slot) => {
     let plus = 0;
