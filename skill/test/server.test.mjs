@@ -37,6 +37,17 @@ test("serve runs daily + report per tenant at boot and then on its timers", asyn
   assert.ok(r.state.acme.report.lastOk);
 });
 
+test("--no-daily (dailyEveryS 0): reports only, the daily loop never runs on its own", async () => {
+  const calls = [];
+  const spawnImpl = async ({ slug, cmd }) => { calls.push({ slug, cmd }); return { ok: true, code: 0, stdout: `${cmd} done`, stderr: "" }; };
+  const r = serve({ slugs: ["acme"], dailyEveryS: 0, reportEveryS: 0.05, port: 0, spawnImpl, log: quiet });
+  await r.boot;
+  await sleep(150);
+  await r.stop();
+  assert.ok(calls.length >= 2, "reports still run on their timer");
+  assert.deepEqual([...new Set(calls.map((c) => c.cmd))], ["report"]);
+});
+
 test("a failing run is recorded and the loop goes on", async () => {
   const spawnImpl = async ({ cmd }) => ({ ok: cmd !== "daily", code: cmd === "daily" ? 1 : 0, stdout: "", stderr: "boom\nmore" });
   const r = serve({ slugs: ["acme"], dailyEveryS: 0.05, reportEveryS: 0.05, port: 0, spawnImpl, log: quiet });

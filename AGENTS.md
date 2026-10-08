@@ -89,10 +89,23 @@ working **with** Ziggy.
   timezone, one stats line per profile (only non-zero numbers), inbox count + up to three
   comments. A scheduler pipes it wherever (`ZIGGY_REPORT_HOOK='grog telegram-send --to me
   "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.
+- **Operating mode (owner's rule): a Claude session always drives publishing.** No autonomous agent
+  and no Anthropic key in the container. Production runs `serve … --no-daily`, which only sends
+  reports. Story selection, summaries, render checks and scheduling happen in a Claude session
+  that works through `docker exec ziggy-ziggy-1 node skill/index.js …`:
+  1. `daily <slug> --dry-run` (or `stories`) to see the uncovered stories;
+  2. create the campaigns, and the session itself writes the 3–4 summary points into `copy.points`
+     (the container has no summarizer, so its fallback is a single dek point, which is not good
+     enough to publish);
+  3. `video` to render, then look at the frames (photo, end card) and check that the audio is
+     there;
+  4. `post … --live --at <ISO>` into a free slot. Never stack two stories on one slot, and drop
+     stories about events that are already past (`"skip": true`).
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
   repo's `Dockerfile` + `docker-compose.yml`: keys via `.env.docker`, state volume `ziggy-data`,
   reports to Telegram via `docker/telegram-notify.mjs` as `ZIGGY_REPORT_HOOK`) re-runs each
-  tenant's loops on timers (`--every-daily`, `--every-report`, `--once`, `--port` → GET /healthz).
+  tenant's loops on timers (`--every-daily`, `--no-daily` for reports only, `--every-report`,
+  `--once`, `--port` → GET /healthz).
   Every run is a child CLI invocation, so keys resolve as usual: in containers via
   `POSTPROXY_API_KEY_<SLUG>` env vars (uppercased slug; the global `POSTPROXY_API_KEY` passes
   through only when serving a single tenant), locally via hush.

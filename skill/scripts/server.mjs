@@ -104,10 +104,14 @@ export function serve({ slugs, dailyEveryS = SERVER_DEFAULTS.dailyEveryS, report
     });
   }
 
+  // dailyEveryS 0 (--no-daily): reports only. Story selection, summaries and scheduling stay
+  // with a Claude session that runs `ziggy daily`/`ziggy post` itself — no autonomous publishing
   const runs = [];
-  for (const t of tenants) {
-    runs.push(runOnce(t.slug, "daily"));
-    if (!once) timers.push(setInterval(() => runOnce(t.slug, "daily"), dailyEveryS * 1000));
+  if (dailyEveryS > 0) {
+    for (const t of tenants) {
+      runs.push(runOnce(t.slug, "daily"));
+      if (!once) timers.push(setInterval(() => runOnce(t.slug, "daily"), dailyEveryS * 1000));
+    }
   }
   runs.push(runReports());
   if (!once) timers.push(setInterval(runReports, reportEveryS * 1000));

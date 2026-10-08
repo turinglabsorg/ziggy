@@ -441,11 +441,11 @@ async function main() {
     }
 
     case "serve": {
-      if (!pos.length) fail("usage: ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800] [--every-report 14400]", 2);
+      if (!pos.length) fail("usage: ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800 | --no-daily] [--every-report 14400]", 2);
       const secs = (name, env, d) => { const v = flag(name); if (v !== undefined && v !== true) return Number(v); return process.env[env] ? Number(process.env[env]) : d; };
       const r = serve({
         slugs: pos,
-        dailyEveryS: secs("--every-daily", "ZIGGY_DAILY_EVERY_S", SERVER_DEFAULTS.dailyEveryS),
+        dailyEveryS: has("--no-daily") ? 0 : secs("--every-daily", "ZIGGY_DAILY_EVERY_S", SERVER_DEFAULTS.dailyEveryS),
         reportEveryS: secs("--every-report", "ZIGGY_REPORT_EVERY_S", SERVER_DEFAULTS.reportEveryS),
         port: secs("--port", "ZIGGY_SERVE_PORT", SERVER_DEFAULTS.port),
         once: has("--once"),

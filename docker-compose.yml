@@ -19,7 +19,9 @@ services:
     build: .
     image: ziggy:latest
     restart: unless-stopped
-    command: ["serve", "ragusa", "alienwatch"]
+    # reports only: a Claude session picks the stories, writes the summaries and schedules
+    # (ziggy daily / ziggy post via docker exec); the container never publishes on its own
+    command: ["serve", "ragusa", "alienwatch", "--no-daily"]
     env_file:
       - path: .env.docker
         required: false
