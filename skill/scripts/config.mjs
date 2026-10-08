@@ -168,12 +168,15 @@ export function readPostLog(slug) {
 }
 
 /**
- * One record per post we created: the log also holds `event` lines (publish, delete,
- * reschedule) for the same ids, which carry no campaign and must not count as posts.
+ * One record per post we created and still have. The log also holds `event` lines (publish,
+ * delete, reschedule) for the same ids: they carry no campaign and must not count as posts,
+ * and a deleted post is gone from Postproxy (its comments answer 404).
  */
 export function readCreatedPosts(slug) {
+  const log = readPostLog(slug);
+  const deleted = new Set(log.filter((r) => r.event === "delete").map((r) => r.postId));
   const seen = new Set();
-  return readPostLog(slug).filter((r) => r.postId && !r.event && !seen.has(r.postId) && seen.add(r.postId));
+  return log.filter((r) => r.postId && !r.event && !deleted.has(r.postId) && !seen.has(r.postId) && seen.add(r.postId));
 }
 
 /** hush secret name for a tenant's Postproxy key: letters, digits, '.', '_', '-' only. */

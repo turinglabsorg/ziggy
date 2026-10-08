@@ -20,8 +20,13 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
   const lines = [];
   const errors = [...stats.errors, ...inbox.errors, ...(statuses.errors || [])];
 
-  const published = statuses.posts.filter((p) => p.link);
-  const queued = statuses.posts.filter((p) => !p.link && p.scheduledAt);
+  // in time order: the log's order is creation order, and reschedules move posts around
+  const when = (p) => String(p.scheduledAt || p.at || "");
+  const byTime = (a, b) => when(a).localeCompare(when(b));
+  const published = statuses.posts.filter((p) => p.link).sort(byTime);
+  const queued = statuses.posts.filter((p) => !p.link && p.scheduledAt).sort(byTime);
+  // one line per story and time: a reel going to Instagram and TikTok together is one slot
+  const slots = queued.filter((p, i) => queued.findIndex((q) => q.scheduledAt === p.scheduledAt && q.campaign === p.campaign) === i);
   const tz = tenant.daily?.tz || "Z";
   const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, "").replace(/-+$/, "").replace(/-/g, " ");
   const localTime = (iso) => {
@@ -37,10 +42,10 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
     lines.push(`✅ ${published.length} pubblicati — ultimo: ${short(last.campaign || last.id)}`);
     lines.push(`   ${last.link}`);
   }
-  if (queued.length) {
+  if (slots.length) {
     lines.push(`⏳ in programma:`);
-    for (const p of queued.slice(0, 4)) lines.push(`   🕒 ${localTime(p.scheduledAt)} — ${short(p.campaign || p.id)}`);
-    if (queued.length > 4) lines.push(`   …altri ${queued.length - 4}`);
+    for (const p of slots.slice(0, 4)) lines.push(`   🕒 ${localTime(p.scheduledAt)} — ${short(p.campaign || p.id)}`);
+    if (slots.length > 4) lines.push(`   …altri ${slots.length - 4}`);
   }
 
   for (const p of stats.profiles) {
@@ -76,7 +81,7 @@ async function refreshStatuses(tenant, client) {
     try { post = await client.getPost(r.postId); } catch (e) { if (!/404/.test(e.message)) errors.push(`${r.postId}: ${e.message}`); }
     if (!post) continue; // deleted posts simply drop out of the report
     const link = (post.platforms || []).find((pl) => pl.permalink)?.permalink || null;
-    posts.push({ id: r.postId, campaign: r.campaign || null, status: post.status, link, scheduledAt: post.scheduled_at || null });
+    posts.push({ id: r.postId, campaign: r.campaign || null, status: post.status, link, scheduledAt: post.scheduled_at || null, at: r.at || null });
   }
   const order = (p) => (p.link ? 0 : 1);
   return { posts: posts.sort((a, b) => order(a) - order(b)), errors };

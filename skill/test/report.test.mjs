@@ -75,5 +75,35 @@ test("publish, delete and reschedule events never show up as extra posts in the 
   const d = JSON.parse(j.stdout);
   assert.deepEqual(d.published.map((p) => p.campaign), ["story-one"]);
   assert.deepEqual(d.queued.map((p) => p.campaign), ["story-two"]);
+  // a deleted post is gone: no queue entry, and the inbox never asks for its comments
+  appendFileSync(log, JSON.stringify({ postId: "p_sched", event: "delete" }) + "\n");
+  const kept = mock.state.posts.p_sched;
+  delete mock.state.posts.p_sched; // what `ziggy delete` does on Postproxy's side
+  const callsBefore = mock.calls.length;
+  const after = JSON.parse((await runCli(["report", "acme", "--json"], ENV())).stdout);
+  assert.deepEqual(after.queued, []);
+  assert.ok(!mock.calls.slice(callsBefore).some((c) => c.path.startsWith("/api/posts/p_sched")), "nothing is fetched for a deleted post");
+  mock.state.posts.p_sched = kept;
   unlog();
+});
+
+test("the queue reads in time order, one line per story even when it goes to two platforms", async () => {
+  const log = join(world.home, "tenants", "acme", "posts.jsonl");
+  const before = existsSync(log) ? readFileSync(log, "utf8") : "";
+  const sched = (id, at, platform) => ({ id, status: "scheduled", platforms: [{ platform, profile_id: "prof_ig", status: "pending" }], scheduled_at: at });
+  Object.assign(mock.state.posts, {
+    q_late: sched("q_late", "2026-10-07T21:30:00Z", "instagram"),
+    q_early_ig: sched("q_early_ig", "2026-10-07T18:30:00Z", "instagram"),
+    q_early_tt: sched("q_early_tt", "2026-10-07T18:30:00Z", "tiktok"),
+  });
+  writeFileSync(log, [
+    { postId: "q_late", campaign: "story-late", platform: "instagram" },
+    { postId: "q_early_ig", campaign: "story-early", platform: "instagram" },
+    { postId: "q_early_tt", campaign: "story-early", platform: "tiktok" },
+  ].map((x) => JSON.stringify(x)).join("\n") + "\n");
+  const r = await runCli(["report", "acme"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /⏳ in programma:\n {3}🕒 18:30 — story early\n {3}🕒 21:30 — story late\n/);
+  for (const id of ["q_late", "q_early_ig", "q_early_tt"]) delete mock.state.posts[id];
+  writeFileSync(log, before);
 });
