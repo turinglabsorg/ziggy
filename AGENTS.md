@@ -65,7 +65,8 @@ working **with** Ziggy.
   → rendered reels → scheduled on the tenant's slots (`tenant.json → daily`: slots, tz,
   maxAgeHours, only). An external scheduler (launchd/cron/timer) owns the cadence. Coverage means
   a live post (not deleted) exists in posts.jsonl, matched by slug *and* headline tokens (the
-  feed re-slugs stories on update). A campaign that crashed mid-run is reused, never
+  feed re-slugs stories on update), or a campaign marked `"skip": true` (an editor dropped the
+  story, e.g. an event already past). A campaign that crashed mid-run is reused, never
   resummarized. Each story gets the next **free** slot within 24h. A slot holding one of our
   scheduled posts is skipped, and a story with no free slot waits (and may age out): never two
   stories on one slot. The loop hands the story object to `createStoryCampaign`. A second feed

@@ -59,9 +59,10 @@ export function coveredStories(slug) {
   const posted = new Set(livePosts(slug).map((r) => r.campaign).filter(Boolean));
   const covered = [];
   for (const name of listCampaigns(slug)) {
-    if (!posted.has(name)) continue;
     try {
       const c = loadCampaign(slug, name);
+      // `"skip": true` in campaign.json: an editor dropped the story (e.g. an event already past)
+      if (!posted.has(name) && !c.skip) continue;
       if (c.story?.slug || c.copy?.headline) covered.push({ slug: c.story?.slug || null, tokens: titleTokens(c.copy?.headline || "") });
     } catch { /* a broken campaign does not block the run */ }
   }

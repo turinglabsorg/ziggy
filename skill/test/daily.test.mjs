@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
-import { dailyConfig, freeSlotTimes, uncoveredStories } from "../scripts/daily.mjs";
+import { coveredStories, dailyConfig, freeSlotTimes, storyCovered, uncoveredStories } from "../scripts/daily.mjs";
 import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
@@ -124,3 +124,13 @@ test("a deleted post frees its slot and uncovers its story: the next run redoes 
 });
 
 function mockCalls() { return mock.calls; }
+
+test("a campaign marked skip covers its story without any post: the loop leaves it alone", () => {
+  const dir = join(world.repo, "tenants", "acme", "campaigns", "story-2026-10-07-confronto-pubblico-ieri");
+  mkdirSync(dir, { recursive: true });
+  const story = { slug: "confronto-pubblico-ieri-6d6c2f52", title: "Confronto pubblico ieri sera in piazza" };
+  writeFileSync(join(dir, "campaign.json"), JSON.stringify({ template: "story", story: { slug: story.slug }, copy: { headline: story.title } }));
+  assert.equal(storyCovered(story, coveredStories("acme")), false, "no post, no skip: still to do");
+  writeFileSync(join(dir, "campaign.json"), JSON.stringify({ template: "story", skip: true, story: { slug: story.slug }, copy: { headline: story.title } }));
+  assert.equal(storyCovered(story, coveredStories("acme")), true);
+});
