@@ -63,6 +63,9 @@ working **with** Ziggy.
   `linkReply` (autopilot.mjs) still exists but is opt-in per tenant.
   `ziggy delete <slug> <postId…>` removes drafts or scheduled posts (no
   media cleanup — recreating a scheduled post re-uploads) and logs a delete event in posts.jsonl.
+  `ziggy reschedule <slug> <postId…> --at <ISO>` moves scheduled posts (Postproxy PATCH
+  `post.scheduled_at`, accepted until 5 minutes before publish time, no re-upload) and logs a
+  reschedule event, so the slot accounting follows the post.
   Published Instagram/TikTok posts cannot be deleted or edited through Postproxy: they go from
   the app.
 - `ziggy daily <slug>` (daily.mjs) is the durable daily loop: uncovered feed stories → campaigns
@@ -105,6 +108,10 @@ working **with** Ziggy.
      there;
   4. `post … --live --at <ISO>` into a free slot. Never stack two stories on one slot, and drop
      stories about events that are already past (`"skip": true`).
+  Ragusa freshness rule: a story goes out **at the latest the day after its news date**, never
+  later. When there are more stories than the fixed slots, schedule them 1–2 hours apart
+  rather than pushing them into the following days. Stories that can no longer make their day
+  are dropped (`"skip": true`).
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
   repo's `Dockerfile` + `docker-compose.yml`: keys via `.env.docker`, state volume `ziggy-data`,
   reports to Telegram via `docker/telegram-notify.mjs` as `ZIGGY_REPORT_HOOK`) re-runs each

@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
-import { coveredStories, dailyConfig, freeSlotTimes, storyCovered, uncoveredStories } from "../scripts/daily.mjs";
+import { coveredStories, dailyConfig, freeSlotTimes, livePosts, storyCovered, uncoveredStories } from "../scripts/daily.mjs";
 import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
@@ -124,6 +124,24 @@ test("a deleted post frees its slot and uncovers its story: the next run redoes 
 });
 
 function mockCalls() { return mock.calls; }
+
+test("ziggy reschedule moves a scheduled post on Postproxy and in the slot accounting", async () => {
+  const target = livePosts("acme").find((x) => x.scheduledAt === "2026-10-07T15:30:00.000Z");
+  assert.ok(target, "the night market story from the stacking test");
+  const r = await runCli(["reschedule", "acme", target.postId, "--at", "2026-10-07T21:15:00Z"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, new RegExp(`${target.postId}  → 2026-10-07T21:15:00.000Z`));
+  const patch = mock.calls.filter((c) => c.method === "PATCH").at(-1);
+  assert.equal(patch.path, `/api/posts/${target.postId}`);
+  assert.equal(mock.state.posts[target.postId].scheduled_at, "2026-10-07T21:15:00.000Z");
+  assert.equal(livePosts("acme").find((x) => x.postId === target.postId).scheduledAt, "2026-10-07T21:15:00.000Z");
+  // the slot it left is free again, the new one is taken
+  const free = freeSlotTimes(["17:30", "23:15"], "+02:00", { from: new Date("2026-10-07T12:00:00Z"), taken: new Set(livePosts("acme").map((x) => Date.parse(x.scheduledAt))) });
+  assert.deepEqual(free, ["2026-10-07T15:30:00.000Z"]);
+  const bad = await runCli(["reschedule", "acme", target.postId], ENV());
+  assert.notEqual(bad.status, 0);
+  assert.match(bad.stderr, /usage: ziggy reschedule/);
+});
 
 test("a campaign marked skip covers its story without any post: the loop leaves it alone", () => {
   const dir = join(world.repo, "tenants", "acme", "campaigns", "story-2026-10-07-confronto-pubblico-ieri");

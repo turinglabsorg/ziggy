@@ -68,8 +68,16 @@ export async function startMockPostproxy({ profiles, posts = {}, comments = {}, 
       const draft = fields ? fields["post[draft]"] === "true" : Boolean(body?.post?.draft);
       const profiles = fields ? fields["profiles[]"] : body.profiles;
       const platforms = profiles.map((p) => { const prof = state.profiles.find((x) => x.id === p || x.platform === p); return { platform: prof?.platform || p, profile_id: prof?.id || p, status: draft ? "pending" : "published", permalink: draft ? null : `https://example.social/${id}` }; });
-      state.posts[id] = { id, status: draft ? "draft" : "processed", body: fields ? fields["post[body]"] : body.post.body, platforms, scheduled_at: fields ? fields["post[scheduled_at]"] || null : body.post.scheduled_at || null };
+      const scheduledAt = fields ? fields["post[scheduled_at]"] || null : body.post.scheduled_at || null;
+      // like Postproxy: a post with a future time waits as "scheduled", one without goes out now
+      state.posts[id] = { id, status: draft ? "draft" : scheduledAt ? "scheduled" : "processed", body: fields ? fields["post[body]"] : body.post.body, platforms, scheduled_at: scheduledAt };
       return send(201, { data: state.posts[id] });
+    }
+    if ((mm = m(/^\/api\/posts\/([^/]+)$/)) && req.method === "PATCH") {
+      const p = state.posts[mm[1]]; if (!p) return send(404, { error: "not found" });
+      if (p.status === "processed") return send(422, { error: "published posts accept body edits only" });
+      if (body.post?.scheduled_at) p.scheduled_at = body.post.scheduled_at;
+      return send(200, { data: p });
     }
     if ((mm = m(/^\/api\/posts\/([^/]+)\/publish$/)) && req.method === "POST") {
       const p = state.posts[mm[1]]; if (!p) return send(404, { error: "not found" });

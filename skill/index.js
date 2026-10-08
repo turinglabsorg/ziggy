@@ -96,6 +96,7 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
                                                     create the posts as DRAFTS (default) or publish/schedule
   ziggy publish <slug> <postId…> [--watch]          publish reviewed drafts
   ziggy delete <slug> <postId…>                     delete drafts or scheduled posts
+  ziggy reschedule <slug> <postId…> --at <ISO>      move scheduled posts (no media re-upload)
   ziggy status <slug> [<postId…>] [--json]          post status + permalinks (defaults to the tenant's log)
 
 Inbox & engagement
@@ -132,7 +133,7 @@ autopilot) wraps itself in \`hush run\` when ${KEY_ENV} is not already set.`);
 
 /* ── key-needing commands re-exec under hush ─────────────────────────────── */
 
-const NEEDS_KEY = new Set(["post", "publish", "delete", "daily", "report", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
+const NEEDS_KEY = new Set(["post", "publish", "delete", "reschedule", "daily", "report", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
 
 function ensureKey(slug) {
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
@@ -403,6 +404,23 @@ async function main() {
       // the daily loop reads deletes from the log: the story is uncovered again, its slot free
       for (const r of results) if (r.deleted === true) logPost(slug, { postId: r.id, event: "delete" });
       return out(results, (d) => d.map((r) => `${r.id}  ${r.deleted === true ? "deleted" : `error: ${r.deleted}`}`).join("\n"));
+    }
+
+    case "reschedule": {
+      const [slug, ...ids] = pos;
+      loadTenant(slug); ensureKey(slug);
+      const at = flag("--at");
+      if (!ids.length || !at || at === true || Number.isNaN(Date.parse(at))) fail("usage: ziggy reschedule <slug> <postId…> --at <ISO>");
+      const when = new Date(at).toISOString();
+      const client = createClient();
+      const results = [];
+      for (const id of ids) {
+        const r = await client.reschedulePost(id, when).then((p) => ({ id, scheduledAt: p?.scheduled_at || when }), (e) => ({ id, error: String(e.message || e) }));
+        // the daily loop reads the move from the log, so slot accounting follows the post
+        if (!r.error) logPost(slug, { postId: id, event: "reschedule", scheduledAt: r.scheduledAt });
+        results.push(r);
+      }
+      return out(results, (d) => d.map((r) => `${r.id}  ${r.error ? `error: ${r.error}` : `→ ${r.scheduledAt}`}`).join("\n"));
     }
 
     case "status": {

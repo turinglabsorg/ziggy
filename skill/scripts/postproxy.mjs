@@ -67,6 +67,8 @@ export function createClient({ baseUrl = process.env.ZIGGY_POSTPROXY_BASE_URL ||
     getPost: (id, query) => request("GET", `/api/posts/${enc(id)}`, { query }).then(data),
     publishPost: (id, query) => request("POST", `/api/posts/${enc(id)}/publish`, { query }).then(data),
     deletePost: (id) => request("DELETE", `/api/posts/${enc(id)}`).then(data),
+    /** Move a scheduled post (Postproxy accepts it until 5 minutes before publish time); no media re-upload. */
+    reschedulePost: (id, scheduledAt) => request("PATCH", `/api/posts/${enc(id)}`, { json: { post: { scheduled_at: scheduledAt } } }).then(data),
 
     /* engagement */
     postStats: ({ postIds, profiles, from, to } = {}) => request("GET", "/api/posts/stats", { query: { post_ids: postIds?.join(","), profiles: Array.isArray(profiles) ? profiles.join(",") : profiles, from, to } }).then(data),

@@ -46,7 +46,10 @@ export function dailyConfig(tenant) {
 export function livePosts(slug) {
   const log = readPostLog(slug);
   const deleted = new Set(log.filter((r) => r.event === "delete").map((r) => r.postId));
-  return log.filter((r) => r.postId && !r.event && !deleted.has(r.postId));
+  // `ziggy reschedule` logs the post's new time; the last move wins
+  const moved = new Map(log.filter((r) => r.event === "reschedule").map((r) => [r.postId, r.scheduledAt]));
+  return log.filter((r) => r.postId && !r.event && !deleted.has(r.postId))
+    .map((r) => (moved.has(r.postId) ? { ...r, scheduledAt: moved.get(r.postId) } : r));
 }
 
 /**
