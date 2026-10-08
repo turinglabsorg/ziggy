@@ -4,7 +4,8 @@ set -euo pipefail
 # Installs Ziggy for the coding agents on this machine:
 #   runtime  → ~/.codex/tools/ziggy  (CLI + scripts + templates)
 #   wrapper  → ~/.local/bin/ziggy
-#   skill    → ~/.claude/skills/ziggy (Claude Code only: Codex is not used for Ziggy's visual work)
+#   skill    → ~/.agents/skills/ziggy, the one copy, linked from ~/.claude/skills/ziggy (Codex reads
+#              ~/.agents too, but is not used for Ziggy's visual work: ~/.codex/config.toml disables it)
 #   config   → ~/.ziggy/config.json pointing at this checkout (tenants live in the repo)
 #
 # Secrets are not touched: keys live in hush (ziggy keys pull <tenant> --send <url>).
@@ -43,12 +44,16 @@ exec node "$TOOLS_DIR/index.js" "\$@"
 EOF
 chmod +x "$BIN_DIR/ziggy"
 
-SKILL_DIR="$CLAUDE_HOME/skills/ziggy"
+SKILL_DIR="${ZIGGY_SKILL_DIR:-$HOME/.agents/skills/ziggy}"
+[ -L "$SKILL_DIR" ] && rm "$SKILL_DIR"
 mkdir -p "$SKILL_DIR"
 cp "$SCRIPT_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
 rm -rf "$SKILL_DIR/agents" "$SKILL_DIR/references"
 cp -R "$SCRIPT_DIR/agents" "$SKILL_DIR/agents"
 cp -R "$SCRIPT_DIR/references" "$SKILL_DIR/references"
+mkdir -p "$CLAUDE_HOME/skills"
+rm -rf "$CLAUDE_HOME/skills/ziggy" "$CODEX_HOME/skills/ziggy"
+ln -s "$SKILL_DIR" "$CLAUDE_HOME/skills/ziggy"
 
 # config: point the installed copy at this checkout, which holds tenants/
 if [ ! -f "$CONFIG_DIR/config.json" ]; then
@@ -62,7 +67,7 @@ chmod 700 "$CONFIG_DIR"
 echo "Installed Ziggy:"
 echo "  tool:   $TOOLS_DIR/index.js"
 echo "  cli:    $BIN_DIR/ziggy"
-echo "  skill:  $CLAUDE_HOME/skills/ziggy/SKILL.md"
+echo "  skill:  $SKILL_DIR/SKILL.md (linked from $CLAUDE_HOME/skills/ziggy)"
 echo "  config: $CONFIG_DIR/config.json  (repo: $REPO_DIR)"
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
