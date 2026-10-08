@@ -5,7 +5,7 @@
  */
 import { pullStats, pullInbox } from "./inbox.mjs";
 import { createClient } from "./postproxy.mjs";
-import { readPostLog } from "./config.mjs";
+import { readCreatedPosts } from "./config.mjs";
 
 /**
  * The report as data + text. `statuses` comes from the tenant's post log refreshed against
@@ -68,7 +68,7 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
 
 /** Every logged post, refreshed: status + permalink + scheduled time, in Postproxy when possible. */
 async function refreshStatuses(tenant, client) {
-  const logged = readPostLog(tenant.slug).filter((r) => r.postId);
+  const logged = readCreatedPosts(tenant.slug);
   const errors = [];
   const posts = [];
   for (const r of logged) {

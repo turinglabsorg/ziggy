@@ -64,3 +64,16 @@ test("a deleted post drops out of the report instead of breaking it", async () =
   assert.ok(!r.stdout.includes("p_gone"));
   assert.ok(!r.stdout.includes("gone →"));
 });
+
+test("publish, delete and reschedule events never show up as extra posts in the report", async () => {
+  const unlog = logTwoPosts();
+  const log = join(world.home, "tenants", "acme", "posts.jsonl");
+  appendFileSync(log, JSON.stringify({ postId: "p_sched", event: "reschedule", scheduledAt: "2026-10-07T06:30:00Z" }) + "\n");
+  appendFileSync(log, JSON.stringify({ postId: "p_pub", status: "processed", event: "publish" }) + "\n");
+  const j = await runCli(["report", "acme", "--json"], ENV());
+  assert.equal(j.status, 0, j.stderr);
+  const d = JSON.parse(j.stdout);
+  assert.deepEqual(d.published.map((p) => p.campaign), ["story-one"]);
+  assert.deepEqual(d.queued.map((p) => p.campaign), ["story-two"]);
+  unlog();
+});

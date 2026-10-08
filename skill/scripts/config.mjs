@@ -167,6 +167,15 @@ export function readPostLog(slug) {
   return readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 }
 
+/**
+ * One record per post we created: the log also holds `event` lines (publish, delete,
+ * reschedule) for the same ids, which carry no campaign and must not count as posts.
+ */
+export function readCreatedPosts(slug) {
+  const seen = new Set();
+  return readPostLog(slug).filter((r) => r.postId && !r.event && !seen.has(r.postId) && seen.add(r.postId));
+}
+
 /** hush secret name for a tenant's Postproxy key: letters, digits, '.', '_', '-' only. */
 export function postproxySecretName(slug) {
   return `ziggy.${assertSlug(slug)}.postproxy`;

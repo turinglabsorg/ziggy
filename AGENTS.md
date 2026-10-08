@@ -124,9 +124,11 @@ working **with** Ziggy.
   tenant's digest combined as `ZIGGY_REPORT_TEXT` (blank line between tenants) and
   `ZIGGY_REPORT_TENANT` as the comma list (e.g. a grog send). A failing run is logged in
   `state` and never stops the loop.
-  The image carries everything a render needs — the headless Chrome (fetched at build time, not
-  on the first story), ffmpeg/ffprobe, `unzip` for puppeteer's browser zip, and the Chromium
-  shared libs. A slim base missing any one of them fails every render *silently*: the campaign
+  The image carries everything a render needs — the HyperFrames CLI pinned globally
+  (`ZIGGY_HYPERFRAMES_BIN=hyperframes`: an npx download per fresh container raced under
+  parallel renders), the headless Chrome (fetched at build time, not on the first story), ffmpeg/ffprobe, `unzip` for puppeteer's browser zip, and the Chromium
+  shared libs, and no Claude Code (summaries come from the driving session). A slim base
+  missing any one of them fails every render *silently*: the campaign
   stays on disk unfinished and the next tick retries it, so `check ok` in the log is the signal
   that rendering actually works.
   A fresh volume starts with no campaigns; seed `tenants/<slug>/campaigns` into

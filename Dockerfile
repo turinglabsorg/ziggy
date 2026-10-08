@@ -19,9 +19,13 @@ WORKDIR /app
 COPY --chown=node:node . .
 RUN chown node:node /app
 
-# `claude -p` writes the reel summaries (tenant.json → feed.agent); needs ANTHROPIC_API_KEY,
-# and a tenant with feed.agent: null never spawns it
-RUN npm install --global @anthropic-ai/claude-code && npm cache clean --force
+# The HyperFrames CLI, pinned and installed here: on demand (`npx --yes hyperframes@…`) every
+# fresh container downloaded it on its first render, and parallel renders raced on the npx
+# cache (ENOTEMPTY, "hyperframes: not found"). Keep the version in step with
+# DEFAULT_HYPERFRAMES_VERSION in skill/scripts/video.mjs.
+# No Claude Code here: a Claude session outside the container writes the summaries.
+RUN npm install --global hyperframes@0.8.133 && npm cache clean --force
+ENV ZIGGY_HYPERFRAMES_BIN=hyperframes
 
 # The headless Chrome HyperFrames renders with, fetched here rather than on the first render:
 # a container that starts with no browser would fail (or stall) on its very first story. The

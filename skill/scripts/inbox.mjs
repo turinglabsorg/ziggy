@@ -9,7 +9,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { readPostLog, workDir } from "./config.mjs";
+import { readCreatedPosts, workDir } from "./config.mjs";
 import { createClient, normalizeComment, pickProfile } from "./postproxy.mjs";
 
 const COMMENT_PLATFORMS = new Set(["instagram", "facebook", "threads", "bluesky", "youtube", "linkedin"]);
@@ -40,7 +40,7 @@ export function readActions(slug) {
 
 /** Our posts for this tenant: the local log first, then (optionally) the API listing. */
 export async function ourPosts({ tenant, client, fromApi = true, limit = 50, profiles = null }) {
-  const logged = readPostLog(tenant.slug).filter((r) => r.postId);
+  const logged = readCreatedPosts(tenant.slug);
   // a Postproxy account that serves one brand: every connected profile is ours unless tenant.json narrows it
   const accountProfiles = new Set((profiles || (fromApi ? await client.listProfiles().catch(() => []) : [])).map((p) => p.id));
   const byId = new Map();
