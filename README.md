@@ -39,7 +39,7 @@ as `ziggy.<slug>.postproxy`. Nothing is shared between tenants.
 
 ```bash
 git clone https://github.com/turinglabsorg/ziggy.git
-cd ziggy && sh skill/install.sh      # CLI → ~/.local/bin/ziggy, skill → ~/.codex/skills + ~/.claude/skills, config → ~/.ziggy
+cd ziggy && sh skill/install.sh      # CLI → ~/.local/bin/ziggy, skill → ~/.claude/skills, config → ~/.ziggy
 ziggy doctor
 ```
 
