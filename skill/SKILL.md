@@ -51,8 +51,9 @@ Read the reference for the step you are on — `references/tenants.md`, `brand.m
 5. **Autopilot acts only within the playbook.** In `draft` mode it proposes (see `ziggy queue`);
    in `auto` mode it replies/hides and logs every action (`ziggy actions`). Anything legal,
    press, money or unclear is escalated to the queue. Review the queue with the user.
-6. **Instagram links are not clickable** in captions or comments. Story posts ask people to comment
-   LINK; the autopilot DMs the URL (`linkReply`). Keep "link in bio" true: the bio must point at the site.
+6. **Story captions end with the full story URL.** Instagram captions are not clickable, but the
+   reader can copy the link — no comment-LINK/DM flow, no first comment. Keep the bio pointing at
+   the site.
 7. **X posts always include the image.** The opening post carries the cover still (`slide-cover`,
    from `ziggy slides`). Never publish a text-only thread, and do not attach the reel instead of
    the picture. Replies stay text; the story URL is the last reply. Do not delete `media` to make
@@ -84,12 +85,17 @@ ziggy post alienwatch story-… --live --only instagram_reel --watch
 
 Daily run on an existing tenant:
 ```bash
+ziggy daily ragusa --dry-run                           # preview: uncovered stories → scheduled slots
+ziggy daily ragusa                                     # the real loop, once
+ziggy report ragusa                                    # published/scheduled/stats/inbox as text
 ziggy inbox alienwatch && ziggy stats alienwatch
-ziggy autopilot alienwatch --dry-run                    # what it would do
-ziggy queue alienwatch                                  # what it left for a human
+ziggy autopilot alienwatch --dry-run                   # what it would do
+ziggy queue alienwatch                                 # what it left for a human
 ```
 
-Hand the loop to the machine: `ziggy watch alienwatch --install --interval 900` after setting
+Always-on: `ziggy serve <slug…>` re-runs daily + report on timers (GET /healthz); the repo
+Dockerfile packages it (`docker run -v ~/.ziggy:/data -e POSTPROXY_API_KEY_<SLUG> ziggy serve ragusa`).
+For the inbox instead: `ziggy watch alienwatch --install --interval 900` after setting
 `autopilot.mode` to `auto` in `tenant.json` and reading `references/autopilot.md`.
 
 ## Where things are
