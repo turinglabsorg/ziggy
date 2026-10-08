@@ -73,6 +73,14 @@ working **with** Ziggy.
   story get the slug's hash appended (`campaignNameFor`). `--dry-run` writes nothing. A story
   whose image URL cannot be fetched fails and is retried on the next tick, so it never renders
   without the photo.
+- `ziggy jingle <slug>` (music.mjs) composes the tenant's jingle with ElevenLabs Music from
+  `tenant.json → music.prompt` (instrumental, `music.seconds`, default 30). It is stored as
+  `brand/jingle.mp3` + `brand/jingle.wav` under ZIGGY_HOME, the state volume in Docker. From
+  then on every reel cuts it to its own length (`fitJingle`: fade in, 1.8s fade out) instead of
+  the synthesized bed; `audio.jingle: false` in a campaign opts out. The key comes only from
+  `ELEVENLABS_API_KEY` via `hush run`, and it is a per-tenant-owner secret: never borrow
+  another client's ElevenLabs key. Tests fake ElevenLabs on localhost
+  (`ZIGGY_ELEVENLABS_BASE_URL`) and ffmpeg (`ZIGGY_FFMPEG_BIN`).
 - `ziggy report <slug>` (report.mjs) prints a compact emoji digest on stdout: count + last
   permalink of published posts, the next four scheduled slots in the tenant's `daily.tz`
   timezone, one stats line per profile (only non-zero numbers), inbox count + up to three

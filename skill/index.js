@@ -24,6 +24,7 @@ import { runAutopilot, readQueue, policyOf } from "./scripts/autopilot.mjs";
 import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
 import { formatDoctor, runDoctor } from "./scripts/doctor.mjs";
 import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
+import { composeJingle } from "./scripts/music.mjs";
 import { runDaily } from "./scripts/daily.mjs";
 import { buildReport } from "./scripts/report.mjs";
 import { serve, SERVER_DEFAULTS } from "./scripts/server.mjs";
@@ -85,6 +86,9 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy thread <slug> <name> [--limit 280] [--enable]
                                                     rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
   ziggy slides <slug> <name> [--enable]            carousel stills: cover, dek, close (1080×1350)
+  ziggy jingle <slug> [--prompt "<text>"] [--seconds 30]
+                                                    compose the tenant's jingle with ElevenLabs Music (tenant.json → music.prompt);
+                                                    reels use it instead of the synthesized bed. Key: ELEVENLABS_API_KEY via hush run
   ziggy video <slug> <name> [--variants reel,x,post] [--quality high] [--dry-run] [--skip-check]
                                                     scaffold HyperFrames projects, check, render, capture stills
   ziggy post <slug> <name> [--live] [--at <ISO>] [--only twitter,instagram_reel] [--dry-run] [--watch]
@@ -298,6 +302,15 @@ async function main() {
       c.posts.instagram_post = post;
       saveCampaign(slug, name, c);
       return out(manifest, (m) => SLIDE_IDS.map((id) => `${id.padEnd(12)} ${m.outputs[id].still}`).join("\n") + `\ninstagram_post ${c.posts.instagram_post.enabled === false ? "disabled" : "enabled"}`);
+    }
+
+    case "jingle": {
+      const [slug] = pos;
+      const t = loadTenant(slug);
+      const seconds = flag("--seconds") && flag("--seconds") !== true ? Number(flag("--seconds")) : undefined;
+      const prompt = flag("--prompt") && flag("--prompt") !== true ? String(flag("--prompt")) : undefined;
+      const r = await composeJingle(t, { prompt, seconds });
+      return out(r, (d) => `jingle for ${slug}: ${d.seconds}s\n  ${d.mp3}\n  ${d.wav}`);
     }
 
     case "video": {

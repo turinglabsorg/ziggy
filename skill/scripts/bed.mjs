@@ -84,7 +84,7 @@ export function writeBed(file, opts) {
   return { file, bytes: buf.length };
 }
 
-function wav(pcm, sampleRate, channels) {
+export function wav(pcm, sampleRate, channels) {
   const header = Buffer.alloc(44);
   header.write("RIFF", 0);
   header.writeUInt32LE(36 + pcm.length, 4);

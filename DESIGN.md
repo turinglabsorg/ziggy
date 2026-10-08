@@ -50,6 +50,13 @@ Layout numbers live in `TEMPLATE_VARIANTS.story` in `skill/scripts/video.mjs`.
   The photo fades in and then pushes from 1.1 to 1.0 scale across the whole piece. The progress
   bar fills over the full duration.
 
+## Sound
+
+Each tenant has one jingle, composed by ElevenLabs Music from `tenant.json → music.prompt`. It
+is instrumental, with a short motif at the start that comes back, and it sits under on-screen
+text. Every reel plays it from the top, cut to the reel's length with a 0.25s fade in and a 1.8s
+fade out. The synthesized bed (`bed.mjs`) is only the fallback for a tenant without a jingle.
+
 ## Rules learned the hard way
 
 - A story whose image URL cannot be fetched must **fail** the render so the loop retries it. It

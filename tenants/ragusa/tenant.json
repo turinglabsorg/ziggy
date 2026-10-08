@@ -92,5 +92,9 @@
     "only": [
       "instagram_reel"
     ]
+  },
+  "music": {
+    "prompt": "Instrumental news jingle for Ragusa Buzz, a Sicilian local news brand. Bright, warm and modern: a catchy four-note mandolin and marimba motif opens the track and returns, light Mediterranean percussion (tamburello, shaker), plucked bass, soft synth pad, 112 BPM, major key. Energetic but it sits under on-screen text. No vocals, a clean build and a confident button ending.",
+    "seconds": 30
   }
 }
