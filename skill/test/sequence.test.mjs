@@ -79,7 +79,10 @@ test("slide projects are static cards: cover keeps the photo, the dek card does 
   assert.match(dekHtml, /class="layout-text"/);
   assert.match(dekHtml, /layout-text #photo \{ display: none/);
   const close = await buildSlideProject(tenant, campaign, specs[2], join(world.root, "close"));
-  assert.match(readFileSync(join(close, "index.html"), "utf8"), /Comment LINK/);
+  // no "Comment LINK" call to action on the close card unless a campaign writes its own
+  const closeHtml = readFileSync(join(close, "index.html"), "utf8");
+  assert.doesNotMatch(closeHtml, /Comment LINK/);
+  assert.match(closeHtml, /\.cta \{[^}]*display: none/);
 });
 
 test("ziggy thread rewrites the campaign and ziggy slides captures three stills", () => {

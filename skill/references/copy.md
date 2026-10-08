@@ -41,9 +41,10 @@ A failed check stops the whole campaign before anything is created.
 
 ## Links on Instagram
 
-Caption and comment URLs are plain text on Instagram. Write the CTA accordingly: "Comment LINK and
-we'll send it to you" (the autopilot's `linkReply` rule does the sending, by DM), plus "link in bio".
-Put the readable domain in the video itself. Threads, Bluesky and LinkedIn make links clickable, so
+Caption URLs are plain text on Instagram, but the caption still carries the full story URL: whoever
+wants the sources copies it. No "Comment LINK" call to action and no `first_comment` asking for one,
+in the caption or on a slide (the DM link flow is opt-in for the autopilot only). Put the readable
+domain in the video itself. Threads, Bluesky and LinkedIn make links clickable, so
 those posts carry the URL in the text. X, through Postproxy, rejects a URL in the tweet body: put it
 in `thread: [{ "body": "https://…" }]`, the reply, where the link is clickable. The tweet itself stays
 link-free.

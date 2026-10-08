@@ -182,7 +182,7 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
     duration: storyDurationPointCount(points),
     intent: `Story reel: ${story.title}`,
     story: { slug: story.slug, url: story.url, date: story.date, section: story.section },
-    copy: { kicker, headline: story.title, dek: story.dek, points, meta, url: displayUrl },
+    copy: { kicker, headline: story.title, dek: story.dek, points, meta, sources: story.sources ?? null, url: displayUrl },
     image: story.image,
     // bed.mjs mood per tenant: "ambient" default, tenant.social.bed overrides (e.g. "news").
     audio: { bed: social.bed || "ambient", volume: 0.6, swellAt: 1.6, beats: [[0.6, 1318.5, 1.2, 0.07], [1.5, 659.3, 1.6, 0.06], [7.6, 987.8, 0.9, 0.035]] },
@@ -217,11 +217,21 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
   };
 }
 
-/** Fetch the latest (or N-th) story and write it as a campaign. Returns { name, dir, story }. */
-export async function createStoryCampaign(tenant, { index = 0, name, fetchImpl, force = false, spawnImpl, summarize = true, write = true } = {}) {
-  const stories = await fetchStories(tenant, { fetchImpl });
-  const story = stories[index];
-  if (!story) throw new Error(`the feed has ${stories.length} stor${stories.length === 1 ? "y" : "ies"}; index ${index} is out of range`);
+/**
+ * Write a story as a campaign: `story` when the caller already holds it (the daily loop — a
+ * second feed read could return a different order), else the feed's N-th. Returns { name, dir, story }.
+ */
+export async function createStoryCampaign(tenant, { index = 0, story: given = null, name, fetchImpl, force = false, spawnImpl, summarize = true, write = true } = {}) {
+  let story = given;
+  if (!story) {
+    const stories = await fetchStories(tenant, { fetchImpl });
+    story = stories[index];
+    if (!story) throw new Error(`the feed has ${stories.length} stor${stories.length === 1 ? "y" : "ies"}; index ${index} is out of range`);
+  }
+  const campaignName = name || campaignNameFor(tenant, story);
+  let exists = false;
+  try { loadCampaign(tenant.slug, campaignName); exists = true; } catch { /* new */ }
+  if (exists && !force) throw new Error(`campaign ${campaignName} already exists for ${tenant.slug} — pass --force to overwrite`);
   // the AI summary of the story: one short slide per story beat, for the reel
   let points = null;
   if (summarize) {
@@ -229,10 +239,6 @@ export async function createStoryCampaign(tenant, { index = 0, name, fetchImpl, 
     catch { points = null; /* a broken agent must not block the campaign */ }
   }
   const campaign = campaignFromStory(tenant, story, { name, points });
-  const campaignName = name || campaign.intent && (name || defaultName(tenant, story));
-  let exists = false;
-  try { loadCampaign(tenant.slug, campaignName); exists = true; } catch { /* new */ }
-  if (exists && !force) throw new Error(`campaign ${campaignName} already exists for ${tenant.slug} — pass --force to overwrite`);
   if (!write) {
     // dry-run: the campaign exists only in memory, so a probe can never block the real run
     const dir = join(tenantDir(tenant.slug), "campaigns", campaignName);
@@ -245,4 +251,19 @@ export async function createStoryCampaign(tenant, { index = 0, name, fetchImpl, 
 function defaultName(tenant, story) {
   const date = story.date ? story.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
   return `story-${date}-${story.slug.split("-").slice(0, 4).join("-")}`.slice(0, 48).replace(/-+$/, "");
+}
+
+/**
+ * The default name unless a different story already holds it: headlines share their opening
+ * words ("A Ragusa il quarto…"), and a clash would hand one story the other's campaign. The
+ * same story re-slugged by the feed (new content hash) keeps its name.
+ */
+export function campaignNameFor(tenant, story) {
+  const base = defaultName(tenant, story);
+  const bare = (s) => String(s || "").replace(/(?:-[0-9a-f]{6,})+$/, "");
+  let holder;
+  try { holder = loadCampaign(tenant.slug, base).story?.slug ?? null; } catch { return base; }
+  if (holder && bare(holder) === bare(story.slug)) return base;
+  const tag = (story.slug.match(/[0-9a-f]{6,}/g) || []).pop()?.slice(0, 8) || slugify(story.title).split("-").slice(4, 6).join("-") || "2";
+  return `${base}-${tag}`;
 }

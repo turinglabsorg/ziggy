@@ -58,13 +58,21 @@ working **with** Ziggy.
   but copyable) — there is no comment-LINK/DM flow, and no first comment is posted. The autopilot's
   `linkReply` (autopilot.mjs) still exists but is opt-in per tenant.
   `ziggy delete <slug> <postId…>` removes drafts or scheduled posts (no
-  media cleanup — recreating a scheduled post re-uploads).
+  media cleanup — recreating a scheduled post re-uploads) and logs a delete event in posts.jsonl.
+  Published Instagram/TikTok posts cannot be deleted or edited through Postproxy: they go from
+  the app.
 - `ziggy daily <slug>` (daily.mjs) is the durable daily loop: uncovered feed stories → campaigns
   → rendered reels → scheduled on the tenant's slots (`tenant.json → daily`: slots, tz,
   maxAgeHours, only). An external scheduler (launchd/cron/timer) owns the cadence. Coverage means
-  a post exists in posts.jsonl, matched by slug *and* headline tokens (the feed re-slugs stories
-  on update) — a campaign that crashed mid-run is reused, never resummarized. `--dry-run` writes
-  nothing. A story whose image fails to fetch renders without the photo, never fails.
+  a live post (not deleted) exists in posts.jsonl, matched by slug *and* headline tokens (the
+  feed re-slugs stories on update). A campaign that crashed mid-run is reused, never
+  resummarized. Each story gets the next **free** slot within 24h. A slot holding one of our
+  scheduled posts is skipped, and a story with no free slot waits (and may age out): never two
+  stories on one slot. The loop hands the story object to `createStoryCampaign`. A second feed
+  read can reorder, so an index is not safe. Campaign names that collide with a *different*
+  story get the slug's hash appended (`campaignNameFor`). `--dry-run` writes nothing. A story
+  whose image URL cannot be fetched fails and is retried on the next tick, so it never renders
+  without the photo.
 - `ziggy report <slug>` (report.mjs) prints a compact emoji digest on stdout: count + last
   permalink of published posts, the next four scheduled slots in the tenant's `daily.tz`
   timezone, one stats line per profile (only non-zero numbers), inbox count + up to three

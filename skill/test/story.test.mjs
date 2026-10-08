@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
-import { campaignFromStory, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, parseSummaryLines, summarizeStory } from "../scripts/story.mjs";
-import { resolveVariants, scaffold } from "../scripts/video.mjs";
+import { campaignFromStory, campaignNameFor, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, parseSummaryLines, summarizeStory } from "../scripts/story.mjs";
+import { endCard, resolveVariants, scaffold, sourceCount } from "../scripts/video.mjs";
 import { makeWorld } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
@@ -97,6 +97,22 @@ test("fetchStories reads the feed through the mapping; createStoryCampaign write
   assert.equal(second.story.title, "Older");
 });
 
+test("campaign names: two stories with the same opening words never share a campaign", async () => {
+  const tenant = { ...loadTenant("acme"), feed: FEED };
+  const story = (slug, title) => ({ ...normalizeStory(ITEM, FEED), slug, title, date: "2026-10-07T08:00:00Z" });
+  const trofeo = story("a-ragusa-il-quarto-trofeo-cappadona-1a2b3c4d", "A Ragusa il quarto Trofeo Cappadona");
+  const made = await createStoryCampaign(tenant, { story: trofeo, summarize: false });
+  assert.equal(made.name, "story-2026-10-07-a-ragusa-il-quarto");
+  // a different story with the same four opening words gets its own name
+  const anno = story("a-ragusa-il-quarto-anno-del-terziario-9f8e7d6c", "A Ragusa il quarto anno del terziario");
+  assert.equal(campaignNameFor(tenant, anno), "story-2026-10-07-a-ragusa-il-quarto-9f8e7d6c");
+  const other = await createStoryCampaign(tenant, { story: anno, summarize: false });
+  assert.equal(other.campaign.story.slug, anno.slug);
+  // the same story re-slugged by the feed (new content hash) keeps its campaign
+  assert.equal(campaignNameFor(tenant, { ...trofeo, slug: "a-ragusa-il-quarto-trofeo-cappadona-ffff0000" }), made.name);
+  await assert.rejects(createStoryCampaign(tenant, { story: { ...trofeo, slug: "a-ragusa-il-quarto-trofeo-cappadona-ffff0000" }, summarize: false }), /already exists/);
+});
+
 test("the AI summary pre-script: prompt, line parsing, agent run and fallback", async () => {
   const tenant = { slug: "acme", name: "Acme", site: "https://acme.example/", language: "it", feed: FEED };
   const prompt = buildSummaryPrompt(tenant, normalizeStory(ITEM, FEED));
@@ -147,6 +163,25 @@ test("the story template scaffolds with headline words, kicker, meta, brand and 
   assert.match(html, /data-duration="13"/);
   assert.match(html, /class="scene point-scene" id="story-reel-s1"/);
   assert.match(html, /var PN = 1;/);
+  // the end card: the source count, then where to read the whole story — never the dek again
+  assert.match(html, /<span id="story-reel-end-num">2<\/span><span id="story-reel-end-label">sources<\/span>/);
+  assert.match(html, /Read the full story on <span class="end-site">acme\.example<\/span>/);
+  assert.doesNotMatch(html, /id="story-reel-dek"/);
   const noImage = await scaffold({ tenant, campaign: { ...campaign, image: null }, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "story2"), fetchImpl });
   assert.match(readFileSync(join(noImage[0].dir, "compositions", "story-reel.html"), "utf8"), /style="display: none"/);
+  // an image that exists but cannot be fetched fails the scaffold — never a reel with an empty photo band
+  const down = async () => { throw new TypeError("fetch failed"); };
+  await assert.rejects(scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "story3"), fetchImpl: down }), /story image unreachable/);
+  const missing = async () => new Response("nope", { status: 404 });
+  await assert.rejects(scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "story4"), fetchImpl: missing }), /HTTP 404/);
+});
+
+test("the end card speaks the tenant's language and reads the count from the meta line", () => {
+  assert.deepEqual(endCard("it", 3, "ragusa.buzz"), { num: "3", label: "fonti", cta: 'Vai su <span class="end-site">ragusa.buzz</span> per leggere tutta la notizia' });
+  assert.equal(endCard("it", 1, "ragusa.buzz").label, "fonte");
+  assert.deepEqual(endCard("en", 1, "alienwatch.buzz"), { num: "1", label: "source", cta: 'Read the full story on <span class="end-site">alienwatch.buzz</span>' });
+  assert.deepEqual(endCard("en", null, ""), { num: "", label: "", cta: "" });
+  assert.equal(sourceCount({ meta: "3 fonti · 1 lingua" }), 3);
+  assert.equal(sourceCount({ sources: 5, meta: "3 fonti" }), 5);
+  assert.equal(sourceCount({}), null);
 });

@@ -40,13 +40,23 @@ export function dailyConfig(tenant) {
 }
 
 /**
+ * The posts we created and still have: `ziggy delete` logs a delete event per id, and a
+ * deleted post neither covers its story nor holds its slot — the next run redoes both.
+ */
+export function livePosts(slug) {
+  const log = readPostLog(slug);
+  const deleted = new Set(log.filter((r) => r.event === "delete").map((r) => r.postId));
+  return log.filter((r) => r.postId && !r.event && !deleted.has(r.postId));
+}
+
+/**
  * Coverage = a post exists (scheduled or published) for the story, not just a campaign on
  * disk: a campaign that failed mid-render must be picked up again by the next run. The feed
  * re-slugs a story when it is updated (new content hash, tweaked title), so the exact slug
  * is not enough — the headline tokens catch the same event under a new name.
  */
 export function coveredStories(slug) {
-  const posted = new Set(readPostLog(slug).map((r) => r.campaign).filter(Boolean));
+  const posted = new Set(livePosts(slug).map((r) => r.campaign).filter(Boolean));
   const covered = [];
   for (const name of listCampaigns(slug)) {
     if (!posted.has(name)) continue;
@@ -88,22 +98,28 @@ export function uncoveredStories(tenant, stories, { from = new Date(), daily = d
 }
 
 /**
- * The next occurrence of each slot, strictly after `from`, as ISO strings.
- * A 07:30 slot computed at 21:00 lands tomorrow at 07:30; computed at 06:00, today.
- * `tz` is a fixed offset string ("+02:00") — no DST, the tenant pins its own offset.
+ * The next `count` slot times after `from`, within `horizonH` hours, that hold none of our
+ * scheduled posts. Every run starts from the same "next slot": without the taken set, each
+ * story a later run finds would pile onto that one slot. Past the horizon a story waits —
+ * news scheduled days out is stale by the time it airs, so it is better left to age out.
  */
-export function nextSlotTimes(slots, tz, { from = new Date() } = {}) {
+export function freeSlotTimes(slots, tz, { from = new Date(), taken = new Set(), count = slots.length, horizonH = 24 } = {}) {
   const offsetMs = Date.parse("2000-01-01T00:00:00Z") - Date.parse(`2000-01-01T00:00:00${tz}`);
-  const localDate = new Date(from.getTime() + offsetMs).toISOString().slice(0, 10);
-  return slots.map((slot) => {
-    let plus = 0;
-    for (;;) {
-      const iso = `${localDate}T${slot.length === 5 ? `${slot}:00` : slot}${tz}`;
-      const at = Date.parse(iso) + plus;
-      if (at > from.getTime()) return new Date(at).toISOString();
-      plus += 86400_000;
-    }
-  });
+  const end = from.getTime() + horizonH * 3600_000;
+  const candidates = [];
+  for (let day = 0; day <= Math.ceil(horizonH / 24) + 1; day++) {
+    const localDate = new Date(from.getTime() + offsetMs + day * 86400_000).toISOString().slice(0, 10);
+    for (const slot of slots) candidates.push(Date.parse(`${localDate}T${slot.length === 5 ? `${slot}:00` : slot}${tz}`));
+  }
+  return [...new Set(candidates)].sort((a, b) => a - b)
+    .filter((at) => at > from.getTime() && at <= end && !taken.has(at))
+    .slice(0, count)
+    .map((at) => new Date(at).toISOString());
+}
+
+/** Slot times (ms) already holding one of our live scheduled posts. */
+export function takenSlots(slug) {
+  return new Set(livePosts(slug).filter((r) => r.scheduledAt).map((r) => Date.parse(r.scheduledAt)));
 }
 
 /**
@@ -115,8 +131,8 @@ export async function runDaily(tenant, {
 } = {}) {
   const daily = dailyConfig(tenant);
   const stories = await fetchStories(tenant, { fetchImpl });
-  const todo = uncoveredStories(tenant, stories, { from, daily });
-  const times = nextSlotTimes(daily.slots, daily.tz, { from });
+  const times = freeSlotTimes(daily.slots, daily.tz, { from, taken: takenSlots(tenant.slug) });
+  const todo = uncoveredStories(tenant, stories, { from, daily }).slice(0, times.length);
   const report = { tenant: tenant.slug, storiesInFeed: stories.length, slots: daily.slots, tz: daily.tz, planned: [], errors: [] };
   if (!todo.length) return report;
 
@@ -127,7 +143,7 @@ export async function runDaily(tenant, {
     try {
       let name, campaign;
       try {
-        const made = await createStoryCampaign(tenant, { index: stories.indexOf(story), fetchImpl, spawnImpl, write: !dryRun });
+        const made = await createStoryCampaign(tenant, { story, fetchImpl, spawnImpl, write: !dryRun });
         name = made.name;
         // saveCampaign strips name/dir from what createStoryCampaign returns: reload from disk
         campaign = dryRun ? made.campaign : loadCampaign(tenant.slug, name);

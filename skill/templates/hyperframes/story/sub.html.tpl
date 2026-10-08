@@ -21,34 +21,34 @@ __FONT_FACES__
         #__ID__-stars .star.fg { background: var(--fg); }
         #__ID__-stars .star.muted { background: var(--muted); }
 
-        /* the story image fills the whole top, shown completely (contain, never cropped),
-           blended into the sky only at its own bottom edge */
+        /* the story image is big: it fills the top half (cover) and pans slowly across, so a
+           landscape illustration is seen nearly whole while its centre never leaves the frame;
+           it blends into the sky only at its own bottom edge, above the text zone */
         #__ID__-photo { position: absolute; left: 0; right: 0; top: __PHOTO_TOP__px; height: __PHOTO_H__px; overflow: hidden;
-          -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); }
-        #__ID__-photo-img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center top; }
-        #__ID__-photo-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.8), rgba(__BG_RGB__, 0.25) 45%, rgba(__BG_RGB__, 0.65)); }
-        /* the kicker needs 3:1 contrast no matter how bright the photo is: a hard vignette
-           on the top strip, on top of the general shade */
-        #__ID__-photo-top { position: absolute; left: 0; right: 0; top: 0; height: 380px; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.9), rgba(__BG_RGB__, 0)); }
+          -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 100%); mask-image: linear-gradient(to bottom, #000 62%, transparent 100%); }
+        #__ID__-photo-img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 15% 50%; }
+        #__ID__-photo-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.35), rgba(__BG_RGB__, 0.08) 40%, rgba(__BG_RGB__, 0.45)); }
 
         /* content column — title-safe for Reels: nothing above __PAD_TOP__ or below the footer */
         #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: __PAD_TOP__px; bottom: __PAD_BOTTOM__px; display: flex; flex-direction: column; }
-        #__ID__-kicker { margin: 0; font-family: var(--mono); font-weight: 500; font-size: __KICKER__px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 18px; }
+        /* the kicker sits over the photo: its own chip keeps 3:1 contrast on any image
+           without darkening the illustration */
+        #__ID__-kicker { margin: 0; align-self: flex-start; padding: 12px 18px; border-radius: 10px; background: rgba(__BG_RGB__, 0.78); font-family: var(--mono); font-weight: 500; font-size: __KICKER__px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 18px; }
         #__ID__-kicker .k-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
         #__ID__-progress { position: absolute; left: 0; top: 0; width: 100%; height: 4px; background: var(--line); }
         #__ID__-progress-fill { display: block; height: 100%; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; }
         #__ID__-middle { position: relative; flex: 1; margin: 36px 0 34px; }
         #__ID__-middle .scene { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
         #__ID__-middle .scene > * { position: relative; z-index: 1; }
-        /* the scenes' dim must span the full photo, not just the text column, or the
-           undimmed photo shows as bright strips beside the column */
-        #__ID__-middle .point-scene::before, #__ID__-middle .close-scene::before { content: ""; position: absolute; top: 0; bottom: 0; left: -__PAD__px; right: -__PAD__px; z-index: 0; }
-        #__ID__-middle .point-scene::before { background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.66), rgba(__BG_RGB__, 0.9)); }
-        #__ID__-middle .close-scene::before { background: linear-gradient(to bottom, rgba(__BG_RGB__, 0.74), rgba(__BG_RGB__, 0.92)); }
 
         #__ID__-headline { margin: 0; font-family: var(--display); font-weight: 400; font-size: __HEADLINE__px; line-height: 1.12; letter-spacing: -0.012em; color: var(--fg); }
         #__ID__-headline .w { display: inline-block; margin-right: 0.26em; }
-        #__ID__-dek { margin: 0; font-family: var(--text); font-weight: 300; font-size: __DEK__px; line-height: 1.4; color: var(--fg); opacity: 0.84; max-width: __DEK_MAX__px; }
+        /* end card: how many sources, then where to read the whole story */
+        #__ID__-end-sources { margin: 0; display: __END_SRC_DISPLAY__; align-items: baseline; gap: 24px; }
+        #__ID__-end-num { font-family: var(--display); font-weight: 720; font-size: __END_NUM_SIZE__px; line-height: 0.9; letter-spacing: -0.03em; color: var(--accent); }
+        #__ID__-end-label { font-family: var(--mono); font-weight: 500; font-size: __END_LABEL_SIZE__px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+        #__ID__-end-cta { margin: 44px 0 0; font-family: var(--display); font-weight: 400; font-size: __PTEXT__px; line-height: 1.2; letter-spacing: -0.01em; color: var(--fg); max-width: __DEK_MAX__px; }
+        #__ID__-end-cta .end-site { color: var(--accent); white-space: nowrap; }
         #__ID__-middle .p-num { font-family: var(--display); font-weight: 720; font-size: __PNUM__px; line-height: 1; letter-spacing: -0.02em; color: var(--accent); }
         #__ID__-middle .p-line { width: 72px; height: 3px; margin-top: 16px; background: var(--accent); }
         #__ID__-middle .p-text { margin: 24px 0 0; font-family: var(--display); font-weight: 400; font-size: __PTEXT__px; line-height: 1.22; letter-spacing: -0.01em; color: var(--fg); }
@@ -72,13 +72,13 @@ __AUDIO__
         <div id="__ID__-stage">
           <div id="__ID__-progress"><span id="__ID__-progress-fill"></span></div>
           <div id="__ID__-stars">__STARS__</div>
-          <div id="__ID__-photo" style="display: __PHOTO_DISPLAY__" data-layout-allow-overflow="true"><img id="__ID__-photo-img" src="__IMAGE_SRC__" alt="" /><div id="__ID__-photo-shade"></div><div id="__ID__-photo-top"></div></div>
+          <div id="__ID__-photo" style="display: __PHOTO_DISPLAY__" data-layout-allow-overflow="true"><img id="__ID__-photo-img" src="__IMAGE_SRC__" alt="" /><div id="__ID__-photo-shade"></div></div>
           <div id="__ID__-content">
             <p id="__ID__-kicker"><span class="k-dot"></span><span id="__ID__-kicker-text">__COPY_KICKER__</span></p>
             <div id="__ID__-middle">
               <div class="scene" id="__ID__-s0"><h1 id="__ID__-headline">__HEADLINE_WORDS__</h1></div>
 __POINTS__
-              <div class="scene close-scene" id="__ID__-sclose"><p id="__ID__-dek">__COPY_DEK__</p></div>
+              <div class="scene close-scene" id="__ID__-sclose"><p id="__ID__-end-sources"><span id="__ID__-end-num">__END_NUM__</span><span id="__ID__-end-label">__END_LABEL__</span></p><p id="__ID__-end-cta">__END_CTA__</p></div>
             </div>
             <div id="__ID__-footer">
               <div id="__ID__-fleft">
@@ -133,10 +133,11 @@ __POINTS__
               tl.to(el, { opacity: Math.max(0.08, d.base - d.amp), duration: cycle / 2, ease: "sine.inOut", yoyo: true, repeat: d.cycles * 2 - 1 }, 1.9);
             });
 
-            /* photo: fade in, slow push in across the whole piece */
+            /* photo: fade in, slow push in and a pan across the whole piece */
             if (HAS_PHOTO) {
-              tl.fromTo($("photo-img"), { opacity: 0, scale: 1.1 }, { opacity: 1, scale: 1.1, duration: 1.1, ease: soft }, 0.2);
+              tl.fromTo($("photo-img"), { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1.08, duration: 1.1, ease: soft }, 0.2);
               tl.to($("photo-img"), { scale: 1.0, duration: DUR - 1.3, ease: "none" }, 1.3);
+              tl.fromTo($("photo-img"), { objectPosition: "15% 50%" }, { objectPosition: "85% 50%", duration: DUR - 0.4, ease: "sine.inOut" }, 0.2);
             }
 
             /* kicker + counter */
@@ -160,9 +161,11 @@ __POINTS__
               tl.to(sc, { autoAlpha: 0, y: -20, duration: 0.4, ease: "power2.in" }, tS + tPoint - 0.35);
             }
 
-            /* close scene: the dek, held until the end */
+            /* close scene: the source count, then where to read the whole story — held to the end */
             var tC = tTitle + PN * tPoint;
             tl.fromTo($("sclose"), { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: soft }, tC);
+            tl.fromTo($("end-num"), { scale: 0.55, autoAlpha: 0, transformOrigin: "left bottom" }, { scale: 1, autoAlpha: 1, duration: 0.6, ease: hard }, tC + 0.1);
+            tl.fromTo($("end-cta"), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: soft }, tC + 0.55);
 
             /* footer: persistent — meta, mark, url + sweep */
             tl.fromTo($("meta"), { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: soft }, 1.4);

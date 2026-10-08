@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
-import { dailyConfig, nextSlotTimes, uncoveredStories } from "../scripts/daily.mjs";
+import { dailyConfig, freeSlotTimes, uncoveredStories } from "../scripts/daily.mjs";
 import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
@@ -22,24 +22,28 @@ test("daily config: tenant overrides land on top of the defaults", () => {
   assert.equal(dailyConfig({ daily: { tz: "-05:00" } }).tz, "-05:00");
 });
 
-test("slot times: strictly after `from`, in the tenant's fixed offset", () => {
+test("free slots: strictly after `from`, in the tenant's fixed offset, skipping our taken ones", () => {
   // 21:00 local (+02:00) → every slot lands tomorrow
-  const evening = nextSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T19:00:00Z") });
+  const evening = freeSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T19:00:00Z") });
   assert.deepEqual(evening, ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
   // 06:00 local → the 07:30 slot lands today, the others too
-  const dawn = nextSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T04:00:00Z") });
+  const dawn = freeSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T04:00:00Z") });
   assert.deepEqual(dawn, ["2026-10-06T05:30:00.000Z", "2026-10-06T11:00:00.000Z"]);
-  // between slots: 07:30 is gone, 13:00 is today
-  const noon = nextSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T08:00:00Z") });
-  assert.deepEqual(noon, ["2026-10-07T05:30:00.000Z", "2026-10-06T11:00:00.000Z"]);
+  // between slots: 13:00 is today, 07:30 tomorrow — in time order
+  const noon = freeSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T08:00:00Z") });
+  assert.deepEqual(noon, ["2026-10-06T11:00:00.000Z", "2026-10-07T05:30:00.000Z"]);
+  // a slot holding one of our posts is skipped, and nothing lands past the 24h horizon
+  const taken = new Set([Date.parse("2026-10-07T05:30:00.000Z")]);
+  assert.deepEqual(freeSlotTimes(["07:30", "13:00"], "+02:00", { from: new Date("2026-10-06T19:00:00Z"), taken }), ["2026-10-07T11:00:00.000Z"]);
+  assert.deepEqual(freeSlotTimes(["07:30"], "+02:00", { from: new Date("2026-10-06T19:00:00Z"), taken }), []);
 });
 
-let mock, feedServer, feedPort;
+let mock, feedServer, feedPort, items;
 before(async () => {
   mock = await startMockPostproxy();
-  const items = [
-    { title: "Fresh story one", dek: "Something happened today in town.", storyDate: "2026-10-06T09:00:00Z", sector: { name: "Cronaca" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-one", sourceCount: 2, languageCount: 1 },
-    { title: "Fresh story two", dek: "Another thing happened in the afternoon.", storyDate: "2026-10-06T14:00:00Z", sector: { name: "Economia" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-two", sourceCount: 1, languageCount: 1 },
+  items = [
+    { title: "Harbour reopens after the storm", dek: "Something happened today in town.", storyDate: "2026-10-06T09:00:00Z", sector: { name: "Cronaca" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-one", sourceCount: 2, languageCount: 1 },
+    { title: "Council approves the school budget", dek: "Another thing happened in the afternoon.", storyDate: "2026-10-06T14:00:00Z", sector: { name: "Economia" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-two", sourceCount: 1, languageCount: 1 },
     { title: "Stale story", dek: "This happened days ago.", storyDate: "2026-10-02T09:00:00Z", sector: { name: "Sport" }, imageUrl: "__FEED__/img.jpg", slug: "stale-story", sourceCount: 1, languageCount: 1 },
   ];
   feedServer = createServer((req, res) => {
@@ -98,6 +102,25 @@ test("the daily loop: fresh stories become campaigns, rendered and scheduled on 
   assert.equal(again.status, 0, again.stderr);
   assert.match(again.stdout, /nothing new/);
   assert.equal(mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts").length, postsBefore);
+});
+
+test("the daily loop never stacks stories on one slot: a later run takes the next free one", async () => {
+  items.unshift({ title: "Night market draws record crowds", dek: "A third thing happened in the evening.", storyDate: "2026-10-06T18:00:00Z", sector: { name: "Cronaca" }, imageUrl: "__FEED__/img.jpg", slug: "fresh-story-three", sourceCount: 1, languageCount: 1 });
+  const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:10:00Z", "--json"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(r.stdout);
+  assert.deepEqual(report.planned.map((p) => [p.title, p.scheduledAt]), [["Night market draws record crowds", "2026-10-07T15:30:00.000Z"]], "07:30 and 13:00 already hold stories one and two");
+});
+
+test("a deleted post frees its slot and uncovers its story: the next run redoes both", async () => {
+  const log = readFileSync(join(world.home, "tenants", "acme", "posts.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const first = log.find((x) => x.scheduledAt === "2026-10-07T05:30:00.000Z");
+  const del = await runCli(["delete", "acme", first.postId], ENV());
+  assert.equal(del.status, 0, del.stderr);
+  const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:20:00Z", "--json"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(r.stdout);
+  assert.deepEqual(report.planned.map((p) => [p.campaign, p.scheduledAt]), [[first.campaign, "2026-10-07T05:30:00.000Z"]]);
 });
 
 function mockCalls() { return mock.calls; }

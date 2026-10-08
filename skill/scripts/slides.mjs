@@ -4,7 +4,7 @@
  *
  *   slide-cover  photo, kicker, headline
  *   slide-dek    the paragraph
- *   slide-close  sources, a short line (copy.cta, or "Comment LINK"), wordmark, url
+ *   slide-close  sources, an optional short line (copy.cta), wordmark, url
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -30,7 +30,7 @@ export function slideSpecs(campaign) {
   return [
     { id: "slide-cover", layout: "cover", kicker: c.kicker || "", headline, dek: "", meta: "", cta: "", url: c.url || "" },
     { id: "slide-dek", layout: "text", kicker: c.kicker || "", headline: "", dek, meta: "", cta: "", url: c.url || "" },
-    { id: "slide-close", layout: "close", kicker: "", headline: "", dek: c.close || "", meta: c.meta || "", cta: c.cta ?? "Comment LINK", url: c.url || "" },
+    { id: "slide-close", layout: "close", kicker: "", headline: "", dek: c.close || "", meta: c.meta || "", cta: c.cta || "", url: c.url || "" },
   ];
 }
 

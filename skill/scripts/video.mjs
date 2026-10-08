@@ -31,7 +31,7 @@ export const DEFAULT_VARIANTS = {
 /** Per-template layout numbers merged over DEFAULT_VARIANTS (a template may also drop variants). */
 export const TEMPLATE_VARIANTS = {
   story: {
-    reel: { padTop: 250, padBottom: 300, photoTop: 0, photoH: 960, spacer: 690, kicker: 26, headline: 62, dek: 38, dekMax: 820, dekMt: 30, meta: 22, brand: 40 },
+    reel: { padTop: 250, padBottom: 300, photoTop: 0, photoH: 1000, spacer: 690, kicker: 26, headline: 62, dek: 38, dekMax: 820, dekMt: 30, meta: 22, brand: 40 },
     post: { padTop: 110, padBottom: 110, photoTop: 0, photoH: 675, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
     x: false,
   },
@@ -107,6 +107,25 @@ export function resolveVariants(campaign, only) {
  * Write one HyperFrames project per variant. Returns [{ variant, dir, w, h, purpose }].
  * Pure file generation — no network, no rendering.
  */
+/** How many sources a story has: copy.sources, else the leading number of the meta line ("3 fonti · 1 lingua"). */
+export function sourceCount(copy = {}) {
+  if (Number.isFinite(copy.sources)) return copy.sources;
+  const m = String(copy.meta || "").match(/^\s*(\d+)/);
+  return m ? Number(m[1]) : null;
+}
+
+/** The story reel's last slide: the number of sources, then where to read the whole story. */
+export function endCard(lang, sources, site) {
+  const it = lang === "it";
+  const one = sources === 1;
+  const siteHtml = `<span class="end-site">${escapeHtml(site)}</span>`;
+  return {
+    num: sources == null ? "" : String(sources),
+    label: sources == null ? "" : it ? (one ? "fonte" : "fonti") : (one ? "source" : "sources"),
+    cta: !site ? "" : it ? `Vai su ${siteHtml} per leggere tutta la notizia` : `Read the full story on ${siteHtml}`,
+  };
+}
+
 /** Fetch or copy the campaign image into the project; returns the relative src or null. */
 async function placeImage(campaign, dir, fetchImpl = fetch) {
   const ref = campaign.image;
@@ -115,13 +134,13 @@ async function placeImage(campaign, dir, fetchImpl = fetch) {
   const target = join(dir, "assets", `story.${ext}`);
   if (/^https?:\/\//i.test(ref)) {
     if (!existsSync(target)) {
-      try {
-        const res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } });
-        if (!res.ok) throw new Error(`${res.status}`);
-        await writeFile(target, Buffer.from(await res.arrayBuffer()));
-      } catch {
-        return null; // a story without a reachable image renders without the photo
-      }
+      // an unreachable image fails the scaffold: the daily loop retries the campaign on its
+      // next tick, where a reel with an empty photo band would have gone out looking broken
+      let res;
+      try { res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } }); }
+      catch (error) { throw new Error(`story image unreachable (${ref}): ${error.cause?.code || error.message}`); }
+      if (!res.ok) throw new Error(`story image unreachable (${ref}): HTTP ${res.status}`);
+      await writeFile(target, Buffer.from(await res.arrayBuffer()));
     }
   } else {
     const src = ref.startsWith("/") ? ref : join(campaign.dir || ".", ref);
@@ -174,6 +193,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const headline = copy.headline || copy.title || "";
     const headlineWords = headline.split(/\s+/).filter(Boolean).map((w) => `<span class="w">${escapeHtml(w)}</span>`).join("");
     const points = (copy.points || []).filter((p) => typeof p === "string" && p.trim()).slice(0, 4);
+    const end = endCard(campaign.language || "en", sourceCount(copy), copy.url || (brand.site ? new URL(brand.site).hostname : ""));
     const pointScenes = points.map((p, i) => `              <div class="scene point-scene" id="${id}-s${i + 1}"><span class="p-num">${String(i + 1).padStart(2, "0")}</span><span class="p-line"></span><p class="p-text">${escapeHtml(p.trim())}</p></div>`).join("\n");
 
     let fill = (s) => s
@@ -221,6 +241,9 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__PNUM__/g, String(Math.round((v.headline ?? 64) * 1.15))).replace(/__PTEXT__/g, String(Math.round((v.headline ?? 64) * 0.84)))
       .replace(/__FLOGO__/g, String(Math.round((v.brand ?? 40) * 1.3)))
       .replace(/__POINTS__/g, pointScenes).replace(/__POINT_N__/g, String(points.length))
+      .replace(/__END_NUM__/g, end.num).replace(/__END_LABEL__/g, end.label).replace(/__END_CTA__/g, end.cta)
+      .replace(/__END_SRC_DISPLAY__/g, end.num ? "flex" : "none")
+      .replace(/__END_NUM_SIZE__/g, String(Math.round((v.headline ?? 64) * 2.6))).replace(/__END_LABEL_SIZE__/g, String(Math.round((v.kicker ?? 26) * 1.35)))
       .replace(/__KICKER__/g, String(v.kicker ?? 26)).replace(/__HEADLINE__/g, String(v.headline ?? 64))
       .replace(/__DEK_MAX__/g, String(v.dekMax ?? 840)).replace(/__DEK_MT__/g, String(v.dekMt ?? 30)).replace(/__DEK__/g, String(v.dek ?? 33))
       .replace(/__META__/g, String(v.meta ?? 22)).replace(/__BRAND__/g, String(v.brand ?? 40))

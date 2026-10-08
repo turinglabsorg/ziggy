@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { assertSlug, configPath, listCampaigns, listTenants, loadCampaign, loadConfig, loadTenant, readPostLog, saveBrand, saveCampaign, saveConfig, saveTenant, tenantDir, ziggyHome, fontsDir, workDir } from "./scripts/config.mjs";
+import { assertSlug, configPath, listCampaigns, listTenants, loadCampaign, loadConfig, loadTenant, logPost, readPostLog, saveBrand, saveCampaign, saveConfig, saveTenant, tenantDir, ziggyHome, fontsDir, workDir } from "./scripts/config.mjs";
 import { downloadFonts, extractBrand, installedFonts } from "./scripts/brand.mjs";
 import { produceAssets } from "./scripts/assets.mjs";
 import { produce, resolveVariants, scaffold, check as hfCheck, listTemplates } from "./scripts/video.mjs";
@@ -384,6 +384,8 @@ async function main() {
       const client = createClient();
       const results = [];
       for (const id of ids) results.push({ id, deleted: await client.deletePost(id).then(() => true, (e) => String(e.message || e)) });
+      // the daily loop reads deletes from the log: the story is uncovered again, its slot free
+      for (const r of results) if (r.deleted === true) logPost(slug, { postId: r.id, event: "delete" });
       return out(results, (d) => d.map((r) => `${r.id}  ${r.deleted === true ? "deleted" : `error: ${r.deleted}`}`).join("\n"));
     }
 
