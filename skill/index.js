@@ -86,9 +86,10 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy thread <slug> <name> [--limit 280] [--enable]
                                                     rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
   ziggy slides <slug> <name> [--enable]            carousel stills: cover, dek, close (1080×1350)
-  ziggy jingle <slug> [--prompt "<text>"] [--seconds 30]
-                                                    compose the tenant's jingle with ElevenLabs Music (tenant.json → music.prompt);
-                                                    reels use it instead of the synthesized bed. Key: ELEVENLABS_API_KEY via hush run
+  ziggy jingle <slug> [--count 1] [--prompt "<text>"] [--seconds 30]
+                                                    add jingles to the tenant's set with ElevenLabs Music (tenant.json → music.prompt);
+                                                    new stories rotate through the set instead of the synthesized bed.
+                                                    Key: ELEVENLABS_API_KEY via hush run
   ziggy video <slug> <name> [--variants reel,x,post] [--quality high] [--dry-run] [--skip-check]
                                                     scaffold HyperFrames projects, check, render, capture stills
   ziggy post <slug> <name> [--live] [--at <ISO>] [--only twitter,instagram_reel] [--dry-run] [--watch]
@@ -309,8 +310,10 @@ async function main() {
       const t = loadTenant(slug);
       const seconds = flag("--seconds") && flag("--seconds") !== true ? Number(flag("--seconds")) : undefined;
       const prompt = flag("--prompt") && flag("--prompt") !== true ? String(flag("--prompt")) : undefined;
-      const r = await composeJingle(t, { prompt, seconds });
-      return out(r, (d) => `jingle for ${slug}: ${d.seconds}s\n  ${d.mp3}\n  ${d.wav}`);
+      const count = Math.max(1, Number(flag("--count", 1)) || 1);
+      const made = [];
+      for (let k = 0; k < count; k++) made.push(await composeJingle(t, { prompt, seconds }));
+      return out(made, (d) => d.map((r) => `jingle ${r.name} for ${slug}: ${r.seconds}s\n  ${r.mp3}\n  ${r.wav}`).join("\n"));
     }
 
     case "video": {

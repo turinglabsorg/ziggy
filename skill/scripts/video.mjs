@@ -15,7 +15,7 @@ import { writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeBed, mulberry32 } from "./bed.mjs";
-import { fitJingle, tenantJingle } from "./music.mjs";
+import { fitJingle, pickJingle } from "./music.mjs";
 import { fontsDir, videosDir, rendersDir } from "./config.mjs";
 import { hexToRgb, installedFonts } from "./brand.mjs";
 
@@ -185,8 +185,8 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     let audio = "";
     if (campaign.audio?.bed) {
       const a = campaign.audio;
-      // the tenant's composed jingle (ziggy jingle) wins over the synthesized bed
-      const jingle = a.jingle === false ? null : tenantJingle(tenant.slug);
+      // the campaign's jingle from the tenant's set (ziggy jingle) wins over the synthesized bed
+      const jingle = a.jingle === false ? null : pickJingle(tenant.slug, campaign);
       if (jingle) fitJingle(jingle, join(dir, "assets", "bed.wav"), { seconds: duration });
       else writeBed(join(dir, "assets", "bed.wav"), { seconds: duration, seed: a.seed || 20261005, swellAt: a.swellAt, beats: a.beats, baseHz: a.baseHz, variant: a.bed });
       audio = `        <audio id="${id}-bed" src="assets/bed.wav" data-start="0" data-duration="${duration}" data-volume="${a.volume ?? 0.7}"></audio>`;

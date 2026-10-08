@@ -52,10 +52,13 @@ Layout numbers live in `TEMPLATE_VARIANTS.story` in `skill/scripts/video.mjs`.
 
 ## Sound
 
-Each tenant has one jingle, composed by ElevenLabs Music from `tenant.json → music.prompt`. It
-is instrumental, with a short motif at the start that comes back, and it sits under on-screen
-text. Every reel plays it from the top, cut to the reel's length with a 0.25s fade in and a 1.8s
-fade out. The synthesized bed (`bed.mjs`) is only the fallback for a tenant without a jingle.
+Each tenant has a set of about five jingles, all composed by ElevenLabs Music from the same
+`tenant.json → music.prompt`, so they share one style. They are instrumental, with a short motif
+at the start that comes back, and they sit under on-screen text. Ragusa Buzz is a light, modern
+news intro (no folk instruments, nothing pompous); Alien Watch is cinematic sci-fi. New stories
+take the set in rotation. Every reel plays its jingle from the top, cut to the reel's length
+with a 0.25s fade in and a 1.8s fade out. The synthesized bed (`bed.mjs`) is only the fallback
+for a tenant without jingles.
 
 ## Rules learned the hard way
 

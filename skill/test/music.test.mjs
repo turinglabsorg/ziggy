@@ -11,7 +11,8 @@ const world = makeWorld({ withRenders: false });
 after(world.cleanup);
 process.env.ZIGGY_HOME = world.home;
 process.env.ZIGGY_REPO = world.repo;
-const { fitJingle, readWav } = await import("../scripts/music.mjs");
+const { fitJingle, nextJingle, pickJingle, readWav, tenantJingles } = await import("../scripts/music.mjs");
+const { createStoryCampaign } = await import("../scripts/story.mjs");
 const { resolveVariants, scaffold } = await import("../scripts/video.mjs");
 const { loadTenant } = await import("../scripts/config.mjs");
 
@@ -70,18 +71,36 @@ test("ziggy jingle refuses to run without the key, and says how to inject it", a
   assert.equal(calls.length, 0);
 });
 
-test("ziggy jingle composes an instrumental track and stores mp3 + wav in the brand dir", async () => {
-  const r = await runCli(["jingle", "acme", "--prompt", "bright mandolin news jingle", "--seconds", "28", "--json"], ENV({ ELEVENLABS_API_KEY: MUSIC_KEY }));
+test("ziggy jingle composes instrumental tracks into a numbered set in the brand dir", async () => {
+  const r = await runCli(["jingle", "acme", "--prompt", "light modern news jingle", "--seconds", "28", "--json"], ENV({ ELEVENLABS_API_KEY: MUSIC_KEY }));
   assert.equal(r.status, 0, r.stderr);
   const call = calls.at(-1);
   assert.equal(call.method, "POST");
   assert.equal(call.url, "/v1/music?output_format=mp3_44100_192");
   assert.equal(call.key, MUSIC_KEY);
-  assert.deepEqual(call.body, { prompt: "bright mandolin news jingle", music_length_ms: 28000, force_instrumental: true });
-  const out = JSON.parse(r.stdout);
-  assert.equal(readFileSync(out.mp3, "utf8"), "ID3-fake-mp3");
-  assert.equal(readWav(readFileSync(out.wav)).channels, 2);
+  assert.deepEqual(call.body, { prompt: "light modern news jingle", music_length_ms: 28000, force_instrumental: true });
+  const [first] = JSON.parse(r.stdout);
+  assert.equal(first.name, "01");
+  assert.match(first.mp3, /brand\/jingles\/01\.mp3$/);
+  assert.equal(readFileSync(first.mp3, "utf8"), "ID3-fake-mp3");
+  assert.equal(readWav(readFileSync(first.wav)).channels, 2);
   assert.ok(!r.stdout.includes(MUSIC_KEY) && !r.stderr.includes(MUSIC_KEY), "the key is never printed");
+  // --count adds to the set, never overwrites it
+  const more = await runCli(["jingle", "acme", "--prompt", "light modern news jingle", "--count", "2", "--json"], ENV({ ELEVENLABS_API_KEY: MUSIC_KEY }));
+  assert.equal(more.status, 0, more.stderr);
+  assert.deepEqual(JSON.parse(more.stdout).map((x) => x.name), ["02", "03"]);
+  assert.deepEqual(tenantJingles("acme").map((f) => f.slice(-6)), ["01.wav", "02.wav", "03.wav"]);
+});
+
+test("jingles rotate: each new story campaign is stamped with the next one in the set", async () => {
+  assert.deepEqual([nextJingle("acme"), nextJingle("acme"), nextJingle("acme"), nextJingle("acme")], ["01", "02", "03", "01"]);
+  const tenant = loadTenant("acme");
+  const story = { slug: "harbour-reopens-after-the-storm-1a2b3c4d", title: "Harbour reopens after the storm", dek: "Boats are back.", url: "https://acme.example/#/b/harbour", date: "2026-10-08T06:00:00Z", section: "Cronaca", image: null, sources: 2, languages: 1 };
+  const made = await createStoryCampaign(tenant, { story, summarize: false });
+  assert.equal(made.campaign.audio.jingle, "02", "the rotation continues from the last pick");
+  // the stamp wins; an unknown or missing stamp falls back to a stable pick by name
+  assert.match(pickJingle("acme", { name: "x", audio: { jingle: "03" } }), /03\.wav$/);
+  assert.equal(pickJingle("acme", { name: "same" }), pickJingle("acme", { name: "same", audio: { jingle: "99" } }));
 });
 
 test("ziggy jingle surfaces an ElevenLabs refusal", async () => {
@@ -113,11 +132,11 @@ test("fitJingle cuts to the reel length with a fade in, a fade out, and pads a s
 
 test("a story reel takes the tenant's jingle instead of the synthesized bed", async () => {
   const tenant = loadTenant("acme");
-  assert.ok(existsSync(join(world.home, "tenants", "acme", "brand", "jingle.wav")), "composed by the test above");
+  assert.ok(existsSync(join(world.home, "tenants", "acme", "brand", "jingles", "01.wav")), "composed by the test above");
   const campaign = {
     name: "jingled", dir: join(world.repo, "tenants", "acme", "campaigns", "jingled"), template: "story", language: "en", duration: 13,
     copy: { kicker: "Science · 5 Oct 2026", headline: "A test headline", dek: "A test dek.", points: ["One point here."], meta: "2 sources · 1 language", url: "acme.example" },
-    image: null, audio: { bed: "ambient", volume: 0.6 },
+    image: null, audio: { bed: "ambient", volume: 0.6, jingle: "02" },
   };
   const [reel] = await scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "jingled") });
   const bed = readWav(readFileSync(join(reel.dir, "assets", "bed.wav")));

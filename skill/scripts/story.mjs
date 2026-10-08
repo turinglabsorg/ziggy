@@ -19,6 +19,7 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { loadCampaign, saveCampaign, tenantDir } from "./config.mjs";
+import { nextJingle } from "./music.mjs";
 import { composeThread } from "./thread.mjs";
 import { SLIDE_IDS } from "./slides.mjs";
 
@@ -244,6 +245,9 @@ export async function createStoryCampaign(tenant, { index = 0, story: given = nu
     const dir = join(tenantDir(tenant.slug), "campaigns", campaignName);
     return { name: campaignName, dir, story, campaign: { ...campaign, name: campaignName, dir } };
   }
+  // the next jingle in rotation, stamped so re-renders keep the same music
+  const jingle = nextJingle(tenant.slug);
+  if (jingle) campaign.audio.jingle = jingle;
   const dir = saveCampaign(tenant.slug, campaignName, campaign);
   return { name: campaignName, dir, story, campaign };
 }

@@ -1,33 +1,58 @@
 /**
- * The tenant's jingle: one instrumental track composed by ElevenLabs Music from
- * `tenant.json → music.prompt`. It is stored as a 16-bit WAV in the tenant's brand dir, and
- * each reel takes it in place of the synthesized bed, cut to the reel's length with a short
- * fade in and a fade out.
+ * The tenant's jingles: instrumental tracks composed by ElevenLabs Music from
+ * `tenant.json → music.prompt`, all in one style. They are stored as numbered 16-bit WAVs in
+ * `brand/jingles/`. Each new story campaign is stamped with the next one in rotation, so two
+ * stories in a row never share the music. The reel cuts its jingle to its own length with a
+ * short fade in and a fade out, in place of the synthesized bed.
  *
  * The key reaches the command only as ELEVENLABS_API_KEY in the environment (`hush run`).
  * It is never read from a file or written anywhere.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { wav } from "./bed.mjs";
 import { workDir } from "./config.mjs";
 
 export const MUSIC_KEY_ENV = "ELEVENLABS_API_KEY";
 export const DEFAULT_JINGLE_SECONDS = 30;
 
-export function jinglePath(slug) {
-  return join(workDir(slug, "brand"), "jingle.wav");
+export function jinglesDir(slug) {
+  return workDir(slug, "brand", "jingles");
 }
 
-/** The tenant's jingle WAV, or null when none has been composed yet. */
-export function tenantJingle(slug) {
-  const file = jinglePath(slug);
-  return existsSync(file) ? file : null;
+/** The tenant's jingles in rotation order (`brand/jingles/NN.wav`); empty until one is composed. */
+export function tenantJingles(slug) {
+  const dir = jinglesDir(slug);
+  return readdirSync(dir).filter((f) => /^\d+\.wav$/.test(f)).sort().map((f) => join(dir, f));
+}
+
+/** Round-robin: the next jingle name ("03") for a new campaign, or null when there are none. */
+export function nextJingle(slug) {
+  const names = tenantJingles(slug).map((f) => basename(f, ".wav"));
+  if (!names.length) return null;
+  const file = join(jinglesDir(slug), "rotation.json");
+  let last = null;
+  try { last = JSON.parse(readFileSync(file, "utf8")).last; } catch { /* first pick */ }
+  const name = names[(names.indexOf(last) + 1) % names.length];
+  writeFileSync(file, JSON.stringify({ last: name }) + "\n");
+  return name;
+}
+
+/** The jingle a campaign plays: its stamped `audio.jingle` when that file exists, else a stable pick by campaign name. */
+export function pickJingle(slug, campaign) {
+  const set = tenantJingles(slug);
+  if (!set.length) return null;
+  const stamped = campaign.audio?.jingle;
+  const hit = typeof stamped === "string" && set.find((f) => basename(f, ".wav") === stamped);
+  if (hit) return hit;
+  let h = 0;
+  for (const ch of String(campaign.name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return set[h % set.length];
 }
 
 /**
- * Compose the jingle and store it as `brand/jingle.mp3` (to listen to) plus `brand/jingle.wav`
+ * Compose one more jingle and add it to the set as `NN.mp3` (to listen to) plus `NN.wav`
  * (48 kHz stereo, what the reels use). ffmpeg decodes the mp3; ZIGGY_FFMPEG_BIN swaps it in tests.
  */
 export async function composeJingle(tenant, { prompt, seconds = tenant.music?.seconds || DEFAULT_JINGLE_SECONDS, fetchImpl = fetch } = {}) {
@@ -45,14 +70,16 @@ export async function composeJingle(tenant, { prompt, seconds = tenant.music?.se
   });
   if (!res.ok) throw new Error(`ElevenLabs music → ${res.status} ${(await res.text()).slice(0, 300)}`);
   const mp3 = Buffer.from(await res.arrayBuffer());
-  const dir = workDir(tenant.slug, "brand");
-  const mp3File = join(dir, "jingle.mp3");
+  const dir = jinglesDir(tenant.slug);
+  const taken = readdirSync(dir).map((f) => Number.parseInt(f, 10)).filter(Number.isFinite);
+  const name = String((taken.length ? Math.max(...taken) : 0) + 1).padStart(2, "0");
+  const mp3File = join(dir, `${name}.mp3`);
   writeFileSync(mp3File, mp3);
-  const wavFile = jinglePath(tenant.slug);
+  const wavFile = join(dir, `${name}.wav`);
   const ffmpeg = process.env.ZIGGY_FFMPEG_BIN || "ffmpeg";
   const r = spawnSync(ffmpeg, ["-v", "error", "-y", "-i", mp3File, "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", wavFile], { encoding: "utf8" });
   if (r.status !== 0) throw new Error(`ffmpeg could not decode the jingle: ${(r.stderr || r.error?.message || "").trim().slice(0, 300)}`);
-  return { mp3: mp3File, wav: wavFile, bytes: mp3.length, seconds, prompt: text };
+  return { name, mp3: mp3File, wav: wavFile, bytes: mp3.length, seconds, prompt: text };
 }
 
 /** Read a 16-bit PCM WAV: { sampleRate, channels, pcm }. */
