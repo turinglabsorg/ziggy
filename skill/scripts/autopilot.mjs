@@ -24,11 +24,14 @@
  *                    { enabled: true, keywords: ["link", "source", "sources", "fonte", "fonti"],
  *                      template: "Here is the full story, with sources: {url}", ack: "Sent — check your DMs." }
  *   agent:           { command: ["claude","-p","--output-format","json"], timeoutMs: 120000 }
+ *   jev:             opt-in: ask TypeSafe's Jev first (jev.mjs), so the agent only sees what needs
+ *                    a written answer. true, or thresholds { escalateAt: 0.85, spamAt: 0.9, noReplyAt: 0.9 }.
  */
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { inboxDir, logAction, pullInbox, reply, hide, dm, privateReply } from "./inbox.mjs";
+import { JEV_DEFAULTS, route, scoreItems } from "./jev.mjs";
 import { createClient } from "./postproxy.mjs";
 
 export const DEFAULT_AGENT = { command: ["claude", "-p", "--output-format", "json"], timeoutMs: 120000 };
@@ -51,6 +54,7 @@ export function policyOf(tenant) {
       ...(a.linkReply === true ? {} : a.linkReply),
     } : null,
     agent: a.agent === null ? null : { ...DEFAULT_AGENT, ...(a.agent || {}) },
+    jev: a.jev ? { ...JEV_DEFAULTS, ...(a.jev === true ? {} : a.jev) } : null,
     language: a.language || tenant.language || "en",
   };
 }
@@ -133,7 +137,7 @@ export function triage(item, policy) {
  * One autopilot run. Returns a report: { handled: [...], queued: [...], errors: [...], mode }.
  * `dryRun` decides but posts nothing.
  */
-export async function runAutopilot({ tenant, client = createClient(), dryRun = false, log = () => {}, ask = askAgent }) {
+export async function runAutopilot({ tenant, client = createClient(), dryRun = false, log = () => {}, ask = askAgent, score = scoreItems }) {
   const policy = policyOf(tenant);
   const report = { tenant: tenant.slug, mode: policy.mode, handled: [], queued: [], errors: [], at: new Date().toISOString() };
   if (policy.mode === "off") { log("autopilot is off for this tenant"); return report; }
@@ -148,9 +152,24 @@ export async function runAutopilot({ tenant, client = createClient(), dryRun = f
   const playbook = loadPlaybook(tenant);
   let actions = 0;
 
+  // Jev scores what the policy rules leave open, in one pass before the loop; its sure answers
+  // never reach the agent. No scores (off, no key, Jev down) → the agent decides, as before.
+  const open = policy.jev ? items.filter((item) => !triage(item, policy)) : [];
+  const scores = new Map();
+  if (open.length) {
+    const scored = await score(open);
+    if (scored) open.forEach((item, i) => scores.set(item.id, scored[i]));
+    else log("jev unavailable: the agent decides every item");
+  }
+  report.jev = policy.jev ? { asked: scores.size, settled: 0 } : null;
+
   for (const item of items) {
     if (actions >= policy.maxPerRun) { queue(tenant.slug, { item: strip(item), decision: { action: "escalate", reason: "maxPerRun reached" } }); report.queued.push({ item: strip(item), reason: "maxPerRun reached" }); continue; }
     let decision = triage(item, policy);
+    if (!decision && scores.get(item.id)) {
+      decision = route(scores.get(item.id), item, policy.jev);
+      if (decision) { report.jev.settled++; log(`jev ${decision.action} ${item.type} ${item.id}: ${decision.reason}`); }
+    }
     if (!decision) {
       if (!policy.agent) decision = { action: "escalate", reason: "no agent configured" };
       else {
@@ -178,10 +197,10 @@ export async function runAutopilot({ tenant, client = createClient(), dryRun = f
           log(`sent the link to @${item.author} by DM`);
         } else { queue(tenant.slug, record); report.queued.push(record); log(`would DM the link to @${item.author}`); }
       } else if (decision.action === "hide" && item.type === "comment") {
-        if (act) { await hide({ tenant, client, postId: item.postId, profileId: item.profileId, commentId: item.id, by: "autopilot" }); actions++; report.handled.push(record); log(`hid comment ${item.id} (${decision.reason})`); }
+        if (act) { await hide({ tenant, client, postId: item.postId, profileId: item.profileId, commentId: item.id, by: decision.by || "autopilot" }); actions++; report.handled.push(record); log(`hid comment ${item.id} (${decision.reason})`); }
         else { queue(tenant.slug, record); report.queued.push(record); }
       } else if (decision.action === "skip") {
-        logAction(tenant.slug, { action: "skip", by: "autopilot", itemId: item.id, reason: decision.reason });
+        logAction(tenant.slug, { action: "skip", by: decision.by || "autopilot", itemId: item.id, reason: decision.reason });
         report.handled.push(record);
       } else {
         queue(tenant.slug, record);
@@ -193,7 +212,7 @@ export async function runAutopilot({ tenant, client = createClient(), dryRun = f
       queue(tenant.slug, { ...record, error: error.message });
     }
   }
-  appendFileSync(join(inboxDir(tenant.slug), "runs.jsonl"), JSON.stringify({ at: report.at, mode: report.mode, handled: report.handled.length, queued: report.queued.length, errors: report.errors.length }) + "\n");
+  appendFileSync(join(inboxDir(tenant.slug), "runs.jsonl"), JSON.stringify({ at: report.at, mode: report.mode, handled: report.handled.length, queued: report.queued.length, errors: report.errors.length, ...(report.jev ? { jev: report.jev } : {}) }) + "\n");
   return report;
 }
 

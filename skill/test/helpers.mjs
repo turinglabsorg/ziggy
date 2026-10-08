@@ -50,6 +50,16 @@ export async function startMockPostproxy({ profiles, posts = {}, comments = {}, 
 
     const m = (re) => url.pathname.match(re);
     let mm;
+    if (req.method === "POST" && url.pathname === "/v1/systemone") {
+      // a Jev look-alike: literal scores from the message text, enough to drive the routing
+      const text = String(body?.state?.message || "");
+      const scores = {
+        escalate: /refund|money|lawyer|press/i.test(text) ? 0.95 : 0.04,
+        spam: /free crypto|click here|followers/i.test(text) ? 0.97 : 0.03,
+        needs_reply: /\?/.test(text) ? 0.93 : /^[\p{Extended_Pictographic}\s!]+$/u.test(text) ? 0.02 : 0.5,
+      };
+      return send(200, { answers: Object.fromEntries(Object.keys(body.questions || {}).map((k) => [k, { noul: scores[k] }])), usage: { input_tokens: 120 } });
+    }
     if (req.method === "GET" && url.pathname === "/api/profiles") return send(200, { data: state.profiles });
     if (req.method === "GET" && url.pathname === "/api/posts/stats") return send(200, { data: state.stats.posts || [] });
     if (req.method === "GET" && url.pathname === "/api/posts") return send(200, { data: Object.values(state.posts) });

@@ -38,7 +38,8 @@
         "json"
       ],
       "timeoutMs": 120000
-    }
+    },
+    "jev": true
   },
   "handles": {
     "twitter": "@alienwtch",

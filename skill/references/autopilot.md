@@ -17,11 +17,16 @@ ziggy watch <slug> --install --interval 900 | --status | --uninstall
    empty → skip; a comment that says LINK (or another `linkReply.keywords` word) on a post that
    carries a link → **link**: the URL goes to the commenter as a private reply (a DM, where links
    are clickable) and a short public ack is posted under the comment.
-2. **Ask the agent** with the playbook + the item. The agent is a command that reads the prompt on
+2. **Ask Jev** (when `autopilot.jev` is on): TypeSafe's Jev scores each remaining item on three
+   atomic questions — does a person have to handle it, is it spam, would a reply add something —
+   in about half a second and a few hundred tokens. Only sure answers act: `escalate ≥ 0.85` → the
+   queue, `spam ≥ 0.9` → hide (a DM is skipped), `needs_reply ≤ 0.1` → skip. Everything else, and
+   everything when Jev is unreachable or has no key, goes to the agent. Actions record `by: "jev"`.
+3. **Ask the agent** with the playbook + the item. The agent is a command that reads the prompt on
    stdin and prints a JSON decision `{"action": "reply|skip|hide|escalate", "text": "…", "reason": "…"}`;
    the default is `claude -p --output-format json` (Claude Code headless). Codex, a local model or a
    script work the same way — set `autopilot.agent.command`.
-3. **Act by mode**: `auto` posts replies / hides and logs; `draft` writes the proposal to the queue;
+4. **Act by mode**: `auto` posts replies / hides and logs; `draft` writes the proposal to the queue;
    `off` does nothing. Escalations always go to the queue. `maxPerRun` caps actions per run.
 
 No agent configured (`"agent": null`) means every item is escalated: autopilot never improvises.
@@ -36,8 +41,16 @@ No agent configured (`"agent": null`) means every item is escalated: autopilot n
   "skipAuthors": ["alienwtch", "alienwatch"],
   "escalateWords": ["legal", "lawyer", "refund", "press", "journalist", "lawsuit", "copyright", "dmca", "partnership", "sponsor"],
   "linkReply": { "keywords": ["link", "source", "sources", "fonte", "fonti"], "template": "Here is the full story, with sources: {url}", "ack": "Sent — check your DMs." },
-  "agent": { "command": ["claude", "-p", "--output-format", "json"], "timeoutMs": 120000 }
+  "agent": { "command": ["claude", "-p", "--output-format", "json"], "timeoutMs": 120000 },
+  "jev": true
 }
+```
+
+`jev` takes `true` or thresholds (`{ "escalateAt": 0.85, "spamAt": 0.9, "noReplyAt": 0.9 }`). The key
+is `TYPESAFE_API_KEY` in hush; the autopilot already runs with the tenant's Postproxy key, so the
+scoring runs as its own `hush run` child (`scripts/jev.mjs`).
+
+```
 ```
 
 ## Links on Instagram
