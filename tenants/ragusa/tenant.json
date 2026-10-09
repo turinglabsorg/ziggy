@@ -52,7 +52,7 @@
   },
   "notes": "Local news for the Ragusa province, multilingual. Social is Italian-first, Instagram + TikTok only.",
   "feed": {
-    "url": "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=10",
+    "url": "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=50",
     "items": "data",
     "fields": {
       "title": "title",

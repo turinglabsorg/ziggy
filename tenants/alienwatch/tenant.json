@@ -47,7 +47,7 @@
   },
   "notes": "UFO/UAP observations log, six languages. Social copy is English only.",
   "feed": {
-    "url": "https://alienwatch.buzz/feed/v1/briefings?lang=en&limit=10",
+    "url": "https://alienwatch.buzz/feed/v1/briefings?lang=en&limit=50",
     "items": "data",
     "fields": {
       "title": "title",
