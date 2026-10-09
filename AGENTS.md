@@ -112,6 +112,10 @@ working **with** Ziggy.
   later. When there are more stories than the fixed slots, schedule them 1–2 hours apart
   rather than pushing them into the following days. Stories that can no longer make their day
   are dropped (`"skip": true`).
+  Alien Watch is the opposite: the site publishes one or two stories a day and UFO/UAP stories
+  age slowly, so older archive stories are welcome (owner's call, 2026-10-09). Fresh stories go
+  first, then archive stories in the fixed slots. Never publish a story that announces an event
+  already past (a launch date, a sky event).
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
   repo's `Dockerfile` + `docker-compose.yml`: keys via `.env.docker`, state volume `ziggy-data`,
   reports to Telegram via `docker/telegram-notify.mjs` as `ZIGGY_REPORT_HOOK`) re-runs each
