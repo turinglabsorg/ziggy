@@ -119,3 +119,19 @@ test("a post removed by hand on the platform is neither published nor queued", a
   delete mock.state.posts.p_removed;
   writeFileSync(log, before);
 });
+
+test("a Facebook profile's stats are asked for its Page: no error, the Page's numbers in the report", async () => {
+  const tenantFile = join(world.repo, "tenants", "acme", "tenant.json");
+  const before = readFileSync(tenantFile, "utf8");
+  const t = JSON.parse(before);
+  writeFileSync(tenantFile, JSON.stringify({ ...t, postproxy: { ...(t.postproxy || {}), facebookPageId: "pg_1" } }));
+  mock.state.profiles.push({ id: "prof_fb", name: "Brand", platform: "facebook", status: "active", profile_group_id: "grp_1" });
+  mock.state.stats.profiles.prof_fb = [{ recorded_at: "2026-10-10T10:00:00Z", stats: { followers_count: 7 } }];
+  const d = JSON.parse((await runCli(["report", "acme", "--json"], ENV())).stdout);
+  assert.ok(!d.errors.some((e) => /placement_id/.test(e)), d.errors.join("; "));
+  assert.equal(d.profiles.find((p) => p.platform === "facebook").stats.followers_count, 7);
+  const call = mock.calls.filter((c) => c.path === "/api/profiles/prof_fb/stats").at(-1);
+  assert.equal(call.query.placement_id, "pg_1");
+  mock.state.profiles.pop();
+  writeFileSync(tenantFile, before);
+});

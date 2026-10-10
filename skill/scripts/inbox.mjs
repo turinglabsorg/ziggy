@@ -151,7 +151,9 @@ export async function pullStats({ tenant, client = createClient() }) {
   for (const p of profiles) {
     if (tenant.postproxy?.profileIds?.length && !tenant.postproxy.profileIds.includes(p.id)) continue;
     try {
-      const raw = await client.profileStats(p.id);
+      // a Facebook profile is the account that connected; its numbers live on the Page
+      const query = p.platform === "facebook" && tenant.postproxy?.facebookPageId ? { placement_id: tenant.postproxy.facebookPageId } : undefined;
+      const raw = await client.profileStats(p.id, query);
       const rec = raw?.records?.at?.(-1) || raw?.data?.records?.at?.(-1) || (Array.isArray(raw) ? raw.at(-1) : raw?.data || raw);
       out.profiles.push({ id: p.id, name: p.name, platform: p.platform, recordedAt: rec?.recorded_at || null, stats: rec?.stats || rec });
     } catch (error) { out.errors.push(`${p.platform} profile stats: ${error.message}`); }

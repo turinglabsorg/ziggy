@@ -94,7 +94,12 @@ export async function startMockPostproxy({ profiles, posts = {}, comments = {}, 
     if ((mm = m(/^\/api\/posts\/([^/]+)\/comments\/([^/]+)\/private_reply$/)) && req.method === "POST") return send(201, { data: { id: `msg_${state.nextId++}`, text: body.text, comment_id: mm[2] } });
     if ((mm = m(/^\/api\/posts\/([^/]+)$/)) && req.method === "GET") { const p = state.posts[mm[1]]; return p ? send(200, { data: p }) : send(404, { error: "not found" }); }
     if ((mm = m(/^\/api\/posts\/([^/]+)$/)) && req.method === "DELETE") { const p = state.posts[mm[1]]; if (!p) return send(404, { error: "not found" }); delete state.posts[mm[1]]; return send(200, { data: { id: mm[1], deleted: true } }); }
-    if ((mm = m(/^\/api\/profiles\/([^/]+)\/stats$/))) return send(200, { data: state.stats.profiles?.[mm[1]] || [] });
+    if ((mm = m(/^\/api\/profiles\/([^/]+)\/stats$/))) {
+      // like Postproxy: a Facebook profile's stats need the Page (placement)
+      const prof = state.profiles.find((x) => x.id === mm[1]);
+      if (prof?.platform === "facebook" && !url.searchParams.get("placement_id")) return send(400, { error: "placement_id is required for facebook profiles" });
+      return send(200, { data: state.stats.profiles?.[mm[1]] || [] });
+    }
     if ((mm = m(/^\/api\/profiles\/([^/]+)\/chats$/)) && req.method === "GET") return send(200, { data: state.chats[mm[1]] || [] });
     if ((mm = m(/^\/api\/chats\/([^/]+)\/messages$/)) && req.method === "POST") return send(201, { data: { id: `msg_${state.nextId++}`, body: body.body, status: "pending" } });
     send(404, { error: `no route ${req.method} ${url.pathname}` });
