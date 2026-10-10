@@ -36,9 +36,9 @@ export const TEMPLATE_VARIANTS = {
     post: { padTop: 110, padBottom: 110, photoTop: 0, photoH: 675, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
     x: false,
   },
-  // studio-logo intro: flipbook of story illustrations → wordmark pulled back → white in a box
+  // launch intro: comic pages of story illustrations sliding by, then the brand dissolving in
   intro: {
-    reel: { logoTop: 640, subMt: 52, sub: 76, tag: 44, tagMax: 900, url: 32, urlBottom: 330, edge: 7 },
+    reel: { rotate: -45, cols: 3, rows: 6, cellW: 700, cellH: 394, gap: 28, logoTop: 580, markSize: 180, tag: 46, tagMax: 860, url: 32, urlBottom: 330 },
     post: false,
     x: false,
   },
@@ -67,14 +67,14 @@ export function starField(n, w, h, seed) {
   return out;
 }
 
-function fontFaces(brand, fontFiles) {
+function fontFaces(brand, fontFiles, { displayWeights = [] } = {}) {
   const faces = [];
   for (const role of ["display", "text", "mono"]) {
     const f = brand.fonts?.[role];
     if (!f) continue;
     const file = fontFiles.find((p) => basename(p, ".woff2") === f.family.replace(/\s+/g, ""));
     if (!file) continue;
-    const ws = f.weights?.length ? f.weights : [400];
+    const ws = [...(f.weights?.length ? f.weights : [400]), ...(role === "display" ? displayWeights : [])];
     const range = ws.length > 1 ? `${Math.min(...ws)} ${Math.max(...ws)}` : `${ws[0]}`;
     faces.push(`        @font-face { font-family: "${f.family}"; src: url("assets/fonts/${basename(file)}") format("woff2"); font-weight: ${range}; font-display: block; }`);
   }
@@ -166,12 +166,7 @@ async function placeAsset(ref, base, campaign, dir, fetchImpl) {
   return `assets/${base}.${ext}`;
 }
 
-/** A darker shade of a hex colour (k = 0 keeps it, 1 is black). */
-export function shade(hex, k) {
-  const c = hexToRgb(hex) || { r: 0, g: 0, b: 0 };
-  const f = (v) => Math.round(v * (1 - k)).toString(16).padStart(2, "0");
-  return `#${f(c.r)}${f(c.g)}${f(c.b)}`;
-}
+
 
 function brandParts(brand) {
   const parts = brand.wordmark?.parts?.length ? brand.wordmark.parts : [{ text: brand.name, weight: 600 }];
@@ -215,13 +210,18 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     }
 
     const imageSrc = await placeImage(campaign, dir, fetchImpl);
-    // intro template: the pages (act 1) and the same images clipped to the wordmark (act 2)
+    // intro template: four identical grids (rows × cols panels) the timeline refills with the
+    // campaign's images; every image is preloaded so a cut never shows an empty panel
     const pageSrcs = await placeImages(campaign, dir, fetchImpl);
-    const word = String(copy.word || brand.name || "").trim();
-    const duo = (src) => `background-image:url(${src}), linear-gradient(160deg, var(--hot), var(--hot-deep))`;
-    const pagesHtml = pageSrcs.map((src, i) => `          <div class="page duo" style="z-index:${pageSrcs.length - i};${duo(src)}"></div>`).join("\n");
-    const cutsHtml = pageSrcs.map((src) => `            <span class="w cut duo" aria-hidden="true" style="${duo(src)}">${escapeHtml(word)}</span>`).join("\n");
-    const hot = brand.palette.raw?.["--hot"] || brand.palette.accent;
+    const grid = { cols: v.cols ?? 3, rows: v.rows ?? 6, w: v.cellW ?? 700, h: v.cellH ?? 394, gap: v.gap ?? 28 };
+    const gridW = grid.cols * grid.w + (grid.cols - 1) * grid.gap;
+    const gridH = grid.rows * grid.h + (grid.rows - 1) * grid.gap;
+    const gridTop = Math.round((v.h - gridH) / 2);
+    const rowHtml = (r) => `            <div class="row" style="top:${gridTop + r * (grid.h + grid.gap)}px">${Array.from({ length: grid.cols }, () => `<div class="panel"><div class="img"></div></div>`).join("")}</div>`;
+    const pagesHtml = pageSrcs.length ? Array.from({ length: 4 }, () => [`          <div class="grid">`, ...Array.from({ length: grid.rows }, (_, r) => rowHtml(r)), `          </div>`].join("\n")).join("\n") : "";
+    const preloadHtml = pageSrcs.map((src) => `<img src="${src}" alt="" />`).join("");
+    const wordmarkText = (brand.wordmark?.parts || []).map((x) => x.text).join("") || brand.name || "";
+    const fgRgb = hexToRgb(brand.palette.fg) || { r: 255, g: 255, b: 255 };
     const bgRgb = hexToRgb(brand.palette.bg) || { r: 0, g: 0, b: 0 };
     const headline = copy.headline || copy.title || "";
     const headlineWords = headline.split(/\s+/).filter(Boolean).map((w) => `<span class="w">${escapeHtml(w)}</span>`).join("");
@@ -230,7 +230,8 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const pointScenes = points.map((p, i) => `              <div class="scene point-scene" id="${id}-s${i + 1}"><span class="p-num">${String(i + 1).padStart(2, "0")}</span><span class="p-line"></span><p class="p-text">${escapeHtml(p.trim())}</p></div>`).join("\n");
 
     let fill = (s) => s
-      .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles))
+      // the intro sets the wordmark in its own weights (e.g. 300/600): the display face must span them
+      .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles, { displayWeights: template === "intro" ? (brand.wordmark?.parts || []).map((x) => x.weight).filter(Number.isFinite) : [] }))
       .replace(/__STARS_JSON__/g, JSON.stringify(stars))
       .replace(/__STARS__/g, starHtml)
       .replace(/__WORDS__/g, words(brand))
@@ -274,11 +275,15 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__PNUM__/g, String(Math.round((v.headline ?? 64) * 1.15))).replace(/__PTEXT__/g, String(Math.round((v.headline ?? 64) * 0.84)))
       .replace(/__FLOGO__/g, String(Math.round((v.brand ?? 40) * 1.3)))
       .replace(/__POINTS__/g, pointScenes).replace(/__POINT_N__/g, String(points.length))
-      .replace(/__PAGES__/g, pagesHtml).replace(/__CUTS__/g, cutsHtml)
-      .replace(/__HOT_MID__/g, shade(hot, 0.18)).replace(/__HOT_DEEP__/g, shade(hot, 0.62)).replace(/__HOT__/g, hot)
-      .replace(/__WORD_SIZE__/g, String(Math.min(260, Math.round(860 / (0.72 * Math.max(3, word.length))))))
-      .replace(/__LOGO_TOP__/g, String(v.logoTop ?? 640)).replace(/__EDGE__/g, String(v.edge ?? 7))
-      .replace(/__SUB_MT__/g, String(v.subMt ?? 52)).replace(/__SUB_SIZE__/g, String(v.sub ?? 76))
+      .replace(/__PAGES__/g, pagesHtml).replace(/__PAGES_ROT__/g, String(campaign.rotate ?? v.rotate ?? 0))
+      .replace(/__PRELOAD__/g, preloadHtml).replace(/__IMAGES_JSON__/g, JSON.stringify(pageSrcs))
+      .replace(/__GRID_LEFT__/g, String(Math.round((v.w - gridW) / 2))).replace(/__GRID_W__/g, String(gridW))
+      .replace(/__CELL_W__/g, String(grid.w)).replace(/__CELL_H__/g, String(grid.h)).replace(/__GAP__/g, String(grid.gap))
+      .replace(/__CARD__/g, brand.palette.raw?.["--card"] || brand.palette.bg).replace(/__FG_RGB__/g, `${fgRgb.r}, ${fgRgb.g}, ${fgRgb.b}`)
+      .replace(/__WM_SIZE__/g, String(Math.min(170, Math.round(860 / (0.54 * Math.max(4, wordmarkText.length))))))
+      .replace(/__LOGO_TOP__/g, String(v.logoTop ?? 600)).replace(/__MARK_SIZE__/g, String(v.markSize ?? 132))
+      .replace(/__SCRIM_Y__/g, String(Math.round((((v.logoTop ?? 600) + 260) / v.h) * 100)))
+      .replace(/__SCRIM_URL_Y__/g, String(Math.round(((v.h - (v.urlBottom ?? 330) - 24) / v.h) * 100)))
       .replace(/__URL_BOTTOM__/g, String(v.urlBottom ?? 330))
       .replace(/__END_NUM__/g, end.num).replace(/__END_LABEL__/g, end.label).replace(/__END_CTA__/g, end.cta)
       .replace(/__END_SRC_DISPLAY__/g, end.num ? "flex" : "none")

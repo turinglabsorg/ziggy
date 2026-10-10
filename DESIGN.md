@@ -50,30 +50,29 @@ Layout numbers live in `TEMPLATE_VARIANTS.story` in `skill/scripts/video.mjs`.
   The photo fades in and then pushes from 1.1 to 1.0 scale across the whole piece. The progress
   bar fills over the full duration.
 
-## Studio intro (`templates/hyperframes/intro`, 1080×1920)
+## Launch intro (`templates/hyperframes/intro`, 1080×1920, ~10s)
 
-A launch video in the style of a film-studio logo, made from the tenant's own story
-illustrations. Campaign fields: `copy.word` (the big word), `copy.sub` (the line under it, set
-like "STUDIOS"), `copy.tagline`, `copy.url`, and `images` (around 16 story illustrations, in page
-order, the last one ending under the pull-back).
+A launch video in the rhythm of a film-studio intro, made of the tenant's own story
+illustrations and nothing but the brand: its colours, its fonts, its mark and its wordmark.
+Never a borrowed logo box, red, or uppercase studio type (owner's call, 2026-10-10). Campaign
+fields: `copy.tagline`, `copy.url`, `images` (about 16 story illustrations), `duration` (the
+timing scales to it) and `audio.jingle` (one of the tenant's jingles).
 
-- **Act 1, flipbook**: the illustrations as full-bleed pages in a red duotone (the image's
-  luminosity over `--hot` → `--hot-deep`, via `background-blend-mode`, no filters). Each page
-  falls toward the viewer (`rotationX` around its bottom edge), faster and faster, under a slow
-  push in.
-- **Act 2, pull-back**: the same pages keep cutting inside the letters of the word (text with
-  `background-clip: text`) while the camera pulls back from 7× with a small rotation. The red
-  gradient comes up behind.
-- **Act 3, logo**: the letters turn `--fg` white, a 7px box draws itself edge by edge, the sub
-  line flashes in (brightness and blur settle), then the tagline, then the url with an accent
-  underline as wide as the text.
-- **Red**: `--hot` comes from `brand.palette.raw["--hot"]` (Ragusa `#ff4d6d`), falling back to
-  the accent. The gradient runs `--hot-mid` (18% darker) at the centre to `--hot-deep` (62%
-  darker) at the edges, which keeps white type above 3:1.
-- **Sound**: a named jingle outside the rotation (`ziggy jingle <slug> --name intro`): a
-  12-second heroic orchestral fanfare whose hit lands on the white logo. It is described by
-  style only, never by naming another studio's music. `audio.fadeOut` is short (0.8s) so the
-  final chord rings out.
+- **Background**: the brand night, a radial `--card` → `--bg` (Ragusa's purple).
+- **The wall**: four identical grids of 6 rows × 3 panels (700×394, 28px gaps, 16px radius,
+  `--fg` hairline, no drop shadow), turned −45°, big enough to leave no gap in the frame. The
+  panels are smaller than the 1024×576 illustrations, so they stay sharp. The timeline refills
+  the grids' backgrounds as they take turns, and every image is preloaded so a cut never shows
+  an empty panel.
+- **Crescendo**: rows slide in from alternating sides, each page shorter than the last (from
+  0.6s). After about two seconds hard cuts take over and tighten to ~15 a second, each grid
+  snapping in sideways. Over the last ~3 seconds the pages come in fainter, travel further and
+  fade under the next ones (ghost trails), while the wall blurs.
+- **Brand from the first second**: mark (180px), wordmark in its own weights (Ragusa: "ragusa"
+  300 + "buzz" 600, so the display face declares that range for this template), claim and url
+  all appear as a ghost within a second (`data-layout-ignore`, so the contrast audit skips the
+  deliberately faint stage). They firm up behind a growing scrim, then the real, audited text
+  takes over as the last grid dissolves.
 
 ## Sound
 

@@ -92,7 +92,7 @@ working **with** Ziggy.
   API needs a paid ElevenLabs plan. Never borrow another client's key. Tests fake ElevenLabs on
   localhost (`ZIGGY_ELEVENLABS_BASE_URL`) and ffmpeg (`ZIGGY_FFMPEG_BIN`).
 - Templates: `story` (one reel per feed story), `teaser` (the original brand teaser) and `intro`
-  (a studio-logo launch video built from `campaign.images`, see DESIGN.md). Remote images are
+  (a ~10s launch video: a −45° wall of `campaign.images` in a burst, then the brand as it is; see DESIGN.md). Remote images are
   fetched on every scaffold, because assets are named by position and a stale file would
   otherwise keep showing.
 - `ziggy report <slug>` (report.mjs) prints a compact emoji digest on stdout: count + last
