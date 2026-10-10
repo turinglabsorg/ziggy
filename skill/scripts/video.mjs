@@ -36,6 +36,12 @@ export const TEMPLATE_VARIANTS = {
     post: { padTop: 110, padBottom: 110, photoTop: 0, photoH: 675, spacer: 650, kicker: 24, headline: 56, dek: 30, dekMax: 840, dekMt: 24, meta: 20, brand: 36 },
     x: false,
   },
+  // studio-logo intro: flipbook of story illustrations → wordmark pulled back → white in a box
+  intro: {
+    reel: { logoTop: 640, subMt: 52, sub: 76, tag: 44, tagMax: 900, url: 32, urlBottom: 330, edge: 7 },
+    post: false,
+    x: false,
+  },
 };
 
 export function listTemplates() {
@@ -129,26 +135,42 @@ export function endCard(lang, sources, site) {
 
 /** Fetch or copy the campaign image into the project; returns the relative src or null. */
 async function placeImage(campaign, dir, fetchImpl = fetch) {
-  const ref = campaign.image;
-  if (!ref) return null;
+  return campaign.image ? placeAsset(campaign.image, "story", campaign, dir, fetchImpl) : null;
+}
+
+/** The intro template's pages: campaign.images, in order, as assets/page-NN.*; same failure rules. */
+async function placeImages(campaign, dir, fetchImpl = fetch) {
+  const refs = Array.isArray(campaign.images) ? campaign.images : [];
+  const out = [];
+  for (const [i, ref] of refs.entries()) out.push(await placeAsset(ref, `page-${String(i + 1).padStart(2, "0")}`, campaign, dir, fetchImpl));
+  return out;
+}
+
+async function placeAsset(ref, base, campaign, dir, fetchImpl) {
   const ext = (ref.split("?")[0].match(/\.(jpe?g|png|webp)$/i) || [, "jpg"])[1].toLowerCase();
-  const target = join(dir, "assets", `story.${ext}`);
+  const target = join(dir, "assets", `${base}.${ext}`);
   if (/^https?:\/\//i.test(ref)) {
-    if (!existsSync(target)) {
-      // an unreachable image fails the scaffold: the daily loop retries the campaign on its
-      // next tick, where a reel with an empty photo band would have gone out looking broken
-      let res;
-      try { res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } }); }
-      catch (error) { throw new Error(`story image unreachable (${ref}): ${error.cause?.code || error.message}`); }
-      if (!res.ok) throw new Error(`story image unreachable (${ref}): HTTP ${res.status}`);
-      await writeFile(target, Buffer.from(await res.arrayBuffer()));
-    }
+    // fetched on every scaffold: assets are named by position (page-03), so a file left by an
+    // earlier render would keep showing an image the campaign no longer lists. An unreachable
+    // image fails the scaffold — the next run retries — rather than render an empty photo band
+    let res;
+    try { res = await fetchImpl(ref, { headers: { "User-Agent": "Mozilla/5.0 ziggy" } }); }
+    catch (error) { throw new Error(`story image unreachable (${ref}): ${error.cause?.code || error.message}`); }
+    if (!res.ok) throw new Error(`story image unreachable (${ref}): HTTP ${res.status}`);
+    await writeFile(target, Buffer.from(await res.arrayBuffer()));
   } else {
     const src = ref.startsWith("/") ? ref : join(campaign.dir || ".", ref);
     if (!existsSync(src)) throw new Error(`image not found: ${src}`);
     copyFileSync(src, target);
   }
-  return `assets/story.${ext}`;
+  return `assets/${base}.${ext}`;
+}
+
+/** A darker shade of a hex colour (k = 0 keeps it, 1 is black). */
+export function shade(hex, k) {
+  const c = hexToRgb(hex) || { r: 0, g: 0, b: 0 };
+  const f = (v) => Math.round(v * (1 - k)).toString(16).padStart(2, "0");
+  return `#${f(c.r)}${f(c.g)}${f(c.b)}`;
 }
 
 function brandParts(brand) {
@@ -187,12 +209,19 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       const a = campaign.audio;
       // the campaign's jingle from the tenant's set (ziggy jingle) wins over the synthesized bed
       const jingle = a.jingle === false ? null : pickJingle(tenant.slug, campaign);
-      if (jingle) fitJingle(jingle, join(dir, "assets", "bed.wav"), { seconds: duration });
+      if (jingle) fitJingle(jingle, join(dir, "assets", "bed.wav"), { seconds: duration, fadeIn: a.fadeIn ?? 0.25, fadeOut: a.fadeOut ?? 1.8 });
       else writeBed(join(dir, "assets", "bed.wav"), { seconds: duration, seed: a.seed || 20261005, swellAt: a.swellAt, beats: a.beats, baseHz: a.baseHz, variant: a.bed });
       audio = `        <audio id="${id}-bed" src="assets/bed.wav" data-start="0" data-duration="${duration}" data-volume="${a.volume ?? 0.7}"></audio>`;
     }
 
     const imageSrc = await placeImage(campaign, dir, fetchImpl);
+    // intro template: the pages (act 1) and the same images clipped to the wordmark (act 2)
+    const pageSrcs = await placeImages(campaign, dir, fetchImpl);
+    const word = String(copy.word || brand.name || "").trim();
+    const duo = (src) => `background-image:url(${src}), linear-gradient(160deg, var(--hot), var(--hot-deep))`;
+    const pagesHtml = pageSrcs.map((src, i) => `          <div class="page duo" style="z-index:${pageSrcs.length - i};${duo(src)}"></div>`).join("\n");
+    const cutsHtml = pageSrcs.map((src) => `            <span class="w cut duo" aria-hidden="true" style="${duo(src)}">${escapeHtml(word)}</span>`).join("\n");
+    const hot = brand.palette.raw?.["--hot"] || brand.palette.accent;
     const bgRgb = hexToRgb(brand.palette.bg) || { r: 0, g: 0, b: 0 };
     const headline = copy.headline || copy.title || "";
     const headlineWords = headline.split(/\s+/).filter(Boolean).map((w) => `<span class="w">${escapeHtml(w)}</span>`).join("");
@@ -245,6 +274,12 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__PNUM__/g, String(Math.round((v.headline ?? 64) * 1.15))).replace(/__PTEXT__/g, String(Math.round((v.headline ?? 64) * 0.84)))
       .replace(/__FLOGO__/g, String(Math.round((v.brand ?? 40) * 1.3)))
       .replace(/__POINTS__/g, pointScenes).replace(/__POINT_N__/g, String(points.length))
+      .replace(/__PAGES__/g, pagesHtml).replace(/__CUTS__/g, cutsHtml)
+      .replace(/__HOT_MID__/g, shade(hot, 0.18)).replace(/__HOT_DEEP__/g, shade(hot, 0.62)).replace(/__HOT__/g, hot)
+      .replace(/__WORD_SIZE__/g, String(Math.min(260, Math.round(860 / (0.72 * Math.max(3, word.length))))))
+      .replace(/__LOGO_TOP__/g, String(v.logoTop ?? 640)).replace(/__EDGE__/g, String(v.edge ?? 7))
+      .replace(/__SUB_MT__/g, String(v.subMt ?? 52)).replace(/__SUB_SIZE__/g, String(v.sub ?? 76))
+      .replace(/__URL_BOTTOM__/g, String(v.urlBottom ?? 330))
       .replace(/__END_NUM__/g, end.num).replace(/__END_LABEL__/g, end.label).replace(/__END_CTA__/g, end.cta)
       .replace(/__END_SRC_DISPLAY__/g, end.num ? "flex" : "none")
       .replace(/__END_NUM_SIZE__/g, String(Math.round((v.headline ?? 64) * 2.6))).replace(/__END_LABEL_SIZE__/g, String(Math.round((v.kicker ?? 26) * 1.35)))

@@ -86,9 +86,10 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy thread <slug> <name> [--limit 280] [--enable]
                                                     rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
   ziggy slides <slug> <name> [--enable]            carousel stills: cover, dek, close (1080×1350)
-  ziggy jingle <slug> [--count 1] [--prompt "<text>"] [--seconds 30]
+  ziggy jingle <slug> [--count 1 | --name <name>] [--prompt "<text>"] [--seconds 30]
                                                     add jingles to the tenant's set with ElevenLabs Music (tenant.json → music.prompt);
-                                                    new stories rotate through the set instead of the synthesized bed.
+                                                    new stories rotate through the set instead of the synthesized bed;
+                                                    --name stores one outside the rotation (audio.jingle: "<name>")
                                                     Key: ELEVENLABS_API_KEY via hush run
   ziggy video <slug> <name> [--variants reel,x,post] [--quality high] [--dry-run] [--skip-check]
                                                     scaffold HyperFrames projects, check, render, capture stills
@@ -311,9 +312,10 @@ async function main() {
       const t = loadTenant(slug);
       const seconds = flag("--seconds") && flag("--seconds") !== true ? Number(flag("--seconds")) : undefined;
       const prompt = flag("--prompt") && flag("--prompt") !== true ? String(flag("--prompt")) : undefined;
-      const count = Math.max(1, Number(flag("--count", 1)) || 1);
+      const name = flag("--name") && flag("--name") !== true ? String(flag("--name")) : undefined;
+      const count = name ? 1 : Math.max(1, Number(flag("--count", 1)) || 1);
       const made = [];
-      for (let k = 0; k < count; k++) made.push(await composeJingle(t, { prompt, seconds }));
+      for (let k = 0; k < count; k++) made.push(await composeJingle(t, { prompt, seconds, name }));
       return out(made, (d) => d.map((r) => `jingle ${r.name} for ${slug}: ${r.seconds}s\n  ${r.mp3}\n  ${r.wav}`).join("\n"));
     }
 

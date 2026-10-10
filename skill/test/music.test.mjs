@@ -146,3 +146,17 @@ test("a story reel takes the tenant's jingle instead of the synthesized bed", as
   const [plain] = await scaffold({ tenant, campaign: { ...campaign, audio: { ...campaign.audio, jingle: false } }, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "plain") });
   assert.notEqual(readWav(readFileSync(join(plain.dir, "assets", "bed.wav"))).pcm.readInt16LE(Math.round(1 * SR) * 4), 8000);
 });
+
+test("a named jingle lives outside the rotation and only the campaign that names it plays it", async () => {
+  const r = await runCli(["jingle", "acme", "--name", "intro", "--prompt", "heroic fanfare", "--seconds", "12", "--json"], ENV({ ELEVENLABS_API_KEY: MUSIC_KEY }));
+  assert.equal(r.status, 0, r.stderr);
+  const [made] = JSON.parse(r.stdout);
+  assert.equal(made.name, "intro");
+  assert.match(made.wav, /jingles\/intro\.wav$/);
+  assert.equal(calls.at(-1).body.music_length_ms, 12000);
+  assert.ok(!tenantJingles("acme").some((f) => f.endsWith("intro.wav")), "not in the rotation");
+  assert.match(pickJingle("acme", { name: "launch", audio: { jingle: "intro" } }), /intro\.wav$/);
+  const bad = await runCli(["jingle", "acme", "--name", "../x", "--prompt", "x"], ENV({ ELEVENLABS_API_KEY: MUSIC_KEY }));
+  assert.notEqual(bad.status, 0);
+  assert.match(bad.stderr, /jingle name/);
+});

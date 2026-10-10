@@ -39,13 +39,19 @@ export function nextJingle(slug) {
   return name;
 }
 
-/** The jingle a campaign plays: its stamped `audio.jingle` when that file exists, else a stable pick by campaign name. */
+/**
+ * The jingle a campaign plays: its stamped `audio.jingle` when that file exists — a numbered
+ * one from the rotation, or a named one outside it (`ziggy jingle --name intro`) — else a
+ * stable pick by campaign name.
+ */
 export function pickJingle(slug, campaign) {
+  const stamped = campaign.audio?.jingle;
+  if (typeof stamped === "string" && /^[a-z0-9-]+$/.test(stamped)) {
+    const file = join(jinglesDir(slug), `${stamped}.wav`);
+    if (existsSync(file)) return file;
+  }
   const set = tenantJingles(slug);
   if (!set.length) return null;
-  const stamped = campaign.audio?.jingle;
-  const hit = typeof stamped === "string" && set.find((f) => basename(f, ".wav") === stamped);
-  if (hit) return hit;
   let h = 0;
   for (const ch of String(campaign.name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return set[h % set.length];
@@ -53,9 +59,12 @@ export function pickJingle(slug, campaign) {
 
 /**
  * Compose one more jingle and add it to the set as `NN.mp3` (to listen to) plus `NN.wav`
- * (48 kHz stereo, what the reels use). ffmpeg decodes the mp3; ZIGGY_FFMPEG_BIN swaps it in tests.
+ * (48 kHz stereo, what the reels use). With `name` it is stored as `<name>.*` instead, outside
+ * the rotation, for one campaign to pick by name. ffmpeg decodes the mp3; ZIGGY_FFMPEG_BIN
+ * swaps it in tests.
  */
-export async function composeJingle(tenant, { prompt, seconds = tenant.music?.seconds || DEFAULT_JINGLE_SECONDS, fetchImpl = fetch } = {}) {
+export async function composeJingle(tenant, { prompt, name: fixedName, seconds = tenant.music?.seconds || DEFAULT_JINGLE_SECONDS, fetchImpl = fetch } = {}) {
+  if (fixedName !== undefined && !/^[a-z][a-z0-9-]*$/.test(fixedName)) throw new Error(`jingle name ${JSON.stringify(fixedName)}: lowercase letters, digits and dashes, starting with a letter`);
   const key = process.env[MUSIC_KEY_ENV];
   if (!key) throw new Error(`${MUSIC_KEY_ENV} is not set — run through hush: hush run --name <secret> --env ${MUSIC_KEY_ENV} --redact -- ziggy jingle ${tenant.slug}`);
   const text = prompt || tenant.music?.prompt;
@@ -72,7 +81,7 @@ export async function composeJingle(tenant, { prompt, seconds = tenant.music?.se
   const mp3 = Buffer.from(await res.arrayBuffer());
   const dir = jinglesDir(tenant.slug);
   const taken = readdirSync(dir).map((f) => Number.parseInt(f, 10)).filter(Number.isFinite);
-  const name = String((taken.length ? Math.max(...taken) : 0) + 1).padStart(2, "0");
+  const name = fixedName || String((taken.length ? Math.max(...taken) : 0) + 1).padStart(2, "0");
   const mp3File = join(dir, `${name}.mp3`);
   writeFileSync(mp3File, mp3);
   const wavFile = join(dir, `${name}.wav`);

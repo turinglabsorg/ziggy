@@ -185,3 +185,26 @@ test("the end card speaks the tenant's language and reads the count from the met
   assert.equal(sourceCount({ sources: 5, meta: "3 fonti" }), 5);
   assert.equal(sourceCount({}), null);
 });
+
+test("the intro template: pages in order, the wordmark clipped over them, no token left behind", async () => {
+  const tenant = loadTenant("acme");
+  const campaign = {
+    name: "launch", dir: join(world.repo, "tenants", "acme", "campaigns", "launch"), template: "intro", language: "it", duration: 12,
+    copy: { word: "Acme", sub: "Buzz", tagline: "Il riassunto della provincia", url: "acme.example" },
+    images: ["https://acme.example/a.jpg", "https://acme.example/b.png", "https://acme.example/c.jpg"],
+  };
+  const fetchImpl = async () => new Response(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), { status: 200 });
+  assert.deepEqual(Object.keys(resolveVariants(campaign)), ["reel"], "vertical only");
+  const [reel] = await scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "intro"), fetchImpl });
+  for (const f of ["page-01.jpg", "page-02.png", "page-03.jpg"]) assert.ok(existsSync(join(reel.dir, "assets", f)), f);
+  const html = readFileSync(join(reel.dir, "compositions", "intro-reel.html"), "utf8");
+  assert.deepEqual([...html.matchAll(/class="page duo" style="z-index:(\d)/g)].map((m) => m[1]), ["3", "2", "1"], "first page on top");
+  assert.equal([...html.matchAll(/class="w cut duo"[^>]*>Acme</g)].length, 3);
+  assert.match(html, /<span class="w white">Acme<\/span>/);
+  assert.match(html, /<p id="intro-reel-tagline">Il riassunto della provincia<\/p>/);
+  assert.doesNotMatch(html, /__[A-Z][A-Z0-9_]*__/, "every token is filled");
+  // a re-render after the list changed shows the new images, never the files left by the last one
+  const other = async () => new Response(Buffer.from("new-image"), { status: 200 });
+  await scaffold({ tenant, campaign: { ...campaign, images: ["https://acme.example/z.jpg"] }, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "intro"), fetchImpl: other });
+  assert.equal(readFileSync(join(reel.dir, "assets", "page-01.jpg"), "utf8"), "new-image");
+});
