@@ -92,7 +92,7 @@ working **with** Ziggy.
   API needs a paid ElevenLabs plan. Never borrow another client's key. Tests fake ElevenLabs on
   localhost (`ZIGGY_ELEVENLABS_BASE_URL`) and ffmpeg (`ZIGGY_FFMPEG_BIN`).
 - `ziggy report <slug>` (report.mjs) prints a compact emoji digest on stdout: count + last
-  permalink of published posts, the next four scheduled slots in the tenant's `daily.tz` (in time order, one line per story even when it goes to Instagram and TikTok together; event lines and deleted posts are never counted, see `readCreatedPosts`)
+  permalink of published posts, the next four scheduled slots in the tenant's `daily.tz` (in time order, one line per story even when it goes to Instagram and TikTok together; event lines and deleted posts are never counted, see `readCreatedPosts`; a post removed by hand on the platform — every platform `deleted` — drops out, and only Postproxy `scheduled` posts are queued)
   timezone, one stats line per profile (only non-zero numbers), inbox count + up to three
   comments. A scheduler pipes it wherever (`ZIGGY_REPORT_HOOK='grog telegram-send --to me
   "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.

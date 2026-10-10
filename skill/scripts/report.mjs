@@ -24,7 +24,7 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
   const when = (p) => String(p.scheduledAt || p.at || "");
   const byTime = (a, b) => when(a).localeCompare(when(b));
   const published = statuses.posts.filter((p) => p.link).sort(byTime);
-  const queued = statuses.posts.filter((p) => !p.link && p.scheduledAt).sort(byTime);
+  const queued = statuses.posts.filter((p) => !p.link && p.scheduledAt && p.status === "scheduled").sort(byTime);
   // one line per story and time: a reel going to Instagram and TikTok together is one slot
   const slots = queued.filter((p, i) => queued.findIndex((q) => q.scheduledAt === p.scheduledAt && q.campaign === p.campaign) === i);
   const tz = tenant.daily?.tz || "Z";
@@ -80,6 +80,8 @@ async function refreshStatuses(tenant, client) {
     let post = null;
     try { post = await client.getPost(r.postId); } catch (e) { if (!/404/.test(e.message)) errors.push(`${r.postId}: ${e.message}`); }
     if (!post) continue; // deleted posts simply drop out of the report
+    // removed by hand on the platform (Instagram/TikTok can't be deleted through the API)
+    if ((post.platforms || []).length && post.platforms.every((pl) => pl.status === "deleted")) continue;
     const link = (post.platforms || []).find((pl) => pl.permalink)?.permalink || null;
     posts.push({ id: r.postId, campaign: r.campaign || null, status: post.status, link, scheduledAt: post.scheduled_at || null, at: r.at || null });
   }

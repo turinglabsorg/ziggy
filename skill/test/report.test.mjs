@@ -107,3 +107,15 @@ test("the queue reads in time order, one line per story even when it goes to two
   for (const id of ["q_late", "q_early_ig", "q_early_tt"]) delete mock.state.posts[id];
   writeFileSync(log, before);
 });
+
+test("a post removed by hand on the platform is neither published nor queued", async () => {
+  const log = join(world.home, "tenants", "acme", "posts.jsonl");
+  const before = existsSync(log) ? readFileSync(log, "utf8") : "";
+  mock.state.posts.p_removed = { id: "p_removed", status: "processed", platforms: [{ platform: "instagram", profile_id: "prof_ig", status: "deleted" }], scheduled_at: "2026-10-07T15:30:00Z" };
+  writeFileSync(log, JSON.stringify({ postId: "p_removed", campaign: "story-removed", platform: "instagram" }) + "\n");
+  const d = JSON.parse((await runCli(["report", "acme", "--json"], ENV())).stdout);
+  assert.deepEqual(d.published, []);
+  assert.deepEqual(d.queued, []);
+  delete mock.state.posts.p_removed;
+  writeFileSync(log, before);
+});
