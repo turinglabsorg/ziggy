@@ -144,7 +144,8 @@ working **with** Ziggy.
   computed from, so a container without them re-publishes stories that are already out.
 - Post kinds live in `publish.mjs` (`POST_KINDS`): twitter, instagram_post/reel/story, tiktok,
   threads, bluesky, linkedin, facebook, facebook_reel (format reel, 3–90s; Postproxy needs the Page id on
-  every Facebook post: `tenant.json → postproxy.facebookPageId`, from GET /api/profiles/<id>/placements). TikTok is video-only, always needs media, and its boolean
+  every Facebook post: `tenant.json → postproxy.facebookPageId`, from GET /api/profiles/<id>/placements;
+  profile stats need it too, as `placement_id`). TikTok is video-only, always needs media, and its boolean
   params must keep their type: multipart posts send platforms with boolean/number params as one
   JSON `platforms` field; platforms with a `*_file` upload stay flattened.
 - MIT license. No co-authorship lines in commits, PRs or comments.
