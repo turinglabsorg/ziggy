@@ -150,3 +150,24 @@ test("delete removes a scheduled post through the mock server", async () => {
   assert.equal(gone.status, 0, gone.stderr);
   assert.match(JSON.parse(gone.stdout)[0].deleted, /404|not found/);
 });
+
+test("post → facebook_reel: format=reel and the tenant's Page id on the wire; no Page id, no post", async () => {
+  const campaign = join(world.repo, "tenants", "acme", "campaigns", "launch", "campaign.json");
+  const c = JSON.parse(readFileSync(campaign, "utf8"));
+  c.posts.facebook_reel = { body: "Acme is on Facebook. https://acme.example", media: "reel" };
+  writeFileSync(campaign, JSON.stringify(c));
+  mock.state.profiles.push({ id: "prof_fb", name: "Brand", platform: "facebook", status: "active", profile_group_id: "grp_1" });
+  const tenantFile = join(world.repo, "tenants", "acme", "tenant.json");
+  const t = JSON.parse(readFileSync(tenantFile, "utf8"));
+  const missing = await run(["post", "acme", "launch", "--only", "facebook_reel", "--json"]);
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /postproxy\.facebookPageId/);
+  writeFileSync(tenantFile, JSON.stringify({ ...t, postproxy: { ...(t.postproxy || {}), facebookPageId: "1406232305902133" } }));
+  const r = await run(["post", "acme", "launch", "--only", "facebook_reel", "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  const create = mock.calls.filter((x) => x.method === "POST" && x.path === "/api/posts").at(-1).fields;
+  assert.equal(create["platforms[facebook][format]"], "reel");
+  assert.equal(create["platforms[facebook][page_id]"], "1406232305902133");
+  assert.match(create["media[]"][0].filename, /reel-1080x1920\.mp4$/);
+  writeFileSync(tenantFile, JSON.stringify(t));
+});

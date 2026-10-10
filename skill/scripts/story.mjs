@@ -214,6 +214,12 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
         platform: { privacy_status: "PUBLIC_TO_EVERYONE", disable_comment: false, disable_duet: true, disable_stitch: true },
         enabled: extra.has("tiktok"),
       },
+      // the same reel on the tenant's Facebook Page; links in the caption are clickable there
+      facebook_reel: {
+        body: caption,
+        media: "reel",
+        enabled: extra.has("facebook_reel"),
+      },
     },
   };
 }

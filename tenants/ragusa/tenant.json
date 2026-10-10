@@ -5,8 +5,10 @@
   "postproxy": {
     "profileGroupId": "NWFp3R",
     "profileIds": [
-      "OLU4ab"
-    ]
+      "OLU4ab",
+      "51U2nj"
+    ],
+    "facebookPageId": "1406232305902133"
   },
   "autopilot": {
     "mode": "draft",
@@ -48,7 +50,10 @@
   "social": {
     "cta": "La storia completa: {url}",
     "hashtags": "#Ragusa #Sicilia #Cronaca #Notizie",
-    "bed": "news"
+    "bed": "news",
+    "platforms": [
+      "facebook_reel"
+    ]
   },
   "notes": "Local news for the Ragusa province, multilingual. Social is Italian-first, Instagram + TikTok only.",
   "feed": {
@@ -91,7 +96,8 @@
     "tz": "+02:00",
     "maxAgeHours": 48,
     "only": [
-      "instagram_reel"
+      "instagram_reel",
+      "facebook_reel"
     ]
   },
   "music": {

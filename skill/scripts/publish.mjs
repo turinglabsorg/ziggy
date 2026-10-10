@@ -31,6 +31,7 @@ export const POST_KINDS = {
   bluesky: { platform: "bluesky", format: null, limits: { chars: 300 } },
   linkedin: { platform: "linkedin", format: null, limits: { chars: 3000 } },
   facebook: { platform: "facebook", format: "post", limits: { chars: 63206 } },
+  facebook_reel: { platform: "facebook", format: "reel", limits: LIMITS.facebook_reel },
 };
 
 /** Resolve one `media` reference to a file path or URL. A slide variant resolves to its PNG. */
@@ -93,11 +94,13 @@ export function validatePost(kind, spec, mediaPaths) {
 }
 
 /** Build the request for one campaign post. Pure. */
-export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt }) {
+export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt, facebookPageId }) {
   const def = POST_KINDS[kind];
   const media = resolveMediaList(spec.media, manifest);
   const params = {};
   if (def.format) params.format = def.format;
+  // Postproxy wants the Page on every Facebook post (GET /api/profiles/<id>/placements lists them)
+  if (def.platform === "facebook" && facebookPageId) params.page_id = String(facebookPageId);
   if (spec.first_comment) params.first_comment = spec.first_comment;
   if (spec.alt_text) params.alt_text = spec.alt_text;
   if (spec.collaborators) params.collaborators = spec.collaborators;
@@ -111,7 +114,7 @@ export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt
   return {
     kind,
     request: { body: spec.body || "", profiles: [profile.id], media, platforms: { [def.platform]: params }, draft, scheduledAt, thread: Array.isArray(spec.thread) ? spec.thread.map((child) => ({ body: child.body || "" })) : undefined },
-    problems: validatePost(kind, spec, media),
+    problems: [...validatePost(kind, spec, media), ...(def.platform === "facebook" && !facebookPageId ? [`${kind}: tenant.json needs postproxy.facebookPageId (GET /api/profiles/<id>/placements)`] : [])],
     media,
   };
 }
@@ -133,7 +136,7 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
     if (!def) throw new Error(`unknown post kind ${JSON.stringify(kind)}`);
     const profile = pickProfile(profiles, def.platform, { groupId: tenant.postproxy?.profileGroupId, profileIds: tenant.postproxy?.profileIds });
     if (!profile) throw new Error(`no active ${def.platform} profile connected on Postproxy for ${tenant.slug}`);
-    plans.push({ ...buildRequest(kind, spec, { profile, manifest, draft: !live, scheduledAt }), profile });
+    plans.push({ ...buildRequest(kind, spec, { profile, manifest, draft: !live, scheduledAt, facebookPageId: tenant.postproxy?.facebookPageId }), profile });
   }
   const problems = plans.flatMap((p) => p.problems);
   if (problems.length) throw new Error(`campaign ${campaign.name} is not publishable:\n  ${problems.join("\n  ")}`);
