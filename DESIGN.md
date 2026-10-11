@@ -73,6 +73,11 @@ timing scales to it) and `audio.jingle` (one of the tenant's jingles).
   all appear as a ghost within a second (`data-layout-ignore`, so the contrast audit skips the
   deliberately faint stage). They firm up behind a growing scrim, then the real, audited text
   takes over as the last grid dissolves.
+- **Any brand**: the wordmark is measured and shrunk at build time to fit the frame (an extended
+  face in capitals like Alien Watch's Unbounded runs twice the width of a condensed one). Parts
+  are trimmed and spaced 0.3em apart, and `wordmark.accentDot` is drawn outside the box so the
+  word stays centred. The background card falls back to `--ink-raised`. A brand with a star
+  field gets its sky behind the settled logo.
 
 ## Sound
 

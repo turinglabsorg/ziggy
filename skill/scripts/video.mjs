@@ -279,7 +279,9 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__PRELOAD__/g, preloadHtml).replace(/__IMAGES_JSON__/g, JSON.stringify(pageSrcs))
       .replace(/__GRID_LEFT__/g, String(Math.round((v.w - gridW) / 2))).replace(/__GRID_W__/g, String(gridW))
       .replace(/__CELL_W__/g, String(grid.w)).replace(/__CELL_H__/g, String(grid.h)).replace(/__GAP__/g, String(grid.gap))
-      .replace(/__CARD__/g, brand.palette.raw?.["--card"] || brand.palette.bg).replace(/__FG_RGB__/g, `${fgRgb.r}, ${fgRgb.g}, ${fgRgb.b}`)
+      .replace(/__CARD__/g, brand.palette.raw?.["--card"] || brand.palette.raw?.["--ink-raised"] || brand.palette.bg)
+      // the intro's wordmark: the brand's parts trimmed (the template spaces them), plus its dot
+      .replace(/__INTRO_WORDMARK__/g, (brand.wordmark?.parts?.length ? brand.wordmark.parts : [{ text: brand.name, weight: 600 }]).map((x) => `<span class="part" style="font-weight: ${x.weight}">${escapeHtml(String(x.text).trim())}</span>`).join("") + (brand.wordmark?.accentDot ? '<span class="b-dot"></span>' : "")).replace(/__FG_RGB__/g, `${fgRgb.r}, ${fgRgb.g}, ${fgRgb.b}`)
       .replace(/__WM_SIZE__/g, String(Math.min(170, Math.round(860 / (0.54 * Math.max(4, wordmarkText.length))))))
       .replace(/__LOGO_TOP__/g, String(v.logoTop ?? 600)).replace(/__MARK_SIZE__/g, String(v.markSize ?? 132))
       .replace(/__SCRIM_Y__/g, String(Math.round((((v.logoTop ?? 600) + 260) / v.h) * 100)))

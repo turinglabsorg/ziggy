@@ -203,7 +203,7 @@ test("the intro template: four grids the timeline refills, every image preloaded
   assert.match(html, /var IMGS = \["assets\/page-01\.jpg","assets\/page-02\.png","assets\/page-03\.jpg"\];/);
   assert.equal([...html.matchAll(/<img src="assets\/page-0\d\.\w+" alt="" \/>/g)].length, 3, "every image preloaded");
   assert.match(html, /transform: rotate\(-45deg\)/);
-  assert.match(html, /<p class="wordmark" id="intro-reel-wordmark"><span class="part" style="font-weight: 300">Acme<\/span><span class="part" style="font-weight: 600">Corp<\/span><\/p>/, "the brand's own wordmark");
+  assert.match(html, /<p class="wordmark" id="intro-reel-wordmark"><span class="part" style="font-weight: 300">Acme<\/span><span class="part" style="font-weight: 600">Corp<\/span><span class="b-dot"><\/span><\/p>/, "the brand's own wordmark, dot included");
   assert.match(html, /<p class="tagline" id="intro-reel-tagline">Il riassunto della provincia<\/p>/);
   assert.doesNotMatch(html, /__[A-Z][A-Z0-9_]*__/, "every token is filled");
   // a re-render after the list changed shows the new images, never the files left by the last one

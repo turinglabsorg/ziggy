@@ -35,7 +35,14 @@ __FONT_FACES__
         #__ID__-logo, #__ID__-ghost { position: absolute; left: 0; right: 0; top: __LOGO_TOP__px; display: flex; flex-direction: column; align-items: center; opacity: 0; }
         #root .mark { width: __MARK_SIZE__px; height: __MARK_SIZE__px; margin-bottom: 38px; }
         #root .mark svg { width: 100%; height: 100%; display: block; }
-        #root .wordmark { margin: 0; font-family: var(--display); font-size: __WM_SIZE__px; line-height: 1; letter-spacing: __LETTER_SPACING__; text-transform: __TEXT_TRANSFORM__; white-space: nowrap; color: var(--fg); }
+        #root .wordmark { position: relative; margin: 0; font-family: var(--display); font-size: __WM_SIZE__px; line-height: 1; letter-spacing: __LETTER_SPACING__; text-transform: __TEXT_TRANSFORM__; white-space: nowrap; color: var(--fg); }
+        #root .wordmark .part + .part { margin-left: 0.3em; }
+        /* the brand's accent dot (wordmark.accentDot), outside the box so the word stays centred */
+        #root .wordmark .b-dot { position: absolute; top: 0.02em; right: -0.24em; width: 0.15em; height: 0.15em; border-radius: 50%; background: var(--accent); }
+        #__ID__-stars { position: absolute; inset: 0; pointer-events: none; }
+        #__ID__-stars .star { position: absolute; border-radius: 50%; }
+        #__ID__-stars .star.fg { background: var(--fg); }
+        #__ID__-stars .star.muted { background: var(--muted); }
         #root .tagline { margin: 54px 0 0; max-width: __TAG_MAX__px; text-align: center; font-family: var(--text); font-weight: 400; font-size: __TAG__px; line-height: 1.32; color: var(--fg); }
         #root .url { position: absolute; left: 0; right: 0; bottom: __URL_BOTTOM__px; display: flex; justify-content: center; opacity: 0; }
         #root .url .u-wrap { display: inline-flex; flex-direction: column; align-items: stretch; }
@@ -46,6 +53,7 @@ __FONT_FACES__
       <div id="root" data-composition-id="__ID__" data-start="0" data-width="__W__" data-height="__H__" data-duration="__DUR__">
 __AUDIO__
         <div id="__ID__-preload" aria-hidden="true" data-layout-ignore>__PRELOAD__</div>
+        <div id="__ID__-stars" aria-hidden="true">__STARS__</div>
         <div id="__ID__-pages" data-layout-allow-overflow="true">
 __PAGES__
         </div>
@@ -54,13 +62,13 @@ __PAGES__
         <!-- the ghosts build up with the crescendo; set dressing, the real text replaces them -->
         <div id="__ID__-ghost" aria-hidden="true" data-layout-ignore>
           <span class="mark">__MARK_SVG__</span>
-          <p class="wordmark">__BRAND_PARTS__</p>
+          <p class="wordmark">__INTRO_WORDMARK__</p>
           <p class="tagline">__COPY_TAGLINE__</p>
         </div>
         <div class="url" id="__ID__-ghost-url" aria-hidden="true" data-layout-ignore><span class="u-wrap"><span class="u">__URL_TEXT__</span><span class="u-line"></span></span></div>
         <div id="__ID__-logo">
           <span class="mark" id="__ID__-mark">__MARK_SVG__</span>
-          <p class="wordmark" id="__ID__-wordmark">__BRAND_PARTS__</p>
+          <p class="wordmark" id="__ID__-wordmark">__INTRO_WORDMARK__</p>
           <p class="tagline" id="__ID__-tagline">__COPY_TAGLINE__</p>
         </div>
         <div class="url" id="__ID__-url"><span class="u-wrap"><span class="u">__URL_TEXT__</span><span class="u-line"></span></span></div>
@@ -80,6 +88,12 @@ __PAGES__
 
             Array.prototype.slice.call(document.querySelectorAll("#" + ID + "-ghost .mark, #" + ID + "-logo .mark")).forEach(function (m) {
               if (!m.querySelector("svg")) m.style.display = "none";
+            });
+            /* fit the wordmark to the frame by measuring it: brand fonts differ wildly in width
+               (an extended face in capitals runs twice a condensed one in lowercase) */
+            Array.prototype.slice.call(document.querySelectorAll("#" + ID + "-ghost .wordmark, #" + ID + "-logo .wordmark")).forEach(function (el) {
+              var max = W - 180, w = el.getBoundingClientRect().width;
+              if (w > max) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * max / w).toFixed(1) + "px";
             });
 
             /* act 1, sized to the piece: four grids take turns. First the rows slide in from
@@ -147,6 +161,11 @@ __PAGES__
 
             /* act 2: the last page dissolves, the brand settles, then the claim and the site */
             if (cur >= 0) tl.to(grids[cur], { opacity: 0, filter: "blur(12px)", duration: 0.8, ease: "power1.inOut" }, tLogo);
+            /* the brand's sky (if it has one) comes out behind the settled logo */
+            var STARS = __STARS_JSON__;
+            Array.prototype.slice.call(document.querySelectorAll("#" + ID + "-stars .star")).forEach(function (el, i) {
+              tl.fromTo(el, { opacity: 0 }, { opacity: STARS[i].base, duration: 0.8, ease: soft, immediateRender: false }, tLogo + 0.2 + STARS[i].phase * 0.8);
+            });
             tl.fromTo(logo, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: soft }, tLogo + 0.3);
             tl.fromTo($("url"), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: soft }, tLogo + 0.4);
             tl.to(ghosts, { opacity: 0, duration: 0.6, ease: soft }, tLogo + 0.3);
