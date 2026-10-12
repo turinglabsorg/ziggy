@@ -120,6 +120,18 @@ working **with** Ziggy.
   age slowly, so older archive stories are welcome (owner's call, 2026-10-09). Fresh stories go
   first, then archive stories in the fixed slots. Never publish a story that announces an event
   already past (a launch date, a sky event).
+- `ops/round/` holds the tools a round runs inside the container (`cd /app`):
+  - `pending.mjs <slug> [--archive]`: stories not yet covered and still fresh, as JSON, each with
+    its slug prefix and, for Ragusa, its deadline.
+  - `make-campaigns.mjs <slug> <points.json>`: points the session wrote → campaigns with the
+    next jingle; prefixes under `"skip"` become skipped campaigns.
+  - `check.sh <sheet.png> <slug> <campaign>…`: audio and loudness per reel, plus a start/end
+    frame sheet to look at.
+  - `schedule.mjs <slug> <campaign>… [--dry-run]`: the next free times on every active platform.
+    For Ragusa that is on the hour, 08–23 local, 55 minutes away from anything queued, never past
+    a story's deadline. For Alien Watch it is its slots plus half-slots. A disconnected profile is
+    left out and reported.
+  - `notify.mjs "<text>"`: send a message to the operator's Telegram.
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
   repo's `Dockerfile` + `docker-compose.yml`: keys via `.env.docker`, state volume `ziggy-data`,
   reports to Telegram via `docker/telegram-notify.mjs` as `ZIGGY_REPORT_HOOK`) re-runs each
