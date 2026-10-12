@@ -105,6 +105,11 @@ export async function startMockPostproxy({ profiles, posts = {}, comments = {}, 
     send(404, { error: `no route ${req.method} ${url.pathname}` });
   });
 
+  // keep idle sockets open longer than any test: with Node's 5s default the server can close a
+  // keep-alive socket just as the CLI child reuses it, and a loaded machine turns that race
+  // into a random "fetch failed"
+  server.keepAliveTimeout = 120_000;
+  server.headersTimeout = 121_000;
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
   return { baseUrl, calls, state, close: () => new Promise((r) => { server.closeAllConnections(); server.close(() => r()); }) };

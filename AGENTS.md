@@ -96,7 +96,7 @@ working **with** Ziggy.
   fetched on every scaffold, because assets are named by position and a stale file would
   otherwise keep showing.
 - `ziggy report <slug>` (report.mjs) prints a compact emoji digest on stdout: count + last
-  permalink of published posts, the next four scheduled slots in the tenant's `daily.tz` (in time order, one line per story even when it goes to Instagram and TikTok together; event lines and deleted posts are never counted, see `readCreatedPosts`; a post removed by hand on the platform — every platform `deleted` — drops out, and only Postproxy `scheduled` posts are queued)
+  permalink of published posts, the next four scheduled slots in the tenant's `daily.tz` (in time order, one line per story even when it goes to Instagram and TikTok together; event lines and deleted posts are never counted, see `readCreatedPosts`; a post removed by hand on the platform — every platform `deleted` — drops out, and only Postproxy `scheduled` posts are queued). It opens with ⚠️ lines for a profile Postproxy reports as not `active` (every post on it fails) and for posts that failed in the last 48h, with the reason
   timezone, one stats line per profile (only non-zero numbers), inbox count + up to three
   comments. A scheduler pipes it wherever (`ZIGGY_REPORT_HOOK='grog telegram-send --to me
   "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.

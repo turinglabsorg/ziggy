@@ -155,8 +155,11 @@ export async function pullStats({ tenant, client = createClient() }) {
       const query = p.platform === "facebook" && tenant.postproxy?.facebookPageId ? { placement_id: tenant.postproxy.facebookPageId } : undefined;
       const raw = await client.profileStats(p.id, query);
       const rec = raw?.records?.at?.(-1) || raw?.data?.records?.at?.(-1) || (Array.isArray(raw) ? raw.at(-1) : raw?.data || raw);
-      out.profiles.push({ id: p.id, name: p.name, platform: p.platform, recordedAt: rec?.recorded_at || null, stats: rec?.stats || rec });
-    } catch (error) { out.errors.push(`${p.platform} profile stats: ${error.message}`); }
+      out.profiles.push({ id: p.id, name: p.name, platform: p.platform, status: p.status ?? "active", recordedAt: rec?.recorded_at || null, stats: rec?.stats || rec });
+    } catch (error) {
+      out.errors.push(`${p.platform} profile stats: ${error.message}`);
+      if ((p.status ?? "active") !== "active") out.profiles.push({ id: p.id, name: p.name, platform: p.platform, status: p.status, recordedAt: null, stats: {} });
+    }
   }
   return out;
 }

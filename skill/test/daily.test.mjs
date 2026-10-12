@@ -51,6 +51,8 @@ before(async () => {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ data: items.map((it) => ({ ...it, imageUrl: it.imageUrl.replace("__FEED__", `http://127.0.0.1:${feedPort}`) })) }));
   });
+  feedServer.keepAliveTimeout = 120_000; // see helpers.mjs: no keep-alive race under load
+  feedServer.headersTimeout = 121_000;
   await new Promise((r) => feedServer.listen(0, "127.0.0.1", r));
   feedPort = feedServer.address().port;
 
@@ -90,7 +92,7 @@ test("the daily loop: fresh stories become campaigns, rendered and scheduled on 
   const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:00:00Z", "--json"], ENV());
   assert.equal(r.status, 0, r.stderr);
   const report = JSON.parse(r.stdout);
-  assert.equal(report.planned.length, 2, "two fresh stories, the stale one is ignored");
+  assert.equal(report.planned.length, 2, `two fresh stories, the stale one is ignored — errors: ${JSON.stringify(report.errors)}`);
   assert.deepEqual(report.planned.map((p) => p.scheduledAt), ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
   assert.deepEqual(report.errors, []);
   const creates = mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts");

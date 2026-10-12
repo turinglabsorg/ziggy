@@ -37,6 +37,16 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
   const now = new Date();
   lines.push(`📊 ${tenant.brand?.name || tenant.name} — ${localTime(now.toISOString())}${tz === "Z" ? " UTC" : ""}`);
 
+  // what needs a human first: a disconnected profile stops every post on it, silently
+  for (const p of stats.profiles.filter((x) => (x.status ?? "active") !== "active")) {
+    lines.push(`⚠️ ${p.platform} ${p.name} scollegato da Postproxy (${p.status}): ricollegalo, i post non escono`);
+  }
+  const recentFails = (statuses.failed || []).filter((f) => !f.when || Date.parse(f.when) >= now.getTime() - 48 * 3600_000);
+  if (recentFails.length) {
+    lines.push(`⚠️ ${recentFails.length} post falliti nelle ultime 48h`);
+    for (const f of recentFails.slice(-3)) lines.push(`   ✗ ${f.when ? localTime(f.when) : "?"} ${f.platform} — ${short(f.campaign || f.id)}: ${String(f.error).slice(0, 80)}`);
+  }
+
   if (published.length) {
     const last = published[published.length - 1];
     lines.push(`✅ ${published.length} pubblicati — ultimo: ${short(last.campaign || last.id)}`);
@@ -68,7 +78,7 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
   for (const c of fresh.slice(0, 3)) lines.push(`   💬 @${c.author || "?"}: ${String(c.body || "").slice(0, 100)}`);
 
   const text = lines.join("\n") || "(nothing to report)";
-  return { text, published, queued, profiles: stats.profiles, inbox: { comments: fresh, dms }, errors };
+  return { text, published, queued, failed: recentFails, profiles: stats.profiles, inbox: { comments: fresh, dms }, errors };
 }
 
 /** Every logged post, refreshed: status + permalink + scheduled time, in Postproxy when possible. */
@@ -76,6 +86,7 @@ async function refreshStatuses(tenant, client) {
   const logged = readCreatedPosts(tenant.slug);
   const errors = [];
   const posts = [];
+  const failed = [];
   for (const r of logged) {
     let post = null;
     try { post = await client.getPost(r.postId); } catch (e) { if (!/404/.test(e.message)) errors.push(`${r.postId}: ${e.message}`); }
@@ -84,7 +95,11 @@ async function refreshStatuses(tenant, client) {
     if ((post.platforms || []).length && post.platforms.every((pl) => pl.status === "deleted")) continue;
     const link = (post.platforms || []).find((pl) => pl.permalink)?.permalink || null;
     posts.push({ id: r.postId, campaign: r.campaign || null, status: post.status, link, scheduledAt: post.scheduled_at || null, at: r.at || null });
+    // a post Postproxy tried and the platform refused (expired login, disconnected profile…)
+    for (const pl of post.platforms || []) {
+      if (pl.status === "failed") failed.push({ id: r.postId, campaign: r.campaign || null, platform: pl.platform, when: post.scheduled_at || r.at || null, error: typeof pl.error === "string" ? pl.error : JSON.stringify(pl.error ?? "") });
+    }
   }
   const order = (p) => (p.link ? 0 : 1);
-  return { posts: posts.sort((a, b) => order(a) - order(b)), errors };
+  return { posts: posts.sort((a, b) => order(a) - order(b)), failed, errors };
 }

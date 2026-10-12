@@ -135,3 +135,22 @@ test("a Facebook profile's stats are asked for its Page: no error, the Page's nu
   mock.state.profiles.pop();
   writeFileSync(tenantFile, before);
 });
+
+test("a disconnected profile and failed posts are the first thing the report says", async () => {
+  const log = join(world.home, "tenants", "acme", "posts.jsonl");
+  const before = existsSync(log) ? readFileSync(log, "utf8") : "";
+  const recent = new Date(Date.now() - 3 * 3600_000).toISOString();
+  mock.state.posts.p_fail = { id: "p_fail", status: "processed", platforms: [{ platform: "instagram", profile_id: "prof_ig", status: "failed", error: "Profile is inactive — please reconnect it" }], scheduled_at: recent };
+  writeFileSync(log, JSON.stringify({ postId: "p_fail", campaign: "story-2026-10-11-acate-un-ventunenne", platform: "instagram" }) + "\n");
+  const ig = mock.state.profiles.find((p) => p.id === "prof_ig");
+  ig.status = "inactive";
+  const r = await runCli(["report", "acme"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /⚠️ instagram Brand scollegato da Postproxy \(inactive\): ricollegalo, i post non escono/);
+  assert.match(r.stdout, /⚠️ 1 post falliti nelle ultime 48h\n {3}✗ \d\d:\d\d instagram — acate un ventunenne: Profile is inactive/);
+  const d = JSON.parse((await runCli(["report", "acme", "--json"], ENV())).stdout);
+  assert.equal(d.failed.length, 1);
+  ig.status = "active";
+  delete mock.state.posts.p_fail;
+  writeFileSync(log, before);
+});
