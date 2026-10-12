@@ -27,7 +27,8 @@ import { createStoryCampaign, fetchStories } from "./scripts/story.mjs";
 import { composeJingle } from "./scripts/music.mjs";
 import { runDaily } from "./scripts/daily.mjs";
 import { buildReport } from "./scripts/report.mjs";
-import { serve, SERVER_DEFAULTS } from "./scripts/server.mjs";
+import { serve, keyEnvFor, SERVER_DEFAULTS } from "./scripts/server.mjs";
+import { notifyTelegram, planRound, roundConfig, runRound } from "./scripts/round.mjs";
 import { threadForCampaign } from "./scripts/thread.mjs";
 import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
 
@@ -48,7 +49,7 @@ const quiet = has("--quiet");
 const positional = () => {
   const out = [];
   for (let i = 1; i < args.length; i++) {
-    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once"].includes(args[i])) i++; continue; }
+    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once", "--plan", "--archive", "--notify"].includes(args[i])) i++; continue; }
     out.push(args[i]);
   }
   return out;
@@ -82,6 +83,12 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy daily <slug> [--dry-run] [--from <ISO>]    the daily loop: uncovered feed stories → campaigns →
                                                     rendered reels → scheduled on the tenant's slots
                                                     (tenant.json → daily: slots, tz, maxAgeHours, only)
+  ziggy round <slug> --plan [--archive] [--json]   a session-driven round, step 1: the stories still to do
+                                                    (not covered, before their deadline), with title and dek
+  ziggy round <slug> --points <file|-> [--dry-run] [--notify] [--json]
+                                                    step 2: {"<prefix>": [3–4 points], "skip": [prefixes]} →
+                                                    campaigns → renders → checks (audio, loudness, length) →
+                                                    scheduled on the free times (tenant.json → daily: freshness, round)
   ziggy copy <slug> <name> [--json]                show + validate the per-platform copy, including thread replies
   ziggy thread <slug> <name> [--limit 280] [--enable]
                                                     rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
@@ -134,9 +141,12 @@ autopilot) wraps itself in \`hush run\` when ${KEY_ENV} is not already set.`);
 
 /* ── key-needing commands re-exec under hush ─────────────────────────────── */
 
-const NEEDS_KEY = new Set(["post", "publish", "delete", "reschedule", "daily", "report", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
+const NEEDS_KEY = new Set(["round", "post", "publish", "delete", "reschedule", "daily", "report", "status", "profiles", "inbox", "stats", "reply", "comment", "dmlink", "hide", "dm", "autopilot"]);
 
 function ensureKey(slug) {
+  // in a container each tenant's key is POSTPROXY_API_KEY_<SLUG>: a command uses its own tenant's
+  const own = process.env[keyEnvFor(slug)];
+  if (own) process.env[KEY_ENV] = own;
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
   if (plan.mode === "env") return;
   if (plan.mode === "hush") {
@@ -364,6 +374,34 @@ async function main() {
         ...d.errors.map((e) => `✗ ${e}`),
         ...(d.planned.length || d.errors.length ? [] : [`(nothing new — ${d.storiesInFeed} stories in the feed, all already covered)`]),
       ].join("\n"));
+    }
+
+    case "round": {
+      const t = loadTenant(pos[0]);
+      const nowFlag = flag("--now");
+      const now = nowFlag && nowFlag !== true ? new Date(nowFlag) : new Date();
+      if (has("--plan")) {
+        const stories = await planRound(t, { now, archive: has("--archive") });
+        const cfg = roundConfig(t);
+        return out({ tenant: t.slug, now: now.toISOString(), freshness: cfg.freshness, count: stories.length, stories }, (d) => d.stories.length
+          ? d.stories.map((s) => `${s.prefix}\n  ${s.date?.slice(0, 16)} · ${s.section || "—"} · ${s.sources ?? "?"} sources${s.image ? "" : " · NO PHOTO"}${s.deadline ? ` · deadline ${s.deadline.slice(0, 16)}Z` : ""}\n  ${s.title}\n  ${s.dek}`).join("\n")
+          : `(nothing to do for ${t.slug}: every fresh story is covered)`);
+      }
+      const file = flag("--points");
+      if (!file || file === true) fail("usage: ziggy round <slug> --plan [--archive] | --points <file|-> [--dry-run] [--notify]", 2);
+      // a round schedules live: a tenant opts in with a daily.round block (its times) in tenant.json
+      if (!t.daily?.round && !has("--dry-run")) fail(`${t.slug} has no daily.round in tenant.json: a round publishes live, so the tenant opts in there (times, gapMinutes, freshness)`, 2);
+      ensureKey(t.slug); // before stdin is read: under hush the command runs again as a child
+      let points;
+      try { points = JSON.parse(readFileSync(file === "-" ? 0 : file, "utf8")); } catch (e) { fail(`--points: ${e.message}`, 2); }
+      if (!installedFonts(fontsDir(t.slug)).length) fail(`no fonts — run: ziggy brand fonts ${t.slug}`);
+      const r = await runRound(t, points, { now, dryRun: has("--dry-run"), concurrency: Number(flag("--concurrency", 4)) || 4, log: say });
+      if (has("--notify") && !has("--dry-run")) {
+        try { await notifyTelegram(r.text); } catch (e) { r.notifyError = e.message; console.error(`ziggy: ${e.message}`); }
+      }
+      out(r, (d) => d.text);
+      if (!r.ok) process.exitCode = 1;
+      return;
     }
 
     case "profiles": {

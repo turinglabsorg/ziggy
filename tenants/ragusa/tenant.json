@@ -98,7 +98,29 @@
     "only": [
       "instagram_reel",
       "facebook_reel"
-    ]
+    ],
+    "freshness": "next-day",
+    "round": {
+      "times": [
+        "08:00",
+        "09:00",
+        "10:00",
+        "11:00",
+        "12:00",
+        "13:00",
+        "14:00",
+        "15:00",
+        "16:00",
+        "17:00",
+        "18:00",
+        "19:00",
+        "20:00",
+        "21:00",
+        "22:00",
+        "23:00"
+      ],
+      "gapMinutes": 55
+    }
   },
   "music": {
     "prompt": "Light, modern news intro for Ragusa Buzz, a young local news brand. Understated and friendly, not epic, not orchestral, no brass: tight light percussion (rimshot, shaker, soft kick), gently pulsing staccato strings kept in the background, warm synth bass, a simple three-note synth motif that opens the track and returns, bright and clean, 116 BPM, major key. No folk instruments (no mandolin, no accordion, no marimba), no vocals. It sits under on-screen text and ends with a light, clean button.",

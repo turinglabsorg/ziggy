@@ -82,7 +82,19 @@
     "only": [
       "instagram_reel",
       "tiktok"
-    ]
+    ],
+    "freshness": "archive",
+    "round": {
+      "times": [
+        "07:00",
+        "10:30",
+        "14:00",
+        "16:30",
+        "19:00",
+        "21:30"
+      ],
+      "gapMinutes": 85
+    }
   },
   "music": {
     "prompt": "Instrumental sci-fi news jingle for Alien Watch, a UFO and UAP news brand. Mysterious and cinematic: a memorable three-note theremin-like synth motif opens the track and returns, pulsing analog arpeggio, deep sub bass, airy pads, subtle glitchy percussion, 100 BPM, minor key. Tense but not scary, it sits under on-screen text. No vocals, it ends on a clean resolving hit.",

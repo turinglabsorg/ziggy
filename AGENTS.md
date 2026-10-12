@@ -102,36 +102,43 @@ working **with** Ziggy.
   "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.
 - **Operating mode (owner's rule): a Claude session always drives publishing.** No autonomous agent
   and no Anthropic key in the container. Production runs `serve … --no-daily`, which only sends
-  reports. Story selection, summaries, render checks and scheduling happen in a Claude session
-  that works through `docker exec ziggy-ziggy-1 node skill/index.js …`:
-  1. `daily <slug> --dry-run` (or `stories`) to see the uncovered stories;
-  2. create the campaigns, and the session itself writes the 3–4 summary points into `copy.points`
-     (the container has no summarizer, so its fallback is a single dek point, which is not good
-     enough to publish);
-  3. `video` to render, then look at the frames (photo, end card) and check that the audio is
-     there;
-  4. `post … --live --at <ISO>` into a free slot. Never stack two stories on one slot, and drop
-     stories about events that are already past (`"skip": true`).
-  Ragusa freshness rule: a story goes out **at the latest the day after its news date**, never
-  later. When there are more stories than the fixed slots, schedule them 1–2 hours apart
-  rather than pushing them into the following days. Stories that can no longer make their day
-  are dropped (`"skip": true`).
-  Alien Watch is the opposite: the site publishes one or two stories a day and UFO/UAP stories
-  age slowly, so older archive stories are welcome (owner's call, 2026-10-09). Fresh stories go
-  first, then archive stories in the fixed slots. Never publish a story that announces an event
-  already past (a launch date, a sky event).
-- `ops/round/` holds the tools a round runs inside the container (`cd /app`):
-  - `pending.mjs <slug> [--archive]`: stories not yet covered and still fresh, as JSON, each with
-    its slug prefix and, for Ragusa, its deadline.
-  - `make-campaigns.mjs <slug> <points.json>`: points the session wrote → campaigns with the
-    next jingle; prefixes under `"skip"` become skipped campaigns.
-  - `check.sh <sheet.png> <slug> <campaign>…`: audio and loudness per reel, plus a start/end
-    frame sheet to look at.
-  - `schedule.mjs <slug> <campaign>… [--dry-run]`: the next free times on every active platform.
-    For Ragusa that is on the hour, 08–23 local, 55 minutes away from anything queued, never past
-    a story's deadline. For Alien Watch it is its slots plus half-slots. A disconnected profile is
-    left out and reported.
-  - `notify.mjs "<text>"`: send a message to the operator's Telegram.
+  reports. Publishing happens in rounds, which a Claude session runs through
+  `docker exec ziggy-ziggy-1 node skill/index.js round …`.
+- `ziggy round <slug>` (round.mjs) is that round, made deterministic so that any agent given
+  the skill does it the same way. The fixed rules for points and skips are in
+  `skill/SKILL.md → Running a round`.
+  - `--plan` lists the stories not covered and still before their deadline, oldest first, with
+    title and dek.
+  - `--points <file|->` takes `{prefix: [3–4 points], "skip": [prefixes]}`. Points are checked
+    (3–4, each at most 90 characters). Stories with no photo, past their deadline, already covered
+    or not in the feed are refused before any render.
+  - Each campaign gets the next jingle. Reels render in child CLI processes, four at a time, with
+    no key in their environment.
+  - `checkReel` checks every reel with ffprobe/ffmpeg: rendered, an audio track, mean volume
+    above −40 dB, at least 10 s.
+  - The good reels are scheduled nearest deadline first, into the next free
+    `daily.round.times`, at least `gapMinutes` away from any live post. They go to every
+    `daily.only` kind whose Postproxy profile is active; a disconnected one is reported.
+  - The summary is Italian, for the owner; `--notify` sends it to Telegram
+    (`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`).
+  - Exit 1 when anything needs a look. `--dry-run` writes, renders and posts nothing. `--now`
+    pins the clock for tests.
+  - A live round needs a `daily.round` block in tenant.json: the tenant opts into live
+    scheduling there.
+  - `ensureKey` maps `POSTPROXY_API_KEY_<SLUG>` onto `POSTPROXY_API_KEY` for the command's own
+    tenant, so key-needing commands work under `docker exec`.
+  - Tenant rules:
+    - Ragusa: `freshness: "next-day"`. A story goes out at the latest the day after its news
+      date, on the hour 08–23 local, 55 minutes apart. When there are more stories than times,
+      they still go out that day, never pushed into the following days.
+    - Alien Watch: `freshness: "archive"`. The site publishes one or two stories a day and
+      UFO/UAP stories age slowly, so archive stories are welcome (owner's call, 2026-10-09). Its
+      six daily times are 85 minutes apart.
+    - Both: never publish a story announcing an event that is already past.
+- `ops/round/` keeps two tools for the container (`cd /app`):
+  - `check.sh <sheet.png> <slug> <campaign>…` prints audio and loudness per reel and writes a
+    start/end frame sheet to look at.
+  - `notify.mjs "<text>"` sends a free-form message to the operator's Telegram.
 - `ziggy serve <slug…>` (server.mjs) is the always-on form of daily + report: one process (or the
   repo's `Dockerfile` + `docker-compose.yml`: keys via `.env.docker`, state volume `ziggy-data`,
   reports to Telegram via `docker/telegram-notify.mjs` as `ZIGGY_REPORT_HOOK`) re-runs each

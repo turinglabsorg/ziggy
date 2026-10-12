@@ -1,6 +1,6 @@
 ---
 name: ziggy
-description: Per-tenant social media manager. Use when the user wants to launch or run a brand's social presence — extract a brand from a site, make profile/header images, produce short HyperFrames videos (reel, X, feed), Instagram photo carousels, and X text threads, write and publish posts through Postproxy, read comments/DMs/stats, answer comments, or schedule the autopilot. Triggers on "post this", "publish on X/Instagram", "social launch", "reel", "carousel", "thread", "cover image", "answer the comments", "how are the posts doing", "ziggy", or any tenant name configured in ziggy (e.g. alienwatch).
+description: Per-tenant social media manager. Use when the user wants to launch or run a brand's social presence — extract a brand from a site, make profile/header images, produce short HyperFrames videos (reel, X, feed), Instagram photo carousels, and X text threads, write and publish posts through Postproxy, read comments/DMs/stats, answer comments, or schedule the autopilot, or run a publishing round for a news tenant (`ziggy round`). Triggers on "post this", "publish on X/Instagram", "social launch", "reel", "carousel", "thread", "cover image", "answer the comments", "how are the posts doing", "run a round", "giro", "ziggy", or any tenant name configured in ziggy (e.g. alienwatch).
 ---
 
 # Ziggy
@@ -42,7 +42,8 @@ Read the reference for the step you are on — `references/tenants.md`, `brand.m
    value. `ziggy keys status <slug>` tells you whether one is stored, by name.
 2. **Drafts first.** `ziggy post` creates drafts. Show the user the copy (`ziggy copy`) and the
    renders, get a yes, then `ziggy publish`. Use `--live` only when the user said to publish
-   directly in this conversation.
+   directly in this conversation. The exception is `ziggy round` (below): it schedules live,
+   and a tenant opts into that with a `daily.round` block in its `tenant.json`.
 3. **Edit definitions, not outputs.** Change `brand.json` / `campaign.json` / `playbook.md` in
    `tenants/<slug>/` and re-run the command. Generated HyperFrames projects under
    `~/.ziggy/tenants/<slug>/videos/` are overwritten on the next `ziggy video`.
@@ -60,6 +61,91 @@ Read the reference for the step you are on — `references/tenants.md`, `brand.m
    a post go through. Run `ziggy slides` before `ziggy post` so the file exists.
 8. **Report with permalinks and numbers**, never with raw API dumps. `ziggy status`, `ziggy stats`
    and `ziggy inbox` already format them.
+
+## Running a round
+
+A **round** is how an agent session publishes a news tenant's new stories. The session makes
+one judgement per story, through the points file. Ziggy fixes everything else from
+`tenant.json → daily`: the campaign, the jingle in rotation, the render, the check, the time and
+the platforms. Two runs with the same feed and the same points file give the same result.
+
+```bash
+ziggy round <slug> --plan --json                     # 1. the stories still to do, with title, dek, deadline
+# 2. write points.json (rules below)
+ziggy round <slug> --points points.json --notify     # 3. campaigns → renders → checks → scheduled, summary to Telegram
+ziggy round <slug> --points points.json --dry-run    #    or first see where each story would go (writes nothing)
+```
+
+`--plan` lists the stories that no live post or skipped campaign covers yet and that can still
+go out, oldest first. Each one comes with its `prefix`, `title`, `dek`, `sources`, `image` and
+`deadline`. With `freshness: "next-day"` a story goes out at the latest on the day after its date
+(local news). With `"archive"` there is no deadline, and `--archive` lists older stories too.
+
+The **points file** covers every story the plan listed, with no exceptions:
+
+```json
+{
+  "scicli-collisione-frontale-nella-sera": [
+    "A Scicli, domenica sera, due auto si sono scontrate frontalmente.",
+    "L'incidente all'ingresso della città, sulla strada che arriva da Modica.",
+    "Per una prima ricostruzione, non definitiva, un'auto avrebbe invaso la corsia opposta.",
+    "Sulla dinamica indagano i Carabinieri."
+  ],
+  "skip": ["festa-patronale-sabato-sera"]
+}
+```
+
+How to write the points. These rules are fixed, so do not improvise.
+
+- **4 points.** Write 3 only when the title and dek do not hold a fourth fact, and never invent one.
+  Ziggy refuses anything other than 3–4 points, and any point over 90 characters.
+- **One fact per point**, as a plain sentence. Read in order, the points tell the story: what
+  happened (who, where, when), then the details, then what comes next.
+- **Only what the title and dek say.** Copy numbers, names and places as written. Use no other
+  source and no background of your own.
+- **No adjectives of judgement, comments, questions, emojis, hashtags or calls to action.**
+- **Keep the source's hedges** ("avrebbe", "secondo", "most likely"). An allegation never
+  becomes a fact.
+- **Write in the tenant's language** (`tenant.json → language`).
+
+When to skip a story (list its prefix under `"skip"`; the skip is permanent):
+
+- it announces an event, deadline or appointment that is already past, or will be by the time
+  the story goes out;
+- it is about minors involved in a crime, an accident or abuse;
+- it rests on an unconfirmed allegation against an identifiable private person;
+- it makes a private person in distress identifiable (a victim, an injured or sick person).
+
+When in doubt, skip. Everything else goes out. Ziggy refuses some stories by itself: one with no
+photo, one past its deadline, one already covered, one not in the feed. You do not need to skip
+those.
+
+Reading the result:
+
+- Exit 0 means every story was scheduled. Exit 1 means the summary lists something to look at;
+  it is printed (and sent with `--notify`) either way.
+- Each scheduled story takes the next free `daily.round.times` slot, nearest deadline first, at
+  least `gapMinutes` away from anything already queued, on every platform in `daily.only` whose
+  Postproxy profile is active.
+- `✗ … no audio` / `render failed` means the reel did not go out. Fix the cause and run the same
+  points file again: covered stories are refused, never posted twice.
+- `⚠️ non pubblicati su …` means a profile is disconnected on Postproxy. Tell the user, who has to
+  reconnect it in the Postproxy dashboard.
+- The check is mechanical: rendered, an audio track louder than −40 dB, at least 10 s. After a
+  template change, look at a reel's still in `renders/<campaign>/` before trusting a round.
+
+Run a round per tenant three times a day: morning, early afternoon and evening. A `next-day`
+story waits at most one day.
+
+**In production** Ziggy runs in the `ziggy-ziggy-1` Docker container. State lives in `/data`,
+the keys are `POSTPROXY_API_KEY_<SLUG>`, and the Telegram target for `--notify` is set there too.
+Run the same commands through `docker exec` and feed the points on stdin:
+
+```bash
+docker exec ziggy-ziggy-1 node skill/index.js round ragusa --plan --json
+docker exec -i ziggy-ziggy-1 node skill/index.js round ragusa --points - --notify < points.json
+docker exec ziggy-ziggy-1 node skill/index.js report ragusa       # what is published and queued
+```
 
 ## Quick recipes
 

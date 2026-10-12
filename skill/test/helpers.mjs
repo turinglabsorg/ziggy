@@ -203,9 +203,10 @@ console.log(JSON.stringify({ type: "result", result: "Sure. " + JSON.stringify(b
  * Run the CLI without blocking the event loop. The mock Postproxy lives in the test process, so a
  * `spawnSync` here would deadlock: the child waits for a response the parent can't send.
  */
-export function runCli(args, env, { timeout = 60000 } = {}) {
+export function runCli(args, env, { timeout = 60000, input } = {}) {
   return new Promise((resolvePromise) => {
-    const child = spawn(process.execPath, [join(import.meta.dirname, "..", "index.js"), ...args], { env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, [join(import.meta.dirname, "..", "index.js"), ...args], { env, stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"] });
+    if (input !== undefined) child.stdin.end(input);
     let stdout = "", stderr = "";
     child.stdout.on("data", (d) => { stdout += d; });
     child.stderr.on("data", (d) => { stderr += d; });
