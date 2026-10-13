@@ -9,10 +9,43 @@
  * - No re-uploads of others' videos; only official public-domain or our own card
  * - Keeps source hedges; never invents facts
  */
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { saveCampaign } from "./config.mjs";
 import { slugify, formatDate } from "./story.mjs";
 import { composeThread } from "./thread.mjs";
 import { SLIDE_IDS } from "./slides.mjs";
+
+const STATE_DIR = process.env.ZIGGY_HOME ? join(process.env.ZIGGY_HOME, "state") : join(process.env.HOME || "/tmp", ".ziggy", "state");
+
+/**
+ * Get the last used case file template for a tenant, to alternate across rounds.
+ */
+function getLastTemplate(slug) {
+  const stateFile = join(STATE_DIR, `${slug}-casefile-template.json`);
+  try {
+    if (existsSync(stateFile)) {
+      const data = JSON.parse(readFileSync(stateFile, "utf8"));
+      return data.lastTemplate;
+    }
+  } catch {
+    // Ignore errors, will use default
+  }
+  return null;
+}
+
+/**
+ * Save the last used case file template for a tenant.
+ */
+function saveLastTemplate(slug, template) {
+  try {
+    mkdirSync(STATE_DIR, { recursive: true });
+    const stateFile = join(STATE_DIR, `${slug}-casefile-template.json`);
+    writeFileSync(stateFile, JSON.stringify({ lastTemplate: template, updatedAt: new Date().toISOString() }));
+  } catch {
+    // Non-fatal: if state can't be saved, just continue
+  }
+}
 
 /** Case file reel duration: ~7s title + 4.5s per point + 4s close */
 export function casefileDuration(pointCount = 3) {
@@ -23,7 +56,7 @@ export function casefileDuration(pointCount = 3) {
  * Build a case file campaign object.
  * 
  * @param {object} tenant - The tenant configuration
- * @param {object} item - Case file item { headline, dek, points: [confirmed, notConfirmed, whyMatters], source: {outlet, url}, date?, caseNum? }
+ * @param {object} item - Case file item { headline, dek, points: [confirmed, notConfirmed, whyMatters], source: {outlet, url}, date?, caseNum?, status? }
  * @param {object} options - { name?, template? }
  */
 export function campaignFromCasefile(tenant, item, { name, template } = {}) {
@@ -34,9 +67,21 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   const social = tenant.social || {};
   const displayUrl = tenant.feed?.displayUrl || (tenant.site ? new URL(tenant.site).hostname : "");
   
-  // Default to alternating templates if not specified
+  // Alternate templates if not specified: check last used for this tenant
   const templates = ["casefile-dossier", "casefile-radar"];
-  const selectedTemplate = template || templates[Math.floor(Date.now() / 86400000) % templates.length];
+  const tenantSlug = tenant.slug || "default";
+  const lastTemplate = getLastTemplate(tenantSlug);
+  const selectedTemplate = template || (() => {
+    if (lastTemplate) {
+      // Alternate: if last was dossier, use radar; if last was radar, use dossier
+      return lastTemplate === "casefile-dossier" ? "casefile-radar" : "casefile-dossier";
+    }
+    // No history: default to day-based alternation
+    return templates[Math.floor(Date.now() / 86400000) % templates.length];
+  })();
+  
+  // Save the selected template for next round
+  saveLastTemplate(tenantSlug, selectedTemplate);
   
   // kicker: "CASE FILE · <date>"
   const kicker = `CASE FILE · ${formatDate(date, lang)}`;
@@ -46,9 +91,19 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   const sourceUrl = item.source?.url || "";
   const meta = `Source: ${sourceOutlet}`;
   
+  // Status: released, withheld, redacted, under review (default: withheld)
+  const status = item.status || "withheld";
+  
   // Points must be exactly 3: Confirmed / Not confirmed / Why it matters
+  // Strip any leading labels if present (e.g., "Confirmed: " or "✅ Confirmed: ")
+  const stripLabel = (point) => {
+    const p = String(point).trim();
+    // Remove "Confirmed:", "Not confirmed:", "Why it matters:", with optional emoji/bullets
+    return p.replace(/^(?:[✅❓•\-*]\s*)?(?:Confirmed|Not confirmed|Why it matters):\s*/i, "").trim();
+  };
+  
   const points = Array.isArray(item.points) && item.points.length === 3 
-    ? item.points.map(p => String(p).trim()) 
+    ? item.points.map(p => stripLabel(p)) 
     : ["", "", ""];
   
   if (points.some(p => !p)) {
@@ -79,6 +134,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
       outlet: sourceOutlet,
       date: date,
       caseNum: item.caseNum || "",
+      status: status,
     },
     copy: {
       kicker,

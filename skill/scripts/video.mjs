@@ -247,9 +247,36 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const cfCaseNum = casefile.caseNum || (casefile.source ? casefile.source.split("/").pop()?.slice(0, 20) : "26-F-1892");
     const cfDate = casefile.date || formatDate(campaign.story?.date || new Date().toISOString(), campaign.language || "en");
     const cfSource = casefile.source || copy.meta || "";
+    const cfStatus = casefile.status || "withheld";
+    
+    // Extract domain from source URL for footer (or truncate outlet name safely)
+    const cfSourceDisplay = (() => {
+      if (cfSource && cfSource.startsWith("http")) {
+        try {
+          const url = new URL(cfSource);
+          return url.hostname.replace(/^www\./, "");
+        } catch {
+          return cfSource.slice(0, 40);
+        }
+      }
+      return (casefile.outlet || copy.meta || "Source").slice(0, 50);
+    })();
+    
     const cfConfirmed = Array.isArray(copy.points) && copy.points[0] ? escapeHtml(copy.points[0]) : "";
     const cfNotConfirmed = Array.isArray(copy.points) && copy.points[1] ? escapeHtml(copy.points[1]) : "";
     const cfWhyMatters = Array.isArray(copy.points) && copy.points[2] ? escapeHtml(copy.points[2]) : "";
+    
+    // Stamp text based on status
+    const stampConfig = {
+      withheld: { main: "WITHHELD IN FULL", sub: "(b)(1) national security", display: "flex" },
+      redacted: { main: "REDACTED", sub: "portions withheld", display: "flex" },
+      released: { main: "", sub: "", display: "none" },
+      "under review": { main: "UNDER REVIEW", sub: "pending FOIA response", display: "flex" },
+    };
+    const stamp = stampConfig[cfStatus] || stampConfig.withheld;
+    const cfStampDisplay = stamp.display;
+    const cfStampText = stamp.main;
+    const cfStampSub = stamp.sub;
 
     let fill = (s) => s
       // the intro sets the wordmark in its own weights (e.g. 300/600): the display face must span them
@@ -318,7 +345,11 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       // case file tokens
       .replace(/__CF_CASE_NUM__/g, escapeHtml(cfCaseNum))
       .replace(/__CF_DATE__/g, escapeHtml(cfDate))
-      .replace(/__CF_SOURCE__/g, escapeHtml(cfSource))
+      .replace(/__CF_SOURCE__/g, escapeHtml(cfSourceDisplay))
+      .replace(/__CF_STATUS__/g, escapeHtml(cfStatus))
+      .replace(/__CF_STAMP_DISPLAY__/g, cfStampDisplay)
+      .replace(/__CF_STAMP_TEXT__/g, escapeHtml(cfStampText))
+      .replace(/__CF_STAMP_SUB__/g, escapeHtml(cfStampSub))
       .replace(/__CF_CONFIRMED__/g, cfConfirmed)
       .replace(/__CF_NOT_CONFIRMED__/g, cfNotConfirmed)
       .replace(/__CF_WHY_MATTERS__/g, cfWhyMatters)

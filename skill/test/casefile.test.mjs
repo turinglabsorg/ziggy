@@ -122,3 +122,46 @@ test("campaignFromCasefile can override template", () => {
   const campaign2 = campaignFromCasefile(TENANT, CASEFILE_ITEM, { template: "casefile-radar" });
   assert.equal(campaign2.template, "casefile-radar");
 });
+
+test("campaignFromCasefile strips point labels automatically", () => {
+  const itemWithLabels = {
+    ...CASEFILE_ITEM,
+    points: [
+      "Confirmed: This is the confirmed fact",
+      "Not confirmed: This is not confirmed",
+      "Why it matters: This is why it matters",
+    ],
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, itemWithLabels);
+  assert.equal(campaign.copy.points[0], "This is the confirmed fact");
+  assert.equal(campaign.copy.points[1], "This is not confirmed");
+  assert.equal(campaign.copy.points[2], "This is why it matters");
+});
+
+test("campaignFromCasefile strips point labels with emoji", () => {
+  const itemWithEmoji = {
+    ...CASEFILE_ITEM,
+    points: [
+      "✅ Confirmed: This is confirmed",
+      "❓ Not confirmed: This is not confirmed",
+      "• Why it matters: This is important",
+    ],
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, itemWithEmoji);
+  assert.equal(campaign.copy.points[0], "This is confirmed");
+  assert.equal(campaign.copy.points[1], "This is not confirmed");
+  assert.equal(campaign.copy.points[2], "This is important");
+});
+
+test("campaignFromCasefile accepts status field", () => {
+  const itemWithStatus = { ...CASEFILE_ITEM, status: "released" };
+  const campaign = campaignFromCasefile(TENANT, itemWithStatus);
+  assert.equal(campaign.casefile.status, "released");
+});
+
+test("campaignFromCasefile defaults status to withheld", () => {
+  const campaign = campaignFromCasefile(TENANT, CASEFILE_ITEM);
+  assert.equal(campaign.casefile.status, "withheld");
+});

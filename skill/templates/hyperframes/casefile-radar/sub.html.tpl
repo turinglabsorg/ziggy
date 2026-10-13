@@ -83,7 +83,7 @@ __AUDIO__
             <div id="__ID__-blip-outer"></div>
             <div id="__ID__-blip-inner"></div>
             <div id="__ID__-blip-label">__CF_CASE_NUM__</div>
-            <div id="__ID__-blip-status">status: withheld</div>
+            <div id="__ID__-blip-status">status: __CF_STATUS__</div>
           </div>
 
           <div id="__ID__-case-header">

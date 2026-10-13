@@ -146,10 +146,14 @@ Each case file is a sourced UAP fact followed by our perspective in three parts:
 Rules:
 
 - Exactly 3 points (Confirmed, Not confirmed, Why it matters), each ≤90 characters
+- Points should NOT include the label prefixes ("Confirmed:", "Not confirmed:", "Why it matters:") — write them as plain statements; Ziggy strips any prefixes automatically
 - Source must have `outlet` and `url`
+- Optional `status` field: `"released"`, `"withheld"`, `"redacted"`, or `"under review"` (default: `"withheld"`)
+- Optional `caseNum`: a case or document ID (e.g., "26-F-1892")
 - Keep source hedges; never upgrade claims or invent facts
 - No re-uploads of others' videos (only official public-domain or our own card)
 - Always ends pointing to alienwatch.buzz
+- Templates alternate automatically (dossier/radar) across rounds; last used template is saved in state
 
 In alternate mode, the round interleaves news and case files according to the ratio. News always takes priority: if there are more news items than the ratio allows, they all go out. Case files fill the pattern but don't block news.
 

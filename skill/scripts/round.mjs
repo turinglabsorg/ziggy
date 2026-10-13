@@ -155,14 +155,21 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
       // Validate case file item
       if (!item.headline || !item.dek) { refuse("missing headline or dek"); continue; }
       if (!Array.isArray(item.points) || item.points.length !== 3) { refuse("case file requires exactly 3 points"); continue; }
-      if (item.points.some(p => !p || String(p).trim().length > POINT_RULES.maxChars)) { 
+      
+      // Strip any leading labels from points before validation
+      const stripLabel = (p) => String(p).trim().replace(/^(?:[✅❓•\-*]\s*)?(?:Confirmed|Not confirmed|Why it matters):\s*/i, "").trim();
+      const cleanedPoints = item.points.map(stripLabel);
+      
+      if (cleanedPoints.some(p => !p || p.length > POINT_RULES.maxChars)) { 
         refuse("invalid points (empty or > 90 chars)"); 
         continue; 
       }
       if (!item.source?.outlet) { refuse("missing source outlet"); continue; }
       
       try {
-        const campaign = campaignFromCasefile(tenant, item);
+        // Pass cleaned points to casefile (it will strip again but that's safe)
+        const itemWithCleanedPoints = { ...item, points: cleanedPoints };
+        const campaign = campaignFromCasefile(tenant, itemWithCleanedPoints);
         const name = `casefile-${(item.date || new Date().toISOString()).slice(0, 10)}-${slugify(item.headline).slice(0, 30)}`;
         if (write) {
           const jingle = nextJingle(tenant.slug);
