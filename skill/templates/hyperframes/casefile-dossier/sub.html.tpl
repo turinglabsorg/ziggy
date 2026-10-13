@@ -28,11 +28,11 @@ __FONT_FACES__
         /* document header */
         #__ID__-doc-header { position: absolute; left: 60px; right: 60px; top: 48px; display: flex; justify-content: space-between; align-items: flex-start; }
         #__ID__-doc-title { font-family: var(--mono); font-size: 18px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #2a2a2a; }
-        #__ID__-doc-date { font-family: var(--mono); font-size: 16px; font-weight: 400; color: #6a6a6a; }
+        #__ID__-doc-date { font-family: var(--mono); font-size: 16px; font-weight: 400; color: rgb(103, 103, 103); }
 
         /* case file label */
-        #__ID__-label { position: absolute; left: 60px; top: 100px; padding: 0 0 12px; border-bottom: 2px solid var(--accent); }
-        #__ID__-label-text { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+        #__ID__-label { position: absolute; left: 60px; top: 100px; padding: 0 0 12px; border-bottom: 2px solid rgb(182, 64, 22); }
+        #__ID__-label-text { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(182, 64, 22); }
 
         /* headline */
         #__ID__-headline { position: absolute; left: 60px; right: 60px; top: 160px; margin: 0; 
@@ -45,7 +45,7 @@ __FONT_FACES__
         /* points section with labels */
         #__ID__-points { position: absolute; left: 60px; right: 60px; top: __CF_POINTS_TOP__px; }
         .cf-section { margin-bottom: 32px; }
-        .cf-section-label { font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+        .cf-section-label { font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(182, 64, 22); margin-bottom: 10px; }
         .cf-section-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.45; color: #1a1a1a; margin: 0; }
 
         /* redaction bars */
@@ -53,11 +53,11 @@ __FONT_FACES__
 
         /* withheld stamp - fully opaque with backing for contrast compliance */
         #__ID__-stamp { position: absolute; right: 80px; bottom: 100px; width: 280px; height: 100px;
-          background: rgba(255, 255, 255, 0.3); border: 4px solid rgb(180, 25, 10); border-radius: 8px; 
+          background: rgba(255, 255, 255, 0.5); border: 4px solid rgb(180, 25, 10); border-radius: 8px; 
           transform: rotate(-8deg); opacity: 0;
           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
         #__ID__-stamp-main { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: rgb(140, 20, 5); }
-        #__ID__-stamp-sub { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; color: rgb(110, 15, 3); }
+        #__ID__-stamp-sub { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; color: rgb(35, 3, 0); }
 
         /* source footer */
         #__ID__-source { position: absolute; left: 60px; right: 60px; bottom: 48px; font-family: var(--mono); font-size: 15px; font-weight: 400; color: #5a5a5a; }
@@ -103,9 +103,9 @@ __AUDIO__
               </div>
             </div>
 
-            <div class="redact-bar" id="__ID__-redact1" style="left: 60px; width: 400px; top: 680px;"></div>
-            <div class="redact-bar" id="__ID__-redact2" style="left: 60px; width: 520px; top: 820px;"></div>
-            <div class="redact-bar" id="__ID__-redact3" style="right: 80px; width: 360px; top: 960px;"></div>
+            <div class="redact-bar" id="__ID__-redact1" style="left: 60px; width: 380px; top: 130px;"></div>
+            <div class="redact-bar" id="__ID__-redact2" style="right: 100px; width: 320px; top: 1330px;"></div>
+            <div class="redact-bar" id="__ID__-redact3" style="left: 240px; width: 420px; top: 1380px;"></div>
 
             <div id="__ID__-stamp" style="display: __CF_STAMP_DISPLAY__;">
               <div id="__ID__-stamp-main">__CF_STAMP_TEXT__</div>
