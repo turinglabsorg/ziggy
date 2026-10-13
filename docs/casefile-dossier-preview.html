@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1920">
+  <title>Case File Dossier - Static Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .frame {
+      width: 1080px;
+      height: 1920px;
+      background: radial-gradient(ellipse at center, rgba(20, 20, 20, 0.3) 0%, #07080b 70%);
+      position: relative;
+      overflow: hidden;
+    }
+    .sheet {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 920px;
+      height: 1460px;
+      transform: translate(-50%, -50%) rotate(2.5deg);
+      background: #ece6da;
+      box-shadow: 0 24px 72px rgba(0, 0, 0, 0.8);
+      border-radius: 2px;
+      padding: 48px 60px;
+    }
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .doc-title {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #2a2a2a;
+      font-family: monospace;
+    }
+    .doc-date {
+      font-size: 16px;
+      color: #6a6a6a;
+      font-family: monospace;
+    }
+    .label {
+      padding-bottom: 12px;
+      border-bottom: 2px solid #ff5a1f;
+      margin-bottom: 40px;
+    }
+    .label-text {
+      font-family: monospace;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #ff5a1f;
+    }
+    .headline {
+      font-size: 48px;
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: -0.015em;
+      color: #0a0a0a;
+      margin-bottom: 24px;
+    }
+    .dek {
+      font-size: 22px;
+      line-height: 1.4;
+      color: #3a3a3a;
+      margin-bottom: 44px;
+    }
+    .section {
+      margin-bottom: 32px;
+    }
+    .section-label {
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #ff5a1f;
+      margin-bottom: 10px;
+    }
+    .section-text {
+      font-size: 20px;
+      line-height: 1.45;
+      color: #1a1a1a;
+    }
+    .redact-bar {
+      position: absolute;
+      height: 22px;
+      background: #1a1a1a;
+      opacity: 0.85;
+    }
+    .stamp {
+      position: absolute;
+      right: 80px;
+      bottom: 100px;
+      width: 280px;
+      height: 100px;
+      border: 4px solid rgba(255, 90, 31, 0.6);
+      border-radius: 8px;
+      transform: rotate(-8deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .stamp-main {
+      font-family: monospace;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: rgba(255, 90, 31, 0.75);
+    }
+    .stamp-sub {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: rgba(255, 90, 31, 0.65);
+    }
+    .source {
+      position: absolute;
+      left: 60px;
+      right: 60px;
+      bottom: 48px;
+      font-family: monospace;
+      font-size: 15px;
+      color: #5a5a5a;
+    }
+    .footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .brand {
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ece6da;
+    }
+    .brand-part:first-child {
+      font-weight: 300;
+      margin-right: 0.28em;
+    }
+    .brand-part:last-child {
+      font-weight: 600;
+    }
+    .url {
+      font-family: monospace;
+      font-size: 20px;
+      font-weight: 500;
+      color: #ff5a1f;
+      letter-spacing: 0.08em;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="sheet">
+      <div class="doc-header">
+        <div class="doc-title">Case file · FOIA 26-F-1892</div>
+        <div class="doc-date">13 Oct 2026</div>
+      </div>
+      
+      <div class="label">
+        <div class="label-text">CASE FILE</div>
+      </div>
+
+      <h1 class="headline">AARO found the records. It released none.</h1>
+      
+      <p class="dek">A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.</p>
+
+      <div class="section">
+        <div class="section-label">CONFIRMED</div>
+        <p class="section-text">Per a Pentagon letter dated 30 Sept 2026, AARO located responsive records and withheld them under national-security exemptions.</p>
+      </div>
+      
+      <div class="section">
+        <div class="section-label">NOT CONFIRMED</div>
+        <p class="section-text">This answers a FOIA request, not Congress. It does not show the task force was denied the same files.</p>
+      </div>
+      
+      <div class="section">
+        <div class="section-label">WHY IT MATTERS</div>
+        <p class="section-text">The videos are public for most cited cases, but the written reports that explain them are not.</p>
+      </div>
+
+      <div class="redact-bar" style="left: 60px; width: 400px; top: 680px;"></div>
+      <div class="redact-bar" style="left: 60px; width: 520px; top: 820px;"></div>
+      <div class="redact-bar" style="right: 80px; width: 360px; top: 960px;"></div>
+
+      <div class="stamp">
+        <div class="stamp-main">WITHHELD IN FULL</div>
+        <div class="stamp-sub">(b)(1) national security</div>
+      </div>
+
+      <div class="source">Source: The Black Vault via Dark Files</div>
+    </div>
+
+    <div class="footer">
+      <span class="brand"><span class="brand-part">Alien</span><span class="brand-part">Watch</span></span>
+      <span class="url">alienwatch.buzz</span>
+    </div>
+  </div>
+</body>
+</html>
