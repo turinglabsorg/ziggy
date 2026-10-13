@@ -21,7 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCampaign, rendersDir, saveCampaign } from "./config.mjs";
-import { campaignFromStory, campaignNameFor, fetchStories } from "./story.mjs";
+import { campaignFromStory, campaignNameFor, fetchStories, slugify } from "./story.mjs";
 import { coveredStories, dailyConfig, livePosts, storyCovered } from "./daily.mjs";
 import { nextJingle } from "./music.mjs";
 import { POST_KINDS, publishCampaign } from "./publish.mjs";
@@ -100,14 +100,26 @@ export function pointProblems(points) {
  * Points file → campaigns. A story is refused (never rendered) when it is not in the feed, is
  * already covered, has no photo, is past its deadline, or its points break the rules. Nothing is
  * written under `write: false`, not even the jingle rotation.
+ * 
+ * Points file format:
+ * {
+ *   "story-prefix": [3-4 points],
+ *   "skip": ["prefix"],
+ *   "casefile": [
+ *     { "headline": "...", "dek": "...", "points": [confirmed, notConfirmed, whyMatters], "source": { "outlet": "...", "url": "..." } }
+ *   ]
+ * }
  */
 export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new Date(), write = true } = {}) {
   const cfg = roundConfig(tenant);
-  const { skip = [], ...byPrefix } = points || {};
+  const { skip = [], casefile: casefileItems = [], ...byPrefix } = points || {};
   if (!Array.isArray(skip)) throw new Error(`"skip" must be a list of slug prefixes`);
+  if (!Array.isArray(casefileItems)) throw new Error(`"casefile" must be an array of case file items`);
   const stories = await feedStories(tenant, fetchImpl);
   const covered = coveredStories(tenant.slug);
-  const out = { made: [], skipped: [], refused: [] };
+  const out = { made: [], skipped: [], refused: [], casefiles: [] };
+  
+  // Process regular stories
   for (const [prefix, pts] of [...Object.entries(byPrefix), ...skip.map((p) => [p, null])]) {
     const story = stories.find((s) => s.slug.startsWith(prefix));
     const refuse = (reason) => out.refused.push({ prefix, title: story?.title || null, reason });
@@ -133,6 +145,37 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
     }
     out.made.push({ name, title: story.title, campaign });
   }
+  
+  // Process case files (if tenant has them enabled)
+  if (tenant.casefile?.enabled && casefileItems.length > 0) {
+    const { campaignFromCasefile } = await import("./casefile.mjs");
+    for (const item of casefileItems) {
+      const refuse = (reason) => out.refused.push({ prefix: item.headline?.slice(0, 40) || "casefile", title: item.headline, reason });
+      
+      // Validate case file item
+      if (!item.headline || !item.dek) { refuse("missing headline or dek"); continue; }
+      if (!Array.isArray(item.points) || item.points.length !== 3) { refuse("case file requires exactly 3 points"); continue; }
+      if (item.points.some(p => !p || String(p).trim().length > POINT_RULES.maxChars)) { 
+        refuse("invalid points (empty or > 90 chars)"); 
+        continue; 
+      }
+      if (!item.source?.outlet) { refuse("missing source outlet"); continue; }
+      
+      try {
+        const campaign = campaignFromCasefile(tenant, item);
+        const name = `casefile-${(item.date || new Date().toISOString()).slice(0, 10)}-${slugify(item.headline).slice(0, 30)}`;
+        if (write) {
+          const jingle = nextJingle(tenant.slug);
+          if (jingle) campaign.audio.jingle = jingle;
+          saveCampaign(tenant.slug, name, campaign);
+        }
+        out.casefiles.push({ name, title: item.headline, campaign });
+      } catch (error) {
+        refuse(error.message);
+      }
+    }
+  }
+  
   return out;
 }
 
@@ -191,6 +234,45 @@ async function activeKinds(tenant, cfg, client) {
 }
 
 /**
+ * Interleave news and case files according to tenant's ratio (e.g. 1:1, 2:1).
+ * News is never dropped; case files fill remaining slots.
+ * Returns ordered list ready for scheduling.
+ */
+export function interleaveNewsAndCasefiles(tenant, newsItems, casefileItems) {
+  const cfg = tenant.casefile || {};
+  const mode = cfg.mode || "fill"; // "fill" (original) or "alternate"
+  
+  if (mode === "fill" || !casefileItems.length) {
+    // Original behavior: news first, then case files
+    return [...newsItems, ...casefileItems];
+  }
+  
+  // Alternate mode: interleave according to ratio
+  const ratio = cfg.ratio || { news: 1, casefile: 1 };
+  const newsRatio = Number(ratio.news) || 1;
+  const casefileRatio = Number(ratio.casefile) || 1;
+  
+  const result = [];
+  let newsIdx = 0;
+  let casefileIdx = 0;
+  
+  // Interleave while both have items
+  while (newsIdx < newsItems.length || casefileIdx < casefileItems.length) {
+    // Add news items according to ratio
+    for (let i = 0; i < newsRatio && newsIdx < newsItems.length; i++) {
+      result.push(newsItems[newsIdx++]);
+    }
+    
+    // Add case file items according to ratio
+    for (let i = 0; i < casefileRatio && casefileIdx < casefileItems.length; i++) {
+      result.push(casefileItems[casefileIdx++]);
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Schedule campaigns into the next free times: nearest deadline first (then newest), one story
  * per time, at least gapMinutes from anything queued, never past a story's deadline.
  * `items` are `{ name, campaign }`.
@@ -234,19 +316,31 @@ const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, 
 export async function runRound(tenant, points, { fetchImpl, client = createClient(), now = new Date(), dryRun = false, concurrency = 4, log = () => {} } = {}) {
   const cfg = roundConfig(tenant);
   const created = await campaignsFromPoints(tenant, points, { fetchImpl, now, write: !dryRun });
-  log(`round: ${created.made.length} to publish, ${created.skipped.length} skipped, ${created.refused.length} refused`);
+  const totalMade = created.made.length + (created.casefiles?.length || 0);
+  log(`round: ${totalMade} to publish (${created.made.length} stories, ${created.casefiles?.length || 0} case files), ${created.skipped.length} skipped, ${created.refused.length} refused`);
   for (const r of created.refused) log(`round: ✗ ${r.prefix} — ${r.reason}`);
 
+  // Combine stories and case files for rendering
+  const allItems = [...created.made, ...(created.casefiles || [])];
+  
   let checked;
-  if (dryRun) checked = created.made.map((m) => ({ name: m.name, ok: true, problems: [] }));
+  if (dryRun) checked = allItems.map((m) => ({ name: m.name, ok: true, problems: [] }));
   else {
-    const rendered = await renderAll(tenant.slug, created.made.map((m) => m.name), { concurrency });
+    const rendered = await renderAll(tenant.slug, allItems.map((m) => m.name), { concurrency });
     checked = rendered.map((r) => (r.ok ? { name: r.name, ...checkReel(tenant.slug, r.name) } : { name: r.name, ok: false, problems: [`render failed: ${r.error}`] }));
     for (const c of checked) log(`round: ${c.ok ? "✓" : "✗"} ${c.name}${c.ok ? ` ${c.seconds?.toFixed(1)}s ${c.audio} ${c.meanDb} dB` : ` — ${c.problems.join(", ")}`}`);
   }
-  const good = created.made.filter((m) => checked.find((c) => c.name === m.name)?.ok)
-    .map((m) => ({ name: m.name, campaign: dryRun ? m.campaign : loadCampaign(tenant.slug, m.name) }));
-  const scheduled = good.length ? await scheduleRound(tenant, good, { client, now, dryRun }) : { kinds: [], down: [], results: [] };
+  
+  // Separate good news and case files for interleaving
+  const goodNews = created.made.filter((m) => checked.find((c) => c.name === m.name)?.ok)
+    .map((m) => ({ name: m.name, campaign: dryRun ? m.campaign : loadCampaign(tenant.slug, m.name), type: 'news' }));
+  const goodCasefiles = (created.casefiles || []).filter((m) => checked.find((c) => c.name === m.name)?.ok)
+    .map((m) => ({ name: m.name, campaign: dryRun ? m.campaign : loadCampaign(tenant.slug, m.name), type: 'casefile' }));
+  
+  // Interleave according to tenant config
+  const interleaved = interleaveNewsAndCasefiles(tenant, goodNews, goodCasefiles);
+  
+  const scheduled = interleaved.length ? await scheduleRound(tenant, interleaved, { client, now, dryRun }) : { kinds: [], down: [], results: [] };
 
   const ok = scheduled.results.filter((r) => !r.error).sort((a, b) => a.at.localeCompare(b.at));
   const problems = [
@@ -254,12 +348,17 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
     ...checked.filter((c) => !c.ok).map((c) => `${short(c.name)}: ${c.problems.join(", ")}`),
     ...scheduled.results.filter((r) => r.error).map((r) => `${short(r.name)}: ${r.error}`),
   ];
-  const lines = [`🗓️ ${tenant.brand?.name || tenant.name} — giro delle ${localLabel(now.getTime(), cfg.tz, now.getTime())}${dryRun ? " (prova, niente pubblicato)" : ""}`];
+  
+  const casefileMode = tenant.casefile?.mode || "fill";
+  const modeNote = casefileMode === "alternate" ? ` (${tenant.casefile.ratio?.news || 1}:${tenant.casefile.ratio?.casefile || 1} news:casefile)` : "";
+  
+  const lines = [`🗓️ ${tenant.brand?.name || tenant.name} — giro delle ${localLabel(now.getTime(), cfg.tz, now.getTime())}${dryRun ? " (prova, niente pubblicato)" : ""}${modeNote}`];
   lines.push(ok.length
     ? `✅ ${ok.length} ${ok.length === 1 ? "programmato" : "programmati"} su ${scheduled.kinds.join(", ")}`
     : `✅ niente di nuovo da programmare`);
   for (const r of ok) lines.push(`   🕒 ${r.local} — ${short(r.name)}`);
   if (created.skipped.length) lines.push(`⤳ ${created.skipped.length} ${created.skipped.length === 1 ? "saltata" : "saltate"}: ${created.skipped.map((s) => short(s.name)).join(" · ")}`);
+  if (created.casefiles?.length) lines.push(`📂 ${created.casefiles.length} case file ${created.casefiles.length === 1 ? "creato" : "creati"}${modeNote}`);
   for (const p of problems) lines.push(`✗ ${p}`);
   if (scheduled.down.length) lines.push(`⚠️ non pubblicati su ${scheduled.down.join(", ")}: ricollega il profilo su Postproxy`);
   return {
@@ -271,6 +370,7 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
     skipped: created.skipped,
     refused: created.refused,
     checks: checked,
+    casefiles: created.casefiles || [],
   };
 }
 

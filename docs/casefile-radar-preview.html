@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1920">
+  <title>Case File Radar - Static Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .frame {
+      width: 1080px;
+      height: 1920px;
+      background: #07080b;
+      position: relative;
+      overflow: hidden;
+      color: #ece6da;
+    }
+    .radar {
+      position: absolute;
+      left: 50%;
+      top: 280px;
+      width: 800px;
+      height: 800px;
+      transform: translateX(-50%);
+      opacity: 0.4;
+    }
+    .case-header {
+      position: absolute;
+      left: 120px;
+      right: 120px;
+      top: 120px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .case-label {
+      font-family: monospace;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ff5a1f;
+    }
+    .case-id {
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: #8c8678;
+    }
+    .blip {
+      position: absolute;
+      left: 50%;
+      top: 680px;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .blip-outer {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #ff5a1f;
+      border-radius: 50%;
+      position: relative;
+      margin: 0 auto;
+    }
+    .blip-inner {
+      position: absolute;
+      inset: 8px;
+      background: #ff5a1f;
+      border-radius: 50%;
+    }
+    .blip-label {
+      margin-top: 40px;
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #ff5a1f;
+    }
+    .blip-status {
+      margin-top: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #8c8678;
+    }
+    .content {
+      position: absolute;
+      left: 120px;
+      right: 120px;
+      top: 1180px;
+    }
+    .headline {
+      font-size: 52px;
+      font-weight: 600;
+      line-height: 1.14;
+      letter-spacing: -0.015em;
+      margin-bottom: 24px;
+    }
+    .dek {
+      font-size: 24px;
+      line-height: 1.42;
+      color: #8c8678;
+      margin-bottom: 44px;
+    }
+    .readout {
+      margin-bottom: 36px;
+    }
+    .readout-label {
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #ff5a1f;
+      margin-bottom: 8px;
+    }
+    .readout-bar {
+      height: 6px;
+      background: rgba(255, 90, 31, 0.15);
+      border-radius: 3px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .readout-fill {
+      height: 100%;
+      background: #ff5a1f;
+    }
+    .readout-text {
+      font-size: 21px;
+      line-height: 1.45;
+    }
+    .footer {
+      position: absolute;
+      left: 120px;
+      right: 120px;
+      bottom: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #24231f;
+      padding-top: 22px;
+    }
+    .brand {
+      font-size: 36px;
+      line-height: 1;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .brand-part:first-child {
+      font-weight: 300;
+      margin-right: 0.3em;
+    }
+    .brand-part:last-child {
+      font-weight: 600;
+    }
+    .source-block {
+      text-align: right;
+      max-width: 420px;
+    }
+    .source {
+      font-family: monospace;
+      font-size: 16px;
+      color: #8c8678;
+    }
+    .url {
+      display: block;
+      margin-top: 8px;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 500;
+      color: #ff5a1f;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="radar">
+      <svg viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="400" x2="800" y2="400" stroke="#24231f" stroke-width="1" />
+        <line x1="400" y1="0" x2="400" y2="800" stroke="#24231f" stroke-width="1" />
+        <line x1="120" y1="120" x2="680" y2="680" stroke="#24231f" stroke-width="1" stroke-opacity="0.5" />
+        <line x1="680" y1="120" x2="120" y2="680" stroke="#24231f" stroke-width="1" stroke-opacity="0.5" />
+        <circle cx="400" cy="400" r="100" stroke="#24231f" stroke-width="2" fill="none" />
+        <circle cx="400" cy="400" r="200" stroke="#24231f" stroke-width="2" fill="none" />
+        <circle cx="400" cy="400" r="300" stroke="#24231f" stroke-width="2" fill="none" />
+        <circle cx="400" cy="400" r="380" stroke="#ff5a1f" stroke-width="3" fill="none" stroke-opacity="0.3" />
+        <path d="M20,20 L20,60 M20,20 L60,20" stroke="#ff5a1f" stroke-width="2" stroke-linecap="square" />
+        <path d="M780,20 L780,60 M780,20 L740,20" stroke="#ff5a1f" stroke-width="2" stroke-linecap="square" />
+        <path d="M20,780 L20,740 M20,780 L60,780" stroke="#ff5a1f" stroke-width="2" stroke-linecap="square" />
+        <path d="M780,780 L780,740 M780,780 L740,780" stroke="#ff5a1f" stroke-width="2" stroke-linecap="square" />
+      </svg>
+    </div>
+
+    <div class="blip">
+      <div class="blip-outer">
+        <div class="blip-inner"></div>
+      </div>
+      <div class="blip-label">26-F-1892</div>
+      <div class="blip-status">status: withheld</div>
+    </div>
+
+    <div class="case-header">
+      <div class="case-label">CASE FILE</div>
+      <div class="case-id">13 Oct 2026</div>
+    </div>
+
+    <div class="content">
+      <h1 class="headline">AARO found the records. It released none.</h1>
+      <p class="dek">A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.</p>
+
+      <div class="readout">
+        <div class="readout-label">CONFIRMED</div>
+        <div class="readout-bar"><div class="readout-fill" style="width: 75%;"></div></div>
+        <p class="readout-text">Per a Pentagon letter dated 30 Sept 2026, AARO located responsive records and withheld them under national-security exemptions.</p>
+      </div>
+
+      <div class="readout">
+        <div class="readout-label">NOT CONFIRMED</div>
+        <div class="readout-bar"><div class="readout-fill" style="width: 45%;"></div></div>
+        <p class="readout-text">This answers a FOIA request, not Congress. It does not show the task force was denied the same files.</p>
+      </div>
+
+      <div class="readout">
+        <div class="readout-label">WHY IT MATTERS</div>
+        <div class="readout-bar"><div class="readout-fill" style="width: 85%;"></div></div>
+        <p class="readout-text">The videos are public for most cited cases, but the written reports that explain them are not.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span class="brand"><span class="brand-part">Alien</span><span class="brand-part">Watch</span></span>
+      <div class="source-block">
+        <div class="source">Source: The Black Vault via Dark Files</div>
+        <div class="url">alienwatch.buzz</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

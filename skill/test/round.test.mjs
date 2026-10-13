@@ -17,6 +17,7 @@ mkdirSync(fontsDir("acme"), { recursive: true });
 for (const f of ["Unbounded", "Geist", "GeistMono"]) writeFileSync(join(fontsDir("acme"), `${f}.woff2`), Buffer.alloc(64, 0));
 
 const NEXT_DAY = { daily: { tz: "+02:00", only: ["instagram_reel"], freshness: "next-day", round: { times: Array.from({ length: 16 }, (_, h) => `${String(h + 8).padStart(2, "0")}:00`), gapMinutes: 55 } } };
+const WITH_CASEFILE = { ...NEXT_DAY, casefile: { enabled: true, maxPerDay: 1, onlyWhenQueueBelow: 3 } };
 
 test("round config: tenant rules, with the daily slots as the fallback times", () => {
   const cfg = roundConfig(NEXT_DAY);
@@ -252,4 +253,110 @@ test("bad input fails before anything is touched", async () => {
   assert.match(broken.stderr, /--points:/);
   const few = await runCli(["round", "acme", "--points", pointsFile("few", { "library-extends": ["Only one."] }), "--now", NOW, "--json"], ENV());
   assert.deepEqual(JSON.parse(few.stdout).refused.map((x) => x.reason), ["3–4 points expected"]);
+});
+
+test("casefile items are processed when tenant has casefile.enabled", async () => {
+  const tenantFile = join(tenantDir("acme"), "tenant.json");
+  const saved = readFileSync(tenantFile, "utf8");
+  const t = JSON.parse(saved);
+  Object.assign(t, WITH_CASEFILE);
+  writeFileSync(tenantFile, JSON.stringify(t));
+  
+  try {
+    const points = {
+      "casefile": [
+        {
+          headline: "Test Case File",
+          dek: "A sourced UAP fact for testing.",
+          points: [
+            "Confirmed: The records exist.",
+            "Not confirmed: That Congress was denied the files.",
+            "Why it matters: Videos are public, reports are not."
+          ],
+          source: {
+            outlet: "Test Source",
+            url: "https://example.com/test"
+          }
+        }
+      ]
+    };
+    
+    const f = pointsFile("with-casefile", points);
+    const result = await runCli(["round", "acme", "--points", f, "--dry-run", "--now", NOW, "--json"], ENV());
+    assert.equal(result.status, 0, result.stderr);
+    
+    const output = JSON.parse(result.stdout);
+    assert.ok(output.casefiles, "should have casefiles array");
+    assert.equal(output.casefiles.length, 1);
+    assert.match(output.casefiles[0].title, /Test Case File/);
+    assert.match(output.casefiles[0].name, /casefile-/);
+  } finally {
+    writeFileSync(tenantFile, saved);
+  }
+});
+
+test("casefile items are validated before rendering", async () => {
+  const tenantFile = join(tenantDir("acme"), "tenant.json");
+  const saved = readFileSync(tenantFile, "utf8");
+  const t = JSON.parse(saved);
+  Object.assign(t, WITH_CASEFILE);
+  writeFileSync(tenantFile, JSON.stringify(t));
+  
+  try {
+    // Missing required field
+    const invalidPoints = {
+      casefile: [
+        {
+          headline: "Bad Case File",
+          dek: "Missing points array.",
+          source: { outlet: "Test" }
+        }
+      ]
+    };
+    
+    const f = pointsFile("invalid-casefile", invalidPoints);
+    const result = await runCli(["round", "acme", "--points", f, "--dry-run", "--now", NOW, "--json"], ENV());
+    // Exit 1 because there's a refused item
+    assert.equal(result.status, 1, result.stderr);
+    
+    const output = JSON.parse(result.stdout);
+    assert.ok(output.refused.some(r => r.reason.includes("case file requires exactly 3 points")));
+  } finally {
+    writeFileSync(tenantFile, saved);
+  }
+});
+
+test("interleaveNewsAndCasefiles alternates according to ratio", async () => {
+  const { interleaveNewsAndCasefiles } = await import("../scripts/round.mjs");
+  
+  const newsItems = [
+    { name: "news1", type: "news" },
+    { name: "news2", type: "news" },
+    { name: "news3", type: "news" },
+  ];
+  const casefileItems = [
+    { name: "case1", type: "casefile" },
+    { name: "case2", type: "casefile" },
+  ];
+  
+  // Fill mode (default): news first, then case files
+  const fillTenant = { casefile: { enabled: true } };
+  const fillResult = interleaveNewsAndCasefiles(fillTenant, newsItems, casefileItems);
+  assert.deepEqual(fillResult.map(i => i.name), ["news1", "news2", "news3", "case1", "case2"]);
+  
+  // Alternate mode 1:1
+  const alternateTenant = { casefile: { enabled: true, mode: "alternate", ratio: { news: 1, casefile: 1 } } };
+  const alternateResult = interleaveNewsAndCasefiles(alternateTenant, newsItems, casefileItems);
+  assert.deepEqual(alternateResult.map(i => i.name), ["news1", "case1", "news2", "case2", "news3"]);
+  
+  // Alternate mode 2:1 (2 news for every 1 case file)
+  const ratio2to1Tenant = { casefile: { enabled: true, mode: "alternate", ratio: { news: 2, casefile: 1 } } };
+  const ratio2to1Result = interleaveNewsAndCasefiles(ratio2to1Tenant, newsItems, casefileItems);
+  assert.deepEqual(ratio2to1Result.map(i => i.name), ["news1", "news2", "case1", "news3", "case2"]);
+  
+  // News is never dropped: more news than ratio allows
+  const moreNews = [...newsItems, { name: "news4", type: "news" }, { name: "news5", type: "news" }];
+  const allNewsResult = interleaveNewsAndCasefiles(alternateTenant, moreNews, casefileItems);
+  assert.equal(allNewsResult.filter(i => i.name.startsWith("news")).length, 5, "all news items included");
+  assert.equal(allNewsResult.filter(i => i.name.startsWith("case")).length, 2, "all case files included");
 });
