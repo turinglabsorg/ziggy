@@ -1,6 +1,6 @@
 # Case File Format - Implementation Summary
 
-## ✅ Completed
+## ✅ Completed (Updated)
 
 ### 1. Two HyperFrames Templates Created
 
@@ -45,15 +45,22 @@ Validation:
 - Source outlet required
 - Headline and dek required
 
-### 3. Round Integration
+### 3. Round Integration with Alternating Mode (NEW)
 
 Modified `round.mjs`:
 - Extended points file format to support `casefile` array
 - Campaigns created for both stories AND case files
-- Case files only processed if `tenant.casefile.enabled`
+- **NEW: `interleaveNewsAndCasefiles()`** - Alternates news and case files by configurable ratio
+- Two modes: "fill" (original) and "alternate" (new)
 - Validation before rendering
-- Combined rendering and scheduling (case files after news)
-- Summary includes case file count
+- Combined rendering and scheduling with smart interleaving
+- Summary includes case file count and mode/ratio
+
+**Alternating Logic**:
+- **Fill mode**: News first, then case files (original behavior)
+- **Alternate mode**: Interleaves at ratio (e.g., 1:1, 2:1, 3:1)
+- **News priority**: All news items always published
+- **Flexible patterns**: Configurable ratio adapts to content mix
 
 Points file format:
 ```json
@@ -66,30 +73,51 @@ Points file format:
 }
 ```
 
-### 4. Configuration
+### 4. Configuration (Updated)
 
 `tenants/alienwatch/tenant.json`:
 ```json
 {
   "casefile": {
     "enabled": true,
-    "maxPerDay": 1,
-    "onlyWhenQueueBelow": 3
+    "mode": "alternate",
+    "ratio": {
+      "news": 1,
+      "casefile": 1
+    },
+    "sources": []
   }
 }
 ```
 
+**Modes**:
+- `fill`: Original behavior (case files when feed is thin)
+- `alternate`: Interleave with news at specified ratio
+
+**Ratio**: `{ news: N, casefile: M }` creates N:M pattern
+- `1:1` = alternating (news, case, news, case, ...)
+- `2:1` = two news per case (news, news, case, ...)
+- Any ratio supported
+
 Ragusa: unchanged (no case file config)
 
-### 5. Documentation
+### 5. Documentation (Updated)
 
 Updated `skill/SKILL.md`:
 - Case file format documented in "Running a round" section
+- **NEW: Alternating mode explanation** with configuration examples
 - Points file example with case file items
 - Editorial rules (source first, 3 points, keep hedges, etc.)
+- Mode comparison (fill vs alternate)
 - Integration notes
 
-### 6. Testing
+**NEW: `docs/ALIENWATCH_SOURCES.md`**:
+- Complete documentation of news feed source
+- Case file candidate sources listed
+- Example sources from tests
+- Future automation plans
+
+### 6. Testing (Updated)
 
 New test file: `skill/test/casefile.test.mjs`
 - 11 test cases covering all functionality
@@ -97,11 +125,12 @@ New test file: `skill/test/casefile.test.mjs`
 - Tenant config checks
 
 Extended `skill/test/round.test.mjs`:
-- 2 new tests for round integration
+- 3 tests for round integration (was 2, +1)
 - Valid case file processing
 - Invalid case file validation
+- **NEW: Interleaving logic test** (fill mode, 1:1, 2:1, news priority)
 
-**All 116 tests pass** ✅
+**All 117 tests pass** ✅ (was 116, +1 new test)
 
 ### 7. Template Variants
 
@@ -123,7 +152,7 @@ New tokens:
 - `__CF_HEADLINE__`, `__CF_DEK__`, `__CF_POINT__`
 - `__ROTATION__`
 
-## 📁 Files Changed
+## 📁 Files Changed (Updated)
 
 **New files:**
 - `skill/scripts/casefile.mjs` (190 lines)
@@ -134,17 +163,19 @@ New tokens:
 - `skill/test/casefile.test.mjs` (122 lines)
 - `docs/casefile-dossier-preview.html` (234 lines)
 - `docs/casefile-radar-preview.html` (236 lines)
+- `docs/CASEFILE_IMPLEMENTATION.md` (228 lines) **[UPDATED]**
+- `docs/ALIENWATCH_SOURCES.md` (84 lines) **[NEW]**
 
 **Modified files:**
 - `skill/scripts/video.mjs` (+30 lines: template variants, tokens, formatDate import)
-- `skill/scripts/round.mjs` (+67 lines: case file processing)
-- `skill/SKILL.md` (+48 lines: documentation)
-- `tenants/alienwatch/tenant.json` (+5 lines: config)
-- `skill/test/round.test.mjs` (+64 lines: integration tests)
+- `skill/scripts/round.mjs` (+109 lines: case file processing, interleaving logic) **[UPDATED +42 lines]**
+- `skill/SKILL.md` (+73 lines: documentation with alternating mode) **[UPDATED +25 lines]**
+- `tenants/alienwatch/tenant.json` (+8 lines: config with alternating mode) **[UPDATED +3 lines]**
+- `skill/test/round.test.mjs` (+99 lines: integration and interleaving tests) **[UPDATED +35 lines]**
 
-**Total: 1,406 lines added**
+**Total: 1,823 lines added** (was 1,406, +417 lines for alternating mode)
 
-## 🎯 Design Decisions
+## 🎯 Design Decisions (Updated)
 
 1. **Template Alternation**: Alternates daily based on `Date.now() / 86400000 % 2` to provide visual variety without configuration
 
@@ -154,14 +185,26 @@ New tokens:
    - Existing points files work unchanged
    - `casefile` section is optional
    - Only processed when tenant enables it
+   - Default "fill" mode preserves original behavior
 
 4. **Validation First**: Case files validated before rendering to catch errors early
 
-5. **News Priority**: Case files only scheduled after news stories take their slots
+5. **News Priority**: All news items always published, regardless of mode or ratio
 
 6. **Opt-in per Tenant**: Ragusa unchanged, Alien Watch enabled via config
 
-## 🚀 Usage
+7. **Flexible Alternating** (NEW):
+   - Two modes: "fill" (original) and "alternate" (new)
+   - Configurable ratio for precise content mix
+   - News never dropped: excess news items still publish
+   - Simple block-based interleaving algorithm
+
+8. **Source Transparency** (NEW):
+   - News feed clearly documented
+   - Case file sources explicitly listed
+   - Future automation path defined
+
+## 🚀 Usage (Updated)
 
 ### Create a case file campaign manually:
 
@@ -170,11 +213,12 @@ New tokens:
 node skill/index.js video alienwatch my-casefile --variants reel
 ```
 
-### Include in a round:
+### Include in a round (fill mode - original):
 
 ```json
 // points.json
 {
+  "story-slug-1": ["point1", "point2", "point3"],
   "casefile": [
     {
       "headline": "Case headline",
@@ -188,6 +232,41 @@ node skill/index.js video alienwatch my-casefile --variants reel
 
 ```bash
 node skill/index.js round alienwatch --points points.json --dry-run
+```
+
+### Include in a round (alternate mode 1:1):
+
+With `tenant.json` configured for `"mode": "alternate"` and `"ratio": { "news": 1, "casefile": 1 }`:
+
+```json
+// points.json - same format
+{
+  "story-slug-1": ["point1", "point2", "point3"],
+  "story-slug-2": ["point1", "point2", "point3", "point4"],
+  "casefile": [
+    { "headline": "Case 1", ... },
+    { "headline": "Case 2", ... }
+  ]
+}
+```
+
+Output will interleave: story-1, case-1, story-2, case-2
+
+### Configure alternating ratio:
+
+**1:1** (default alternate):
+```json
+{ "casefile": { "mode": "alternate", "ratio": { "news": 1, "casefile": 1 } } }
+```
+
+**2:1** (two news per case file):
+```json
+{ "casefile": { "mode": "alternate", "ratio": { "news": 2, "casefile": 1 } } }
+```
+
+**3:1** (three news per case file):
+```json
+{ "casefile": { "mode": "alternate", "ratio": { "news": 3, "casefile": 1 } } }
 ```
 
 ## 📊 Example Output
@@ -205,17 +284,20 @@ From examples.md #1:
 
 **Source**: The Black Vault via Dark Files
 
-## ✅ Requirements Met
+## ✅ Requirements Met (Updated)
 
 - [x] Two visual templates (Dossier + Radar) implemented
 - [x] Templates alternate/rotate
 - [x] Integrated into round flow
+- [x] **NEW: Alternating mode with configurable ratio**
+- [x] **NEW: News never dropped (priority guarantee)**
 - [x] Opt-in per tenant (alienwatch enabled, ragusa unchanged)
 - [x] Backward compatible points file format
-- [x] Tests passing (116/116)
-- [x] Documentation updated
+- [x] Tests passing (117/117, +1 new test)
+- [x] Documentation updated (including source feeds)
 - [x] Sample renders possible
 - [x] PR open against main
+- [x] **NEW: Source feeds documented explicitly**
 
 ## 🔗 Pull Request
 
@@ -225,4 +307,4 @@ Status: Draft, ready for review
 Branch: `cursor/case-file-format-57dd`
 Base: `main`
 
-All commits pushed, tests passing, documentation complete.
+All commits pushed, tests passing, documentation complete, alternating mode implemented.
