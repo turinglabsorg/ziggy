@@ -104,7 +104,12 @@ The **points file** covers every story the plan listed, with no exceptions:
       "source": {
         "outlet": "The Black Vault via Dark Files",
         "url": "https://darkfires.org/aaro-foia-five-uap-cases-luna-september-2026/"
-      }
+      },
+      "template": "casefile-dossier",
+      "status": "withheld",
+      "stamp": "WITHHELD IN FULL",
+      "stampSub": "(b)(1) national security",
+      "at": "2026-10-14T15:00:00.000Z"
     }
   ]
 }
@@ -148,12 +153,16 @@ Rules:
 - Exactly 3 points (Confirmed, Not confirmed, Why it matters), each ≤90 characters
 - Points should NOT include the label prefixes ("Confirmed:", "Not confirmed:", "Why it matters:") — write them as plain statements; Ziggy strips any prefixes automatically
 - Source must have `outlet` and `url`
-- Optional `status` field: `"released"`, `"withheld"`, `"redacted"`, or `"under review"` (default: `"withheld"`)
-- Optional `caseNum`: a case or document ID (e.g., "26-F-1892")
+- Optional `template`: `"casefile-dossier"` or `"casefile-radar"` (default: alternates based on persisted last-used template)
+- Optional `status`: displayed status text in radar template (e.g., `"withheld"`, `"released"`, `"redacted"`, `"under review"`)
+- Optional `stamp`: main stamp text for dossier template (e.g., `"WITHHELD IN FULL"`)
+- Optional `stampSub`: subtitle for dossier stamp (e.g., `"(b)(1) national security"`); no stamp if both stamp fields are empty
+- Optional `caseNum`: a case or document ID (e.g., `"26-F-1892"`)
+- Optional `at`: ISO timestamp to schedule at a specific time (e.g., `"2026-10-14T15:00:00.000Z"`) instead of next free slot
 - Keep source hedges; never upgrade claims or invent facts
 - No re-uploads of others' videos (only official public-domain or our own card)
 - Always ends pointing to alienwatch.buzz
-- Templates alternate automatically (dossier/radar) across rounds; last used template is saved in state
+- Templates alternate automatically (dossier/radar) across rounds when not explicitly set; last used template is saved in state
 
 In alternate mode, the round interleaves news and case files according to the ratio. News always takes priority: if there are more news items than the ratio allows, they all go out. Case files fill the pattern but don't block news.
 

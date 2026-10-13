@@ -56,7 +56,7 @@ export function casefileDuration(pointCount = 3) {
  * Build a case file campaign object.
  * 
  * @param {object} tenant - The tenant configuration
- * @param {object} item - Case file item { headline, dek, points: [confirmed, notConfirmed, whyMatters], source: {outlet, url}, date?, caseNum?, status? }
+ * @param {object} item - Case file item { headline, dek, points, source, date?, caseNum?, status?, template?, stamp?, stampSub?, at? }
  * @param {object} options - { name?, template? }
  */
 export function campaignFromCasefile(tenant, item, { name, template } = {}) {
@@ -67,17 +67,17 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   const social = tenant.social || {};
   const displayUrl = tenant.feed?.displayUrl || (tenant.site ? new URL(tenant.site).hostname : "");
   
-  // Alternate templates if not specified: check last used for this tenant
+  // Template priority: 1) item.template, 2) options.template, 3) alternate based on persisted state
   const templates = ["casefile-dossier", "casefile-radar"];
   const tenantSlug = tenant.slug || "default";
   const lastTemplate = getLastTemplate(tenantSlug);
-  const selectedTemplate = template || (() => {
+  const selectedTemplate = item.template || template || (() => {
     if (lastTemplate) {
       // Alternate: if last was dossier, use radar; if last was radar, use dossier
       return lastTemplate === "casefile-dossier" ? "casefile-radar" : "casefile-dossier";
     }
-    // No history: default to day-based alternation
-    return templates[Math.floor(Date.now() / 86400000) % templates.length];
+    // No history: start with dossier
+    return "casefile-dossier";
   })();
   
   // Save the selected template for next round
@@ -93,6 +93,10 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   
   // Status: released, withheld, redacted, under review (default: withheld)
   const status = item.status || "withheld";
+  
+  // Stamp text: custom from item, or empty if not provided
+  const stamp = item.stamp || "";
+  const stampSub = item.stampSub || "";
   
   // Points must be exactly 3: Confirmed / Not confirmed / Why it matters
   // Strip any leading labels if present (e.g., "Confirmed: " or "✅ Confirmed: ")
@@ -135,7 +139,10 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
       date: date,
       caseNum: item.caseNum || "",
       status: status,
+      stamp: stamp,
+      stampSub: stampSub,
     },
+    at: item.at || null, // Optional: ISO time to schedule at specific time instead of next free slot
     copy: {
       kicker,
       headline: item.headline,

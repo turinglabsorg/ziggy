@@ -176,7 +176,7 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
           if (jingle) campaign.audio.jingle = jingle;
           saveCampaign(tenant.slug, name, campaign);
         }
-        out.casefiles.push({ name, title: item.headline, campaign });
+        out.casefiles.push({ name, title: item.headline, campaign, at: item.at || null });
       } catch (error) {
         refuse(error.message);
       }
@@ -282,7 +282,8 @@ export function interleaveNewsAndCasefiles(tenant, newsItems, casefileItems) {
 /**
  * Schedule campaigns into the next free times: nearest deadline first (then newest), one story
  * per time, at least gapMinutes from anything queued, never past a story's deadline.
- * `items` are `{ name, campaign }`.
+ * Items with `at` (ISO time) are scheduled at that exact time; others get the next free slot.
+ * `items` are `{ name, campaign, at? }`.
  */
 export async function scheduleRound(tenant, items, { client = createClient(), now = new Date(), dryRun = false } = {}) {
   const cfg = roundConfig(tenant);
@@ -295,11 +296,24 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
   const deadlineOf = (it) => storyDeadline(cfg, it.campaign.story?.date);
   const ordered = [...items].sort((a, b) => deadlineOf(a) - deadlineOf(b) || String(b.campaign.story?.date || "").localeCompare(String(a.campaign.story?.date || "")));
   const results = [];
-  for (const { name, campaign } of ordered) {
+  for (const { name, campaign, at: itemAt } of ordered) {
     if (!kinds.length) { results.push({ name, error: "no active platform" }); continue; }
-    const deadline = deadlineOf({ campaign });
-    const time = candidates.find((t) => t > t0 + 10 * 60_000 && t <= deadline && taken.every((x) => Math.abs(x - t) >= cfg.gapMs));
-    if (!time) { results.push({ name, error: Number.isFinite(deadline) ? "no free time before its deadline" : "no free time" }); continue; }
+    
+    let time;
+    if (itemAt) {
+      // Specific time requested: use it if valid
+      time = Date.parse(itemAt);
+      if (!time || time <= t0 + 10 * 60_000) {
+        results.push({ name, error: `invalid or past 'at' time: ${itemAt}` });
+        continue;
+      }
+    } else {
+      // Next free slot logic
+      const deadline = deadlineOf({ campaign });
+      time = candidates.find((t) => t > t0 + 10 * 60_000 && t <= deadline && taken.every((x) => Math.abs(x - t) >= cfg.gapMs));
+      if (!time) { results.push({ name, error: Number.isFinite(deadline) ? "no free time before its deadline" : "no free time" }); continue; }
+    }
+    
     taken.push(time);
     const at = new Date(time).toISOString();
     const row = { name, at, local: localLabel(time, cfg.tz, t0), kinds };

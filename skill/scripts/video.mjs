@@ -266,17 +266,10 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const cfNotConfirmed = Array.isArray(copy.points) && copy.points[1] ? escapeHtml(copy.points[1]) : "";
     const cfWhyMatters = Array.isArray(copy.points) && copy.points[2] ? escapeHtml(copy.points[2]) : "";
     
-    // Stamp text based on status
-    const stampConfig = {
-      withheld: { main: "WITHHELD IN FULL", sub: "(b)(1) national security", display: "flex" },
-      redacted: { main: "REDACTED", sub: "portions withheld", display: "flex" },
-      released: { main: "", sub: "", display: "none" },
-      "under review": { main: "UNDER REVIEW", sub: "pending FOIA response", display: "flex" },
-    };
-    const stamp = stampConfig[cfStatus] || stampConfig.withheld;
-    const cfStampDisplay = stamp.display;
-    const cfStampText = stamp.main;
-    const cfStampSub = stamp.sub;
+    // Stamp and status from casefile object (or empty if not provided)
+    const cfStamp = casefile.stamp || "";
+    const cfStampSub = casefile.stampSub || "";
+    const cfStampDisplay = (cfStamp || cfStampSub) ? "flex" : "none";
 
     let fill = (s) => s
       // the intro sets the wordmark in its own weights (e.g. 300/600): the display face must span them
@@ -348,7 +341,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__CF_SOURCE__/g, escapeHtml(cfSourceDisplay))
       .replace(/__CF_STATUS__/g, escapeHtml(cfStatus))
       .replace(/__CF_STAMP_DISPLAY__/g, cfStampDisplay)
-      .replace(/__CF_STAMP_TEXT__/g, escapeHtml(cfStampText))
+      .replace(/__CF_STAMP_TEXT__/g, escapeHtml(cfStamp))
       .replace(/__CF_STAMP_SUB__/g, escapeHtml(cfStampSub))
       .replace(/__CF_CONFIRMED__/g, cfConfirmed)
       .replace(/__CF_NOT_CONFIRMED__/g, cfNotConfirmed)
