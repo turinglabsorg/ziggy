@@ -18,6 +18,7 @@ import { writeBed, mulberry32 } from "./bed.mjs";
 import { fitJingle, pickJingle } from "./music.mjs";
 import { fontsDir, videosDir, rendersDir } from "./config.mjs";
 import { hexToRgb, installedFonts } from "./brand.mjs";
+import { formatDate } from "./story.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const TEMPLATES_DIR = join(HERE, "..", "templates", "hyperframes");
@@ -39,6 +40,18 @@ export const TEMPLATE_VARIANTS = {
   // launch intro: comic pages of story illustrations sliding by, then the brand dissolving in
   intro: {
     reel: { rotate: -45, cols: 3, rows: 6, cellW: 700, cellH: 394, gap: 28, logoTop: 580, markSize: 180, tag: 46, tagMax: 860, url: 32, urlBottom: 330 },
+    post: false,
+    x: false,
+  },
+  // case file dossier: declassified document sheet on dark background
+  "casefile-dossier": {
+    reel: { rotation: 2.5, cfHeadline: 48, cfDek: 22, cfDekTop: 280, cfPoint: 20, cfPointsTop: 380, pad: 120 },
+    post: false,
+    x: false,
+  },
+  // case file radar: HUD-style radar grid with data readouts
+  "casefile-radar": {
+    reel: { cfHeadline: 52, cfDek: 24, cfPoint: 21, pad: 120 },
     post: false,
     x: false,
   },
@@ -229,6 +242,15 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const end = endCard(campaign.language || "en", sourceCount(copy), copy.url || (brand.site ? new URL(brand.site).hostname : ""));
     const pointScenes = points.map((p, i) => `              <div class="scene point-scene" id="${id}-s${i + 1}"><span class="p-num">${String(i + 1).padStart(2, "0")}</span><span class="p-line"></span><p class="p-text">${escapeHtml(p.trim())}</p></div>`).join("\n");
 
+    // case file specific data
+    const casefile = campaign.casefile || {};
+    const cfCaseNum = casefile.caseNum || (casefile.source ? casefile.source.split("/").pop()?.slice(0, 20) : "26-F-1892");
+    const cfDate = casefile.date || formatDate(campaign.story?.date || new Date().toISOString(), campaign.language || "en");
+    const cfSource = casefile.source || copy.meta || "";
+    const cfConfirmed = Array.isArray(copy.points) && copy.points[0] ? escapeHtml(copy.points[0]) : "";
+    const cfNotConfirmed = Array.isArray(copy.points) && copy.points[1] ? escapeHtml(copy.points[1]) : "";
+    const cfWhyMatters = Array.isArray(copy.points) && copy.points[2] ? escapeHtml(copy.points[2]) : "";
+
     let fill = (s) => s
       // the intro sets the wordmark in its own weights (e.g. 300/600): the display face must span them
       .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles, { displayWeights: template === "intro" ? (brand.wordmark?.parts || []).map((x) => x.weight).filter(Number.isFinite) : [] }))
@@ -293,6 +315,20 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__KICKER__/g, String(v.kicker ?? 26)).replace(/__HEADLINE__/g, String(v.headline ?? 64))
       .replace(/__DEK_MAX__/g, String(v.dekMax ?? 840)).replace(/__DEK_MT__/g, String(v.dekMt ?? 30)).replace(/__DEK__/g, String(v.dek ?? 33))
       .replace(/__META__/g, String(v.meta ?? 22)).replace(/__BRAND__/g, String(v.brand ?? 40))
+      // case file tokens
+      .replace(/__CF_CASE_NUM__/g, escapeHtml(cfCaseNum))
+      .replace(/__CF_DATE__/g, escapeHtml(cfDate))
+      .replace(/__CF_SOURCE__/g, escapeHtml(cfSource))
+      .replace(/__CF_CONFIRMED__/g, cfConfirmed)
+      .replace(/__CF_NOT_CONFIRMED__/g, cfNotConfirmed)
+      .replace(/__CF_WHY_MATTERS__/g, cfWhyMatters)
+      .replace(/__CF_HEADLINE__/g, String(v.cfHeadline ?? 50))
+      .replace(/__CF_DEK__/g, String(v.cfDek ?? 22))
+      .replace(/__CF_DEK_TOP__/g, String(v.cfDekTop ?? 280))
+      .replace(/__CF_POINT__/g, String(v.cfPoint ?? 20))
+      .replace(/__CF_POINTS_TOP__/g, String(v.cfPointsTop ?? 380))
+      .replace(/__ROTATION__/g, String(v.rotation ?? 0))
+      // standard tokens
       .replace(/__HOST_ID__/g, `${tenant.slug}-${campaign.name}-${variant}`)
       .replace(/__NAME__/g, escapeHtml(brand.name))
       .replace(/__LANG__/g, campaign.language || "en")

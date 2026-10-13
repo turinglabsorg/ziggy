@@ -17,6 +17,7 @@ mkdirSync(fontsDir("acme"), { recursive: true });
 for (const f of ["Unbounded", "Geist", "GeistMono"]) writeFileSync(join(fontsDir("acme"), `${f}.woff2`), Buffer.alloc(64, 0));
 
 const NEXT_DAY = { daily: { tz: "+02:00", only: ["instagram_reel"], freshness: "next-day", round: { times: Array.from({ length: 16 }, (_, h) => `${String(h + 8).padStart(2, "0")}:00`), gapMinutes: 55 } } };
+const WITH_CASEFILE = { ...NEXT_DAY, casefile: { enabled: true, maxPerDay: 1, onlyWhenQueueBelow: 3 } };
 
 test("round config: tenant rules, with the daily slots as the fallback times", () => {
   const cfg = roundConfig(NEXT_DAY);
@@ -252,4 +253,75 @@ test("bad input fails before anything is touched", async () => {
   assert.match(broken.stderr, /--points:/);
   const few = await runCli(["round", "acme", "--points", pointsFile("few", { "library-extends": ["Only one."] }), "--now", NOW, "--json"], ENV());
   assert.deepEqual(JSON.parse(few.stdout).refused.map((x) => x.reason), ["3–4 points expected"]);
+});
+
+test("casefile items are processed when tenant has casefile.enabled", async () => {
+  const tenantFile = join(tenantDir("acme"), "tenant.json");
+  const saved = readFileSync(tenantFile, "utf8");
+  const t = JSON.parse(saved);
+  Object.assign(t, WITH_CASEFILE);
+  writeFileSync(tenantFile, JSON.stringify(t));
+  
+  try {
+    const points = {
+      "casefile": [
+        {
+          headline: "Test Case File",
+          dek: "A sourced UAP fact for testing.",
+          points: [
+            "Confirmed: The records exist.",
+            "Not confirmed: That Congress was denied the files.",
+            "Why it matters: Videos are public, reports are not."
+          ],
+          source: {
+            outlet: "Test Source",
+            url: "https://example.com/test"
+          }
+        }
+      ]
+    };
+    
+    const f = pointsFile("with-casefile", points);
+    const result = await runCli(["round", "acme", "--points", f, "--dry-run", "--now", NOW, "--json"], ENV());
+    assert.equal(result.status, 0, result.stderr);
+    
+    const output = JSON.parse(result.stdout);
+    assert.ok(output.casefiles, "should have casefiles array");
+    assert.equal(output.casefiles.length, 1);
+    assert.match(output.casefiles[0].title, /Test Case File/);
+    assert.match(output.casefiles[0].name, /casefile-/);
+  } finally {
+    writeFileSync(tenantFile, saved);
+  }
+});
+
+test("casefile items are validated before rendering", async () => {
+  const tenantFile = join(tenantDir("acme"), "tenant.json");
+  const saved = readFileSync(tenantFile, "utf8");
+  const t = JSON.parse(saved);
+  Object.assign(t, WITH_CASEFILE);
+  writeFileSync(tenantFile, JSON.stringify(t));
+  
+  try {
+    // Missing required field
+    const invalidPoints = {
+      casefile: [
+        {
+          headline: "Bad Case File",
+          dek: "Missing points array.",
+          source: { outlet: "Test" }
+        }
+      ]
+    };
+    
+    const f = pointsFile("invalid-casefile", invalidPoints);
+    const result = await runCli(["round", "acme", "--points", f, "--dry-run", "--now", NOW, "--json"], ENV());
+    // Exit 1 because there's a refused item
+    assert.equal(result.status, 1, result.stderr);
+    
+    const output = JSON.parse(result.stdout);
+    assert.ok(output.refused.some(r => r.reason.includes("case file requires exactly 3 points")));
+  } finally {
+    writeFileSync(tenantFile, saved);
+  }
 });

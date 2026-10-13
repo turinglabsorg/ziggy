@@ -91,9 +91,46 @@ The **points file** covers every story the plan listed, with no exceptions:
     "Per una prima ricostruzione, non definitiva, un'auto avrebbe invaso la corsia opposta.",
     "Sulla dinamica indagano i Carabinieri."
   ],
-  "skip": ["festa-patronale-sabato-sera"]
+  "skip": ["festa-patronale-sabato-sera"],
+  "casefile": [
+    {
+      "headline": "AARO found the records. It released none.",
+      "dek": "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
+      "points": [
+        "Per a Pentagon letter dated 30 Sept 2026 (FOIA 26-F-1892), published by researcher John Greenewald, AARO located responsive records and withheld them under national-security exemptions.",
+        "This answers a FOIA request, not Congress. It does not show the task force was denied the same files.",
+        "The videos are public for most cited cases, but the written reports that explain them are not."
+      ],
+      "source": {
+        "outlet": "The Black Vault via Dark Files",
+        "url": "https://darkfires.org/aaro-foia-five-uap-cases-luna-september-2026/"
+      }
+    }
+  ]
 }
 ```
+
+### Case Files (Alien Watch only)
+
+The optional **`casefile`** array holds case file items. Case files run alongside news stories
+(never replace them) when the feed is thin. Each case file is a sourced UAP fact followed by our
+perspective in three parts:
+
+- **Confirmed** — what the source establishes
+- **Not confirmed** — what it does not
+- **Why it matters** — the significance
+
+Rules:
+
+- Exactly 3 points (Confirmed, Not confirmed, Why it matters), each ≤90 characters
+- Source must have `outlet` and `url`
+- Keep source hedges; never upgrade claims or invent facts
+- No re-uploads of others' videos (only official public-domain or our own card)
+- Always ends pointing to alienwatch.buzz
+
+Case files are only rendered when the tenant enables them (`tenant.json → casefile.enabled`) and
+the queue is below the threshold (`casefile.onlyWhenQueueBelow`). They take free slots after news
+stories are scheduled.
 
 How to write the points. These rules are fixed, so do not improvise.
 
