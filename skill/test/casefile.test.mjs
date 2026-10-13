@@ -195,3 +195,36 @@ test("campaignFromCasefile has null at by default", () => {
   const campaign = campaignFromCasefile(TENANT, CASEFILE_ITEM);
   assert.equal(campaign.at, null);
 });
+
+test("casefile dossier stamp CSS uses fully opaque colors for contrast compliance", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const { dirname } = await import("node:path");
+  
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const templatePath = join(__dirname, "..", "templates", "hyperframes", "casefile-dossier", "sub.html.tpl");
+  
+  const template = readFileSync(templatePath, "utf8");
+  
+  // Verify stamp uses rgb() not rgba() for text colors
+  assert.ok(template.includes("#__ID__-stamp-main") && template.includes("color: rgb("), 
+    "Stamp main text should use rgb() color");
+  assert.ok(template.includes("#__ID__-stamp-sub") && template.includes("color: rgb("), 
+    "Stamp sub text should use rgb() color");
+  
+  // Verify no semi-transparent text colors (rgba with alpha < 1)
+  const rgbaPattern = /color:\s*rgba\([^)]+,\s*0\.\d+\)/g;
+  const stampSection = template.substring(
+    template.indexOf("/* withheld stamp"),
+    template.indexOf("/* source footer")
+  );
+  const transparentColors = stampSection.match(rgbaPattern);
+  assert.ok(!transparentColors || transparentColors.length === 0,
+    "Stamp text should not use semi-transparent colors (rgba with alpha < 1)");
+  
+  // Verify stamp animation uses opacity: 1
+  assert.ok(template.includes("opacity: 1") && template.includes("/* stamp slams on - fully opaque"),
+    "Stamp animation should set opacity to 1 for contrast compliance");
+});

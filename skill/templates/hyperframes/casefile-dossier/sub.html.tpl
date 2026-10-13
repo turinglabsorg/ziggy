@@ -51,12 +51,13 @@ __FONT_FACES__
         /* redaction bars */
         .redact-bar { position: absolute; height: 22px; background: var(--redact); opacity: 0; }
 
-        /* withheld stamp */
+        /* withheld stamp - fully opaque with backing for contrast compliance */
         #__ID__-stamp { position: absolute; right: 80px; bottom: 100px; width: 280px; height: 100px;
-          border: 4px solid rgba(255, 90, 31, 0.6); border-radius: 8px; transform: rotate(-8deg); opacity: 0;
+          background: rgba(255, 255, 255, 0.3); border: 4px solid rgb(180, 25, 10); border-radius: 8px; 
+          transform: rotate(-8deg); opacity: 0;
           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-        #__ID__-stamp-main { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: rgba(255, 90, 31, 0.75); }
-        #__ID__-stamp-sub { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; color: rgba(255, 90, 31, 0.65); }
+        #__ID__-stamp-main { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: rgb(140, 20, 5); }
+        #__ID__-stamp-sub { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; color: rgb(110, 15, 3); }
 
         /* source footer */
         #__ID__-source { position: absolute; left: 60px; right: 60px; bottom: 48px; font-family: var(--mono); font-size: 15px; font-weight: 400; color: #5a5a5a; }
@@ -157,9 +158,9 @@ __AUDIO__
             tl.to($("redact2"), { opacity: 0.85, duration: 0.3, ease: "none" }, 5.0);
             tl.to($("redact3"), { opacity: 0.85, duration: 0.3, ease: "none" }, 5.2);
 
-            /* stamp slams on */
+            /* stamp slams on - fully opaque for contrast compliance */
             tl.fromTo($("stamp"), { scale: 0.6, opacity: 0, rotateZ: -8 }, 
-              { scale: 1, opacity: 0.9, duration: 0.5, ease: "back.out(2)" }, 5.6);
+              { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(2)" }, 5.6);
 
             /* source appears */
             tl.fromTo($("source"), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: soft }, 6.0);
