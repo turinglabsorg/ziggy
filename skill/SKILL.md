@@ -112,9 +112,32 @@ The **points file** covers every story the plan listed, with no exceptions:
 
 ### Case Files (Alien Watch only)
 
-The optional **`casefile`** array holds case file items. Case files run alongside news stories
-(never replace them) when the feed is thin. Each case file is a sourced UAP fact followed by our
-perspective in three parts:
+The optional **`casefile`** array holds case file items. Case files can run in two modes:
+
+**Fill mode** (default): Case files only added when the feed is thin, taking slots after news stories.
+
+**Alternate mode**: Case files alternate with news according to a configurable ratio, while news is never dropped.
+
+Configuration in `tenant.json`:
+```json
+{
+  "casefile": {
+    "enabled": true,
+    "mode": "alternate",
+    "ratio": {
+      "news": 1,
+      "casefile": 1
+    },
+    "sources": []
+  }
+}
+```
+
+- `mode`: `"fill"` or `"alternate"` (default: `"fill"`)
+- `ratio`: When mode is `"alternate"`, defines the interleaving pattern (e.g., `1:1` alternates every other post, `2:1` puts 2 news posts for every 1 case file)
+- `sources`: Array of source configurations for case file candidates (manual points in round for now)
+
+Each case file is a sourced UAP fact followed by our perspective in three parts:
 
 - **Confirmed** — what the source establishes
 - **Not confirmed** — what it does not
@@ -128,9 +151,7 @@ Rules:
 - No re-uploads of others' videos (only official public-domain or our own card)
 - Always ends pointing to alienwatch.buzz
 
-Case files are only rendered when the tenant enables them (`tenant.json → casefile.enabled`) and
-the queue is below the threshold (`casefile.onlyWhenQueueBelow`). They take free slots after news
-stories are scheduled.
+In alternate mode, the round interleaves news and case files according to the ratio. News always takes priority: if there are more news items than the ratio allows, they all go out. Case files fill the pattern but don't block news.
 
 How to write the points. These rules are fixed, so do not improvise.
 

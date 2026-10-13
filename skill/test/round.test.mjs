@@ -325,3 +325,38 @@ test("casefile items are validated before rendering", async () => {
     writeFileSync(tenantFile, saved);
   }
 });
+
+test("interleaveNewsAndCasefiles alternates according to ratio", async () => {
+  const { interleaveNewsAndCasefiles } = await import("../scripts/round.mjs");
+  
+  const newsItems = [
+    { name: "news1", type: "news" },
+    { name: "news2", type: "news" },
+    { name: "news3", type: "news" },
+  ];
+  const casefileItems = [
+    { name: "case1", type: "casefile" },
+    { name: "case2", type: "casefile" },
+  ];
+  
+  // Fill mode (default): news first, then case files
+  const fillTenant = { casefile: { enabled: true } };
+  const fillResult = interleaveNewsAndCasefiles(fillTenant, newsItems, casefileItems);
+  assert.deepEqual(fillResult.map(i => i.name), ["news1", "news2", "news3", "case1", "case2"]);
+  
+  // Alternate mode 1:1
+  const alternateTenant = { casefile: { enabled: true, mode: "alternate", ratio: { news: 1, casefile: 1 } } };
+  const alternateResult = interleaveNewsAndCasefiles(alternateTenant, newsItems, casefileItems);
+  assert.deepEqual(alternateResult.map(i => i.name), ["news1", "case1", "news2", "case2", "news3"]);
+  
+  // Alternate mode 2:1 (2 news for every 1 case file)
+  const ratio2to1Tenant = { casefile: { enabled: true, mode: "alternate", ratio: { news: 2, casefile: 1 } } };
+  const ratio2to1Result = interleaveNewsAndCasefiles(ratio2to1Tenant, newsItems, casefileItems);
+  assert.deepEqual(ratio2to1Result.map(i => i.name), ["news1", "news2", "case1", "news3", "case2"]);
+  
+  // News is never dropped: more news than ratio allows
+  const moreNews = [...newsItems, { name: "news4", type: "news" }, { name: "news5", type: "news" }];
+  const allNewsResult = interleaveNewsAndCasefiles(alternateTenant, moreNews, casefileItems);
+  assert.equal(allNewsResult.filter(i => i.name.startsWith("news")).length, 5, "all news items included");
+  assert.equal(allNewsResult.filter(i => i.name.startsWith("case")).length, 2, "all case files included");
+});

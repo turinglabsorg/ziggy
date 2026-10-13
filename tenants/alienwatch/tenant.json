@@ -102,7 +102,11 @@
   },
   "casefile": {
     "enabled": true,
-    "maxPerDay": 1,
-    "onlyWhenQueueBelow": 3
+    "mode": "alternate",
+    "ratio": {
+      "news": 1,
+      "casefile": 1
+    },
+    "sources": []
   }
 }
