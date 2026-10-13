@@ -106,9 +106,9 @@ __AUDIO__
             <div class="redact-bar" id="__ID__-redact2" style="left: 60px; width: 520px; top: 820px;"></div>
             <div class="redact-bar" id="__ID__-redact3" style="right: 80px; width: 360px; top: 960px;"></div>
 
-            <div id="__ID__-stamp">
-              <div id="__ID__-stamp-main">WITHHELD IN FULL</div>
-              <div id="__ID__-stamp-sub">(b)(1) national security</div>
+            <div id="__ID__-stamp" style="display: __CF_STAMP_DISPLAY__;">
+              <div id="__ID__-stamp-main">__CF_STAMP_TEXT__</div>
+              <div id="__ID__-stamp-sub">__CF_STAMP_SUB__</div>
             </div>
 
             <div id="__ID__-source">Source: __CF_SOURCE__</div>

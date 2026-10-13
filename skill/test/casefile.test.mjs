@@ -122,3 +122,76 @@ test("campaignFromCasefile can override template", () => {
   const campaign2 = campaignFromCasefile(TENANT, CASEFILE_ITEM, { template: "casefile-radar" });
   assert.equal(campaign2.template, "casefile-radar");
 });
+
+test("campaignFromCasefile strips point labels automatically", () => {
+  const itemWithLabels = {
+    ...CASEFILE_ITEM,
+    points: [
+      "Confirmed: This is the confirmed fact",
+      "Not confirmed: This is not confirmed",
+      "Why it matters: This is why it matters",
+    ],
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, itemWithLabels);
+  assert.equal(campaign.copy.points[0], "This is the confirmed fact");
+  assert.equal(campaign.copy.points[1], "This is not confirmed");
+  assert.equal(campaign.copy.points[2], "This is why it matters");
+});
+
+test("campaignFromCasefile strips point labels with emoji", () => {
+  const itemWithEmoji = {
+    ...CASEFILE_ITEM,
+    points: [
+      "✅ Confirmed: This is confirmed",
+      "❓ Not confirmed: This is not confirmed",
+      "• Why it matters: This is important",
+    ],
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, itemWithEmoji);
+  assert.equal(campaign.copy.points[0], "This is confirmed");
+  assert.equal(campaign.copy.points[1], "This is not confirmed");
+  assert.equal(campaign.copy.points[2], "This is important");
+});
+
+test("campaignFromCasefile accepts status field", () => {
+  const itemWithStatus = { ...CASEFILE_ITEM, status: "released" };
+  const campaign = campaignFromCasefile(TENANT, itemWithStatus);
+  assert.equal(campaign.casefile.status, "released");
+});
+
+test("campaignFromCasefile defaults status to withheld", () => {
+  const campaign = campaignFromCasefile(TENANT, CASEFILE_ITEM);
+  assert.equal(campaign.casefile.status, "withheld");
+});
+
+test("campaignFromCasefile accepts template from item", () => {
+  const itemWithTemplate = { ...CASEFILE_ITEM, template: "casefile-radar" };
+  const campaign = campaignFromCasefile(TENANT, itemWithTemplate);
+  assert.equal(campaign.template, "casefile-radar");
+});
+
+test("campaignFromCasefile accepts custom stamp text", () => {
+  const itemWithStamp = { ...CASEFILE_ITEM, stamp: "CLASSIFIED", stampSub: "top secret" };
+  const campaign = campaignFromCasefile(TENANT, itemWithStamp);
+  assert.equal(campaign.casefile.stamp, "CLASSIFIED");
+  assert.equal(campaign.casefile.stampSub, "top secret");
+});
+
+test("campaignFromCasefile has empty stamp by default", () => {
+  const campaign = campaignFromCasefile(TENANT, CASEFILE_ITEM);
+  assert.equal(campaign.casefile.stamp, "");
+  assert.equal(campaign.casefile.stampSub, "");
+});
+
+test("campaignFromCasefile accepts at field for scheduling", () => {
+  const itemWithAt = { ...CASEFILE_ITEM, at: "2026-10-14T15:00:00.000Z" };
+  const campaign = campaignFromCasefile(TENANT, itemWithAt);
+  assert.equal(campaign.at, "2026-10-14T15:00:00.000Z");
+});
+
+test("campaignFromCasefile has null at by default", () => {
+  const campaign = campaignFromCasefile(TENANT, CASEFILE_ITEM);
+  assert.equal(campaign.at, null);
+});
