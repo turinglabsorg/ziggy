@@ -77,7 +77,7 @@ __AUDIO__
           
           <div id="__ID__-sheet">
             <div id="__ID__-doc-header">
-              <div id="__ID__-doc-title">Case file · FOIA __CF_CASE_NUM__</div>
+              <div id="__ID__-doc-title">Case file__CF_DOC_LABEL____CF_CASE_NUM__</div>
               <div id="__ID__-doc-date">__CF_DATE__</div>
             </div>
             
@@ -104,8 +104,8 @@ __AUDIO__
             </div>
 
             <div class="redact-bar" id="__ID__-redact1" style="left: 60px; width: 380px; top: 130px;"></div>
-            <div class="redact-bar" id="__ID__-redact2" style="right: 100px; width: 320px; top: 1330px;"></div>
-            <div class="redact-bar" id="__ID__-redact3" style="left: 240px; width: 420px; top: 1380px;"></div>
+            <div class="redact-bar" id="__ID__-redact2" style="left: 80px; width: 420px; top: 1180px;"></div>
+            <div class="redact-bar" id="__ID__-redact3" style="right: 280px; width: 340px; top: 1240px;"></div>
 
             <div id="__ID__-stamp" style="display: __CF_STAMP_DISPLAY__;">
               <div id="__ID__-stamp-main">__CF_STAMP_TEXT__</div>

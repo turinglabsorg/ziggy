@@ -244,10 +244,13 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
 
     // case file specific data
     const casefile = campaign.casefile || {};
-    const cfCaseNum = casefile.caseNum || (casefile.source ? casefile.source.split("/").pop()?.slice(0, 20) : "26-F-1892");
+    const cfCaseNum = casefile.caseNum || "";
     const cfDate = casefile.date || formatDate(campaign.story?.date || new Date().toISOString(), campaign.language || "en");
     const cfSource = casefile.source || copy.meta || "";
     const cfStatus = casefile.status || "withheld";
+    
+    // Doc label: show " · FOIA" or kind if caseNum provided, omit if absent
+    const cfDocLabel = cfCaseNum ? " · FOIA " : "";
     
     // Extract domain from source URL for footer (or truncate outlet name safely)
     const cfSourceDisplay = (() => {
@@ -336,6 +339,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__DEK_MAX__/g, String(v.dekMax ?? 840)).replace(/__DEK_MT__/g, String(v.dekMt ?? 30)).replace(/__DEK__/g, String(v.dek ?? 33))
       .replace(/__META__/g, String(v.meta ?? 22)).replace(/__BRAND__/g, String(v.brand ?? 40))
       // case file tokens
+      .replace(/__CF_DOC_LABEL__/g, escapeHtml(cfDocLabel))
       .replace(/__CF_CASE_NUM__/g, escapeHtml(cfCaseNum))
       .replace(/__CF_DATE__/g, escapeHtml(cfDate))
       .replace(/__CF_SOURCE__/g, escapeHtml(cfSourceDisplay))
