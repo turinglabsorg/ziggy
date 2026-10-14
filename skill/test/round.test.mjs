@@ -429,3 +429,54 @@ test("Deadline calculation respects DST with IANA timezones", async () => {
   const summerDeadlineUTC = new Date(summerDeadline).toISOString();
   assert.equal(summerDeadlineUTC, "2026-06-16T21:59:00.000Z", "June 16 23:59 CEST = June 16 21:59 UTC");
 });
+
+test("casefile 'at' field is preserved through round execution", async () => {
+  const { campaignsFromPoints, scheduleRound } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  
+  const tenant = await loadTenant("acme");
+  const tenantWithCasefile = { ...tenant, casefile: { enabled: true } };
+  
+  const points = {
+    "casefile": [
+      {
+        "headline": "Test with specific time",
+        "dek": "Should be scheduled at 14:00 UTC",
+        "points": ["Confirmed point", "Not confirmed point", "Why it matters"],
+        "source": { "outlet": "Test", "url": "https://example.com" },
+        "at": "2026-10-14T14:00:00Z"
+      }
+    ]
+  };
+  
+  const created = await campaignsFromPoints(tenantWithCasefile, points, { fetchImpl: fetch, now: new Date("2026-10-14T10:00:00Z"), write: false });
+  
+  assert.equal(created.casefiles.length, 1, "should create 1 casefile");
+  assert.equal(created.casefiles[0].at, "2026-10-14T14:00:00Z", "casefile should have 'at' field from input");
+  
+  // Simulate the mapping that happens in runRound (this is where the bug was)
+  const goodCasefiles = created.casefiles.map((m) => ({ 
+    name: m.name, 
+    campaign: m.campaign, 
+    type: 'casefile', 
+    at: m.at 
+  }));
+  
+  assert.equal(goodCasefiles[0].at, "2026-10-14T14:00:00Z", "'at' field should be preserved in mapping");
+  
+  // Test scheduleRound respects the 'at' field
+  const { server, port } = await startMockPostproxy();
+  const client = { host: `http://127.0.0.1:${port}`, apiKey: API_KEY };
+  
+  const scheduled = await scheduleRound(tenantWithCasefile, goodCasefiles, { 
+    client, 
+    now: new Date("2026-10-14T10:00:00Z"),
+    dryRun: true 
+  });
+  
+  server.close();
+  
+  assert.equal(scheduled.results.length, 1, "should schedule 1 item");
+  assert.equal(scheduled.results[0].at, "2026-10-14T14:00:00.000Z", "should be scheduled at specified time, not next free slot");
+  assert.ok(scheduled.results[0].dryRun, "should be marked as dry run");
+});
