@@ -269,6 +269,12 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     const cfNotConfirmed = Array.isArray(copy.points) && copy.points[1] ? escapeHtml(copy.points[1]) : "";
     const cfWhyMatters = Array.isArray(copy.points) && copy.points[2] ? escapeHtml(copy.points[2]) : "";
     
+    // Section labels (defaults to standard labels if not provided)
+    const cfLabels = casefile.labels || ["CONFIRMED", "NOT CONFIRMED", "WHY IT MATTERS"];
+    const cfLabelConfirmed = escapeHtml(cfLabels[0] || "CONFIRMED");
+    const cfLabelNotConfirmed = escapeHtml(cfLabels[1] || "NOT CONFIRMED");
+    const cfLabelWhyMatters = escapeHtml(cfLabels[2] || "WHY IT MATTERS");
+    
     // Stamp and status from casefile object (or empty if not provided)
     const cfStamp = casefile.stamp || "";
     const cfStampSub = casefile.stampSub || "";
@@ -347,6 +353,9 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__CF_STAMP_DISPLAY__/g, cfStampDisplay)
       .replace(/__CF_STAMP_TEXT__/g, escapeHtml(cfStamp))
       .replace(/__CF_STAMP_SUB__/g, escapeHtml(cfStampSub))
+      .replace(/__CF_LABEL_CONFIRMED__/g, cfLabelConfirmed)
+      .replace(/__CF_LABEL_NOT_CONFIRMED__/g, cfLabelNotConfirmed)
+      .replace(/__CF_LABEL_WHY_MATTERS__/g, cfLabelWhyMatters)
       .replace(/__CF_CONFIRMED__/g, cfConfirmed)
       .replace(/__CF_NOT_CONFIRMED__/g, cfNotConfirmed)
       .replace(/__CF_WHY_MATTERS__/g, cfWhyMatters)

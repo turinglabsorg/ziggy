@@ -153,6 +153,8 @@ Rules:
 - Exactly 3 points (Confirmed, Not confirmed, Why it matters), each ≤90 characters
 - Points should NOT include the label prefixes ("Confirmed:", "Not confirmed:", "Why it matters:") — write them as plain statements; Ziggy strips any prefixes automatically
 - Source must have `outlet` and `url`
+- Optional `labels`: array of 3 custom section labels (e.g., `["VERIFIED", "DISPUTED", "IMPLICATIONS"]`) to replace the defaults
+- Alternatively, points can be objects with `{ label?, text }` — when provided, `label` overrides the default for that point
 - Optional `template`: `"casefile-dossier"` or `"casefile-radar"` (default: alternates based on persisted last-used template)
 - Optional `status`: displayed status text in radar template (e.g., `"withheld"`, `"released"`, `"redacted"`, `"under review"`)
 - Optional `stamp`: main stamp text for dossier template (e.g., `"WITHHELD IN FULL"`)
@@ -163,6 +165,51 @@ Rules:
 - No re-uploads of others' videos (only official public-domain or our own card)
 - Always ends pointing to alienwatch.buzz
 - Templates alternate automatically (dossier/radar) across rounds when not explicitly set; last used template is saved in state
+
+Example with custom labels:
+
+```json
+{
+  "casefile": [
+    {
+      "headline": "New radar data analyzed",
+      "dek": "Independent analysis suggests unusual characteristics",
+      "labels": ["OBSERVATION", "ANALYSIS", "IMPACT"],
+      "points": [
+        "Multiple radar systems tracked the object simultaneously",
+        "Speed calculations remain preliminary pending full data review",
+        "If confirmed, would represent fastest recorded atmospheric transit"
+      ],
+      "source": {
+        "outlet": "Aviation Analysis Weekly",
+        "url": "https://example.com/radar-analysis"
+      }
+    }
+  ]
+}
+```
+
+Example with per-point label objects:
+
+```json
+{
+  "casefile": [
+    {
+      "headline": "Document declassified",
+      "dek": "Previously withheld report now public",
+      "points": [
+        { "label": "RELEASED", "text": "Report declassified on October 1, 2026" },
+        { "label": "REDACTED", "text": "Three sections remain blacked out" },
+        { "label": "SIGNIFICANCE", "text": "First official acknowledgment of the program" }
+      ],
+      "source": {
+        "outlet": "Official Records",
+        "url": "https://example.com/declassified"
+      }
+    }
+  ]
+}
+```
 
 In alternate mode, the round interleaves news and case files according to the ratio. News always takes priority: if there are more news items than the ratio allows, they all go out. Case files fill the pattern but don't block news.
 

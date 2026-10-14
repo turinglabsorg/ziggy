@@ -56,7 +56,9 @@ export function casefileDuration(pointCount = 3) {
  * Build a case file campaign object.
  * 
  * @param {object} tenant - The tenant configuration
- * @param {object} item - Case file item { headline, dek, points, source, date?, caseNum?, status?, template?, stamp?, stampSub?, at? }
+ * @param {object} item - Case file item { headline, dek, points, source, labels?, date?, caseNum?, status?, template?, stamp?, stampSub?, at? }
+ *                        points: array of 3 strings OR 3 objects { label?, text }
+ *                        labels: optional array of 3 label strings (defaults: ["CONFIRMED", "NOT CONFIRMED", "WHY IT MATTERS"])
  * @param {object} options - { name?, template? }
  */
 export function campaignFromCasefile(tenant, item, { name, template } = {}) {
@@ -98,19 +100,41 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   const stamp = item.stamp || "";
   const stampSub = item.stampSub || "";
   
-  // Points must be exactly 3: Confirmed / Not confirmed / Why it matters
-  // Strip any leading labels if present (e.g., "Confirmed: " or "✅ Confirmed: ")
+  // Default section labels
+  const defaultLabels = ["CONFIRMED", "NOT CONFIRMED", "WHY IT MATTERS"];
+  
+  // Parse points and labels
+  // Points can be: array of 3 strings, OR array of 3 objects { label?, text }
+  // Labels can be: item.labels array of 3 strings, OR extracted from point objects, OR defaults
+  let points = [];
+  let labels = [];
+  
+  if (Array.isArray(item.points) && item.points.length === 3) {
+    const firstIsObject = typeof item.points[0] === "object" && item.points[0] !== null && !Array.isArray(item.points[0]);
+    
+    if (firstIsObject) {
+      // Points are objects { label?, text }
+      points = item.points.map(p => String(p.text || "").trim());
+      labels = item.points.map((p, i) => String(p.label || "").trim() || defaultLabels[i]);
+    } else {
+      // Points are strings
+      points = item.points.map(p => String(p).trim());
+      labels = item.labels && Array.isArray(item.labels) && item.labels.length === 3
+        ? item.labels.map(l => String(l).trim())
+        : defaultLabels;
+    }
+  }
+  
+  // Strip any leading labels if present in text (e.g., "Confirmed: " or "✅ Confirmed: ")
   const stripLabel = (point) => {
     const p = String(point).trim();
     // Remove "Confirmed:", "Not confirmed:", "Why it matters:", with optional emoji/bullets
     return p.replace(/^(?:[✅❓•\-*]\s*)?(?:Confirmed|Not confirmed|Why it matters):\s*/i, "").trim();
   };
   
-  const points = Array.isArray(item.points) && item.points.length === 3 
-    ? item.points.map(p => stripLabel(p)) 
-    : ["", "", ""];
+  points = points.map(p => stripLabel(p));
   
-  if (points.some(p => !p)) {
+  if (points.length !== 3 || points.some(p => !p)) {
     throw new Error("Case file requires exactly 3 points: Confirmed, Not confirmed, Why it matters");
   }
   
@@ -118,7 +142,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   const cta = (social.cta || "Full story with sources: {url}").replace("{url}", displayUrl).replace("{site}", displayUrl);
   const hashtags = (social.hashtags || "#UFO #UAP #Space #Astronomy").trim();
   
-  const pointsBlock = `\n\n✅ Confirmed: ${points[0]}\n\n❓ Not confirmed: ${points[1]}\n\nWhy it matters: ${points[2]}`;
+  const pointsBlock = `\n\n✅ ${labels[0]}: ${points[0]}\n\n❓ ${labels[1]}: ${points[1]}\n\n${labels[2]}: ${points[2]}`;
   const sourceLine = sourceUrl ? `\n\nSource: ${sourceOutlet} · ${sourceUrl}` : `\n\nSource: ${sourceOutlet}`;
   const caption = `${item.headline}\n\n${item.dek}${pointsBlock}${sourceLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
   
@@ -141,6 +165,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
       status: status,
       stamp: stamp,
       stampSub: stampSub,
+      labels: labels, // Section labels for templates
     },
     at: item.at || null, // Optional: ISO time to schedule at specific time instead of next free slot
     copy: {

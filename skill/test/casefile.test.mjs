@@ -70,9 +70,9 @@ test("campaignFromCasefile builds a case file campaign with required structure",
   
   // Posts
   assert.equal(campaign.posts.instagram_reel.media, "reel");
-  assert.ok(campaign.posts.instagram_reel.body.includes("✅ Confirmed:"));
-  assert.ok(campaign.posts.instagram_reel.body.includes("❓ Not confirmed:"));
-  assert.ok(campaign.posts.instagram_reel.body.includes("Why it matters:"));
+  assert.ok(campaign.posts.instagram_reel.body.includes("✅ CONFIRMED:"));
+  assert.ok(campaign.posts.instagram_reel.body.includes("❓ NOT CONFIRMED:"));
+  assert.ok(campaign.posts.instagram_reel.body.includes("WHY IT MATTERS:"));
   assert.ok(campaign.posts.instagram_reel.body.includes(CASEFILE_ITEM.source.outlet));
   assert.ok(campaign.posts.instagram_reel.body.includes("alienwatch.buzz"));
   
@@ -227,4 +227,80 @@ test("casefile dossier stamp CSS uses fully opaque colors for contrast complianc
   // Verify stamp animation uses opacity: 1
   assert.ok(template.includes("opacity: 1") && template.includes("/* stamp slams on - fully opaque"),
     "Stamp animation should set opacity to 1 for contrast compliance");
+});
+
+test("campaignFromCasefile accepts custom labels array", () => {
+  const item = {
+    ...CASEFILE_ITEM,
+    labels: ["VERIFIED", "DISPUTED", "IMPLICATIONS"],
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, item);
+  
+  assert.ok(campaign.casefile.labels, "campaign should have labels");
+  assert.deepEqual(campaign.casefile.labels, ["VERIFIED", "DISPUTED", "IMPLICATIONS"]);
+  
+  // Caption should use custom labels
+  const caption = campaign.posts.instagram_reel.body;
+  assert.ok(caption.includes("✅ VERIFIED:"), "caption should use first custom label");
+  assert.ok(caption.includes("❓ DISPUTED:"), "caption should use second custom label");
+  assert.ok(caption.includes("IMPLICATIONS:"), "caption should use third custom label");
+});
+
+test("campaignFromCasefile accepts per-point objects with labels", () => {
+  const item = {
+    headline: "Custom point format test",
+    dek: "Testing objects with labels",
+    points: [
+      { label: "OBSERVATION", text: "UAP observed by multiple sensors" },
+      { label: "ANALYSIS", text: "Data shows anomalous behavior" },
+      { label: "IMPACT", text: "Requires further investigation" },
+    ],
+    source: { outlet: "Test", url: "https://example.com" },
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, item);
+  
+  assert.deepEqual(campaign.casefile.labels, ["OBSERVATION", "ANALYSIS", "IMPACT"]);
+  assert.deepEqual(campaign.copy.points, [
+    "UAP observed by multiple sensors",
+    "Data shows anomalous behavior",
+    "Requires further investigation",
+  ]);
+  
+  const caption = campaign.posts.instagram_reel.body;
+  assert.ok(caption.includes("✅ OBSERVATION:"), "caption should use first label from object");
+  assert.ok(caption.includes("❓ ANALYSIS:"), "caption should use second label from object");
+  assert.ok(caption.includes("IMPACT:"), "caption should use third label from object");
+});
+
+test("campaignFromCasefile falls back to defaults when no labels provided", () => {
+  const campaign = campaignFromCasefile(TENANT, CASEFILE_ITEM);
+  
+  assert.deepEqual(campaign.casefile.labels, ["CONFIRMED", "NOT CONFIRMED", "WHY IT MATTERS"]);
+  
+  const caption = campaign.posts.instagram_reel.body;
+  assert.ok(caption.includes("✅ CONFIRMED:"), "caption should use default first label");
+  assert.ok(caption.includes("❓ NOT CONFIRMED:"), "caption should use default second label");
+  assert.ok(caption.includes("WHY IT MATTERS:"), "caption should use default third label");
+});
+
+test("campaignFromCasefile handles partial labels in point objects", () => {
+  const item = {
+    headline: "Partial labels test",
+    dek: "Some points have labels, some don't",
+    points: [
+      { label: "CUSTOM1", text: "First point" },
+      { text: "Second point without label" },
+      { label: "CUSTOM3", text: "Third point" },
+    ],
+    source: { outlet: "Test", url: "https://example.com" },
+  };
+  
+  const campaign = campaignFromCasefile(TENANT, item);
+  
+  // Should use custom labels where provided, defaults where missing
+  assert.equal(campaign.casefile.labels[0], "CUSTOM1");
+  assert.equal(campaign.casefile.labels[1], "NOT CONFIRMED"); // default
+  assert.equal(campaign.casefile.labels[2], "CUSTOM3");
 });
