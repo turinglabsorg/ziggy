@@ -90,15 +90,15 @@ __AUDIO__
 
             <div id="__ID__-points">
               <div class="cf-section" id="__ID__-confirmed">
-                <div class="cf-section-label">CONFIRMED</div>
+                <div class="cf-section-label">__CF_LABEL_CONFIRMED__</div>
                 <p class="cf-section-text">__CF_CONFIRMED__</p>
               </div>
               <div class="cf-section" id="__ID__-notconfirmed">
-                <div class="cf-section-label">NOT CONFIRMED</div>
+                <div class="cf-section-label">__CF_LABEL_NOT_CONFIRMED__</div>
                 <p class="cf-section-text">__CF_NOT_CONFIRMED__</p>
               </div>
               <div class="cf-section" id="__ID__-whymatters">
-                <div class="cf-section-label">WHY IT MATTERS</div>
+                <div class="cf-section-label">__CF_LABEL_WHY_MATTERS__</div>
                 <p class="cf-section-text">__CF_WHY_MATTERS__</p>
               </div>
             </div>

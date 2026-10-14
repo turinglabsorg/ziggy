@@ -96,19 +96,19 @@ __AUDIO__
             <p id="__ID__-dek">__COPY_DEK__</p>
 
             <div class="cf-readout" id="__ID__-confirmed">
-              <div class="cf-readout-label">CONFIRMED</div>
+              <div class="cf-readout-label">__CF_LABEL_CONFIRMED__</div>
               <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-confirmed-fill"></div></div>
               <p class="cf-readout-text">__CF_CONFIRMED__</p>
             </div>
 
             <div class="cf-readout" id="__ID__-notconfirmed">
-              <div class="cf-readout-label">NOT CONFIRMED</div>
+              <div class="cf-readout-label">__CF_LABEL_NOT_CONFIRMED__</div>
               <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-notconfirmed-fill"></div></div>
               <p class="cf-readout-text">__CF_NOT_CONFIRMED__</p>
             </div>
 
             <div class="cf-readout" id="__ID__-whymatters">
-              <div class="cf-readout-label">WHY IT MATTERS</div>
+              <div class="cf-readout-label">__CF_LABEL_WHY_MATTERS__</div>
               <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-whymatters-fill"></div></div>
               <p class="cf-readout-text">__CF_WHY_MATTERS__</p>
             </div>
