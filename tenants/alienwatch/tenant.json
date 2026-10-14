@@ -78,7 +78,7 @@
       "16:00",
       "21:00"
     ],
-    "tz": "+01:00",
+    "tz": "Europe/Rome",
     "maxAgeHours": 72,
     "only": [
       "instagram_reel",

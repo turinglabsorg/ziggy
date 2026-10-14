@@ -360,3 +360,72 @@ test("interleaveNewsAndCasefiles alternates according to ratio", async () => {
   assert.equal(allNewsResult.filter(i => i.name.startsWith("news")).length, 5, "all news items included");
   assert.equal(allNewsResult.filter(i => i.name.startsWith("case")).length, 2, "all case files included");
 });
+
+test("IANA timezone support with DST: Europe/Rome switches correctly", async () => {
+  const { localAt, localDay } = await import("../scripts/round.mjs");
+  
+  // DST switch dates for 2026:
+  // Spring forward: March 29, 2026 (02:00 -> 03:00, UTC+1 -> UTC+2)
+  // Fall back: October 25, 2026 (03:00 -> 02:00, UTC+2 -> UTC+1)
+  
+  // Before spring DST (winter time, UTC+1)
+  const winterDate = "2026-03-15"; // CET (UTC+1)
+  const winter07 = localAt(winterDate, "07:00", "Europe/Rome");
+  const winter07UTC = new Date(winter07).toISOString();
+  assert.equal(winter07UTC, "2026-03-15T06:00:00.000Z", "07:00 CET = 06:00 UTC");
+  
+  // After spring DST (summer time, UTC+2)
+  const summerDate = "2026-06-15"; // CEST (UTC+2)
+  const summer07 = localAt(summerDate, "07:00", "Europe/Rome");
+  const summer07UTC = new Date(summer07).toISOString();
+  assert.equal(summer07UTC, "2026-06-15T05:00:00.000Z", "07:00 CEST = 05:00 UTC");
+  
+  // After fall DST (back to winter, UTC+1)
+  const fallDate = "2026-11-15"; // CET (UTC+1)
+  const fall07 = localAt(fallDate, "07:00", "Europe/Rome");
+  const fall07UTC = new Date(fall07).toISOString();
+  assert.equal(fall07UTC, "2026-11-15T06:00:00.000Z", "07:00 CET = 06:00 UTC");
+  
+  // LocalDay works correctly across DST
+  assert.equal(localDay(winter07, "Europe/Rome"), winterDate);
+  assert.equal(localDay(summer07, "Europe/Rome"), summerDate);
+  assert.equal(localDay(fall07, "Europe/Rome"), fallDate);
+});
+
+test("Fixed offset timezones still work (backward compatibility)", async () => {
+  const { localAt, localDay } = await import("../scripts/round.mjs");
+  
+  const date = "2026-06-15";
+  
+  // UTC
+  const utc = localAt(date, "07:00", "Z");
+  assert.equal(new Date(utc).toISOString(), "2026-06-15T07:00:00.000Z");
+  
+  // Fixed +02:00
+  const plus2 = localAt(date, "07:00", "+02:00");
+  assert.equal(new Date(plus2).toISOString(), "2026-06-15T05:00:00.000Z");
+  
+  // Fixed -05:00
+  const minus5 = localAt(date, "07:00", "-05:00");
+  assert.equal(new Date(minus5).toISOString(), "2026-06-15T12:00:00.000Z");
+  
+  // LocalDay with fixed offsets
+  assert.equal(localDay(utc, "Z"), date);
+  assert.equal(localDay(plus2, "+02:00"), date);
+});
+
+test("Deadline calculation respects DST with IANA timezones", async () => {
+  const { storyDeadline } = await import("../scripts/round.mjs");
+  
+  // Story from winter (CET, UTC+1): deadline is 23:59 next day in CET
+  const winterCfg = { tz: "Europe/Rome", freshness: "next-day" };
+  const winterDeadline = storyDeadline(winterCfg, "2026-03-15");
+  const winterDeadlineUTC = new Date(winterDeadline).toISOString();
+  assert.equal(winterDeadlineUTC, "2026-03-16T22:59:00.000Z", "March 16 23:59 CET = March 16 22:59 UTC");
+  
+  // Story from summer (CEST, UTC+2): deadline is 23:59 next day in CEST
+  const summerCfg = { tz: "Europe/Rome", freshness: "next-day" };
+  const summerDeadline = storyDeadline(summerCfg, "2026-06-15");
+  const summerDeadlineUTC = new Date(summerDeadline).toISOString();
+  assert.equal(summerDeadlineUTC, "2026-06-16T21:59:00.000Z", "June 16 23:59 CEST = June 16 21:59 UTC");
+});
