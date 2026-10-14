@@ -418,7 +418,7 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
   const goodNews = created.made.filter((m) => checked.find((c) => c.name === m.name)?.ok)
     .map((m) => ({ name: m.name, campaign: dryRun ? m.campaign : loadCampaign(tenant.slug, m.name), type: 'news' }));
   const goodCasefiles = (created.casefiles || []).filter((m) => checked.find((c) => c.name === m.name)?.ok)
-    .map((m) => ({ name: m.name, campaign: dryRun ? m.campaign : loadCampaign(tenant.slug, m.name), type: 'casefile' }));
+    .map((m) => ({ name: m.name, campaign: dryRun ? m.campaign : loadCampaign(tenant.slug, m.name), type: 'casefile', at: m.at }));
   
   // Interleave according to tenant config
   const interleaved = interleaveNewsAndCasefiles(tenant, goodNews, goodCasefiles);
