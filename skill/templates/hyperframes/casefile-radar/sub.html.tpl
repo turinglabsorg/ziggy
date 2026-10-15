@@ -32,25 +32,25 @@ __FONT_FACES__
         #__ID__-blip-label { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--accent); }
         #__ID__-blip-status { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 13px; color: var(--muted); }
 
-        /* content panel with flow layout */
-        #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: 1180px; bottom: 190px; display: flex; flex-direction: column; }
+        /* content panel with flow layout - no bottom constraint, let it flow naturally */
+        #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: 1180px; display: flex; flex-direction: column; max-height: 620px; overflow: hidden; }
         
         #__ID__-headline { margin: 0 0 20px; font-family: var(--display); font-weight: 600; font-size: __CF_HEADLINE__px; line-height: 1.14; letter-spacing: -0.015em; color: var(--fg); }
         #__ID__-dek { margin: 0 0 32px; font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.42; color: var(--muted); }
 
-        /* data readouts as horizontal bars */
-        #__ID__-readouts { margin: 0 0 24px; }
-        .cf-readout { margin-bottom: 28px; opacity: 0; }
-        .cf-readout-label { font-family: var(--mono); font-size: __CF_LABEL__px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
-        .cf-readout-bar { height: 6px; background: rgba(__ACCENT_RGB__, 0.15); border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
+        /* readouts wrapped in container - reduced spacing when photo present */
+        #__ID__-readouts { margin: 0 0 20px; }
+        .cf-readout { margin-bottom: 22px; opacity: 0; }
+        .cf-readout-label { font-family: var(--mono); font-size: __CF_LABEL__px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+        .cf-readout-bar { height: 5px; background: rgba(__ACCENT_RGB__, 0.15); border-radius: 3px; margin-bottom: 8px; overflow: hidden; }
         .cf-readout-fill { height: 100%; background: var(--accent); width: 0%; }
-        .cf-readout-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.45; color: var(--fg); margin: 0; }
+        .cf-readout-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.35; color: var(--fg); margin: 0; }
 
-        /* photo with tape effect - fits between readouts and footer */
-        #__ID__-photo-wrapper { position: relative; margin: 0 0 0; max-width: 560px; display: __PHOTO_DISPLAY__; flex-shrink: 0; }
-        #__ID__-photo-border { position: relative; background: #fff; padding: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25); transform: rotate(-1.2deg); z-index: 5; }
-        #__ID__-photo { width: 100%; max-height: 280px; object-fit: contain; display: block; }
-        #__ID__-photo-credit { margin: 6px 0 0; font-family: var(--mono); font-size: 11px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
+        /* photo with tape effect - compact to fit between readouts and footer */
+        #__ID__-photo-wrapper { position: relative; margin: 0 0 0; max-width: 480px; display: __PHOTO_DISPLAY__; flex-shrink: 0; }
+        #__ID__-photo-border { position: relative; background: #fff; padding: 8px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25); transform: rotate(-1.2deg); z-index: 5; }
+        #__ID__-photo { width: 100%; max-height: 220px; object-fit: contain; display: block; }
+        #__ID__-photo-credit { margin: 4px 0 0; font-family: var(--mono); font-size: 10px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
         
         /* masking tape strips at corners */
         .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 6; }
