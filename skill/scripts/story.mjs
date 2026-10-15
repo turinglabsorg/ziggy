@@ -204,7 +204,7 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
         media: "slide-cover",
         alt_text: story.title,
         thread: thread.thread,
-        enabled: false,
+        enabled: extra.has("twitter"),
       },
       // TikTok publishes the same reel. Postproxy defaults disable_comment to true,
       // so comments are turned on explicitly here.

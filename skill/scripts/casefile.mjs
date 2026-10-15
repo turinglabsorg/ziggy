@@ -201,7 +201,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
         media: "slide-cover",
         alt_text: item.headline,
         thread: thread.thread,
-        enabled: false, // Manual: needs slide-cover still
+        enabled: extra.has("twitter"),
       },
       tiktok: {
         body: caption,

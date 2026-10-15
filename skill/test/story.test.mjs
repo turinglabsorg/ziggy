@@ -84,6 +84,18 @@ test("campaignFromStory honours the tenant's social copy and Italian sources lin
   assert.equal(c.posts.instagram_reel.first_comment, undefined);
 });
 
+test("campaignFromStory enables twitter when in social.platforms", () => {
+  const tenant = {
+    slug: "alienwatch", name: "Alien Watch", site: "https://alienwatch.buzz/", language: "en", feed: FEED,
+    social: { platforms: ["tiktok", "twitter"] },
+  };
+  const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED));
+  assert.equal(c.posts.twitter.enabled, true, "twitter should be enabled when in social.platforms");
+  assert.equal(c.posts.twitter.media, "slide-cover");
+  assert.equal(c.posts.tiktok.enabled, true);
+  assert.equal(c.posts.instagram_post.enabled, false, "instagram_post not in platforms");
+});
+
 test("fetchStories reads the feed through the mapping; createStoryCampaign writes the campaign once", async () => {
   const tenant = { ...loadTenant("acme"), feed: FEED };
   const fetchImpl = async (url) => { assert.equal(String(url), FEED.url); return new Response(JSON.stringify({ data: [ITEM, { ...ITEM, slug: "older", title: "Older" }] }), { status: 200 }); };
