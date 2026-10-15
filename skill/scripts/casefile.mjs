@@ -177,6 +177,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
       url: displayUrl,
     },
     image: item.image || null, // Optional: case file card background or public-domain official image
+    imageCredit: item.imageCredit || null, // Optional: credit line printed under the photo
     audio: { 
       bed: social.bed || "ambient", 
       volume: 0.6, 
