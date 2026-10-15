@@ -265,15 +265,31 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       return (casefile.outlet || copy.meta || "Source").slice(0, 50);
     })();
     
-    const cfConfirmed = Array.isArray(copy.points) && copy.points[0] ? escapeHtml(copy.points[0]) : "";
-    const cfNotConfirmed = Array.isArray(copy.points) && copy.points[1] ? escapeHtml(copy.points[1]) : "";
-    const cfWhyMatters = Array.isArray(copy.points) && copy.points[2] ? escapeHtml(copy.points[2]) : "";
+    // Points can be strings or {label, text} objects (PR #8 feature)
+    const normalizePoint = (p) => {
+      if (!p) return { label: "", text: "" };
+      if (typeof p === "string") return { label: "", text: p };
+      return { label: p.label || "", text: p.text || "" };
+    };
     
-    // Section labels (defaults to standard labels if not provided)
-    const cfLabels = casefile.labels || ["CONFIRMED", "NOT CONFIRMED", "WHY IT MATTERS"];
-    const cfLabelConfirmed = escapeHtml(cfLabels[0] || "CONFIRMED");
-    const cfLabelNotConfirmed = escapeHtml(cfLabels[1] || "NOT CONFIRMED");
-    const cfLabelWhyMatters = escapeHtml(cfLabels[2] || "WHY IT MATTERS");
+    const point0 = Array.isArray(copy.points) && copy.points[0] ? normalizePoint(copy.points[0]) : { label: "", text: "" };
+    const point1 = Array.isArray(copy.points) && copy.points[1] ? normalizePoint(copy.points[1]) : { label: "", text: "" };
+    const point2 = Array.isArray(copy.points) && copy.points[2] ? normalizePoint(copy.points[2]) : { label: "", text: "" };
+    
+    const cfConfirmed = escapeHtml(point0.text);
+    const cfNotConfirmed = escapeHtml(point1.text);
+    const cfWhyMatters = escapeHtml(point2.text);
+    
+    // Section labels: use labels array if provided, otherwise use labels from point objects, otherwise defaults
+    const defaultLabels = ["CONFIRMED", "NOT CONFIRMED", "WHY IT MATTERS"];
+    const cfLabels = casefile.labels || [
+      point0.label || defaultLabels[0],
+      point1.label || defaultLabels[1],
+      point2.label || defaultLabels[2]
+    ];
+    const cfLabelConfirmed = escapeHtml(cfLabels[0]);
+    const cfLabelNotConfirmed = escapeHtml(cfLabels[1]);
+    const cfLabelWhyMatters = escapeHtml(cfLabels[2]);
     
     // Stamp and status from casefile object (or empty if not provided)
     const cfStamp = casefile.stamp || "";
