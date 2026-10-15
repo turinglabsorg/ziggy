@@ -16,8 +16,8 @@ __FONT_FACES__
         #root *, #root *::before, #root *::after { box-sizing: border-box; }
         #__ID__-stage { position: absolute; inset: 0; }
 
-        /* radar grid background */
-        #__ID__-radar { position: absolute; left: 50%; top: 280px; width: 800px; height: 800px; transform: translateX(-50%); opacity: 0; }
+        /* radar grid background - shrunk to free vertical space */
+        #__ID__-radar { position: absolute; left: 50%; top: 200px; width: 480px; height: 480px; transform: translateX(-50%); opacity: 0; }
         #__ID__-radar svg { width: 100%; height: 100%; display: block; }
         
         /* case header */
@@ -25,39 +25,39 @@ __FONT_FACES__
         #__ID__-case-label { font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
         #__ID__-case-id { font-family: var(--mono); font-size: 18px; font-weight: 500; letter-spacing: 0.08em; color: var(--muted); }
 
-        /* blip marker */
-        #__ID__-blip { position: absolute; left: 50%; top: 680px; width: 32px; height: 32px; transform: translate(-50%, -50%); opacity: 0; }
+        /* blip marker - adjusted for smaller radar */
+        #__ID__-blip { position: absolute; left: 50%; top: 440px; width: 28px; height: 28px; transform: translate(-50%, -50%); opacity: 0; }
         #__ID__-blip-outer { position: absolute; inset: 0; border: 3px solid var(--accent); border-radius: 50%; }
-        #__ID__-blip-inner { position: absolute; inset: 8px; background: var(--accent); border-radius: 50%; }
-        #__ID__-blip-label { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--accent); }
-        #__ID__-blip-status { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+        #__ID__-blip-inner { position: absolute; inset: 7px; background: var(--accent); border-radius: 50%; }
+        #__ID__-blip-label { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: var(--accent); }
+        #__ID__-blip-status { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-        /* content panel with flow layout - no bottom constraint, let it flow naturally */
-        #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: 1180px; display: flex; flex-direction: column; max-height: 620px; overflow: hidden; }
+        /* content panel with flow layout - starts after smaller radar */
+        #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: 760px; max-height: 980px; overflow: hidden; display: flex; flex-direction: column; }
         
-        #__ID__-headline { margin: 0 0 20px; font-family: var(--display); font-weight: 600; font-size: __CF_HEADLINE__px; line-height: 1.14; letter-spacing: -0.015em; color: var(--fg); }
-        #__ID__-dek { margin: 0 0 32px; font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.42; color: var(--muted); }
+        #__ID__-headline { margin: 0 0 18px; font-family: var(--display); font-weight: 600; font-size: __CF_HEADLINE__px; line-height: 1.1; letter-spacing: -0.015em; color: var(--fg); }
+        #__ID__-dek { margin: 0 0 26px; font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.35; color: var(--muted); }
 
-        /* readouts wrapped in container - reduced spacing when photo present */
-        #__ID__-readouts { margin: 0 0 20px; }
-        .cf-readout { margin-bottom: 22px; opacity: 0; }
+        /* readouts wrapped in container - compact spacing */
+        #__ID__-readouts { margin: 0 0 18px; }
+        .cf-readout { margin-bottom: 20px; opacity: 0; }
         .cf-readout-label { font-family: var(--mono); font-size: __CF_LABEL__px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
-        .cf-readout-bar { height: 5px; background: rgba(__ACCENT_RGB__, 0.15); border-radius: 3px; margin-bottom: 8px; overflow: hidden; }
+        .cf-readout-bar { height: 4px; background: rgba(__ACCENT_RGB__, 0.15); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
         .cf-readout-fill { height: 100%; background: var(--accent); width: 0%; }
-        .cf-readout-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.35; color: var(--fg); margin: 0; }
+        .cf-readout-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.3; color: var(--fg); margin: 0; }
 
-        /* photo with tape effect - compact to fit between readouts and footer */
-        #__ID__-photo-wrapper { position: relative; margin: 0 0 0; max-width: 480px; display: __PHOTO_DISPLAY__; flex-shrink: 0; }
-        #__ID__-photo-border { position: relative; background: #fff; padding: 8px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25); transform: rotate(-1.2deg); z-index: 5; }
-        #__ID__-photo { width: 100%; max-height: 220px; object-fit: contain; display: block; }
-        #__ID__-photo-credit { margin: 4px 0 0; font-family: var(--mono); font-size: 10px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
+        /* photo inset in corner of radar - doesn't block text */
+        #__ID__-photo-wrapper { position: absolute; right: __PAD__px; top: 320px; max-width: 340px; display: __PHOTO_DISPLAY__; z-index: 15; }
+        #__ID__-photo-border { position: relative; background: #fff; padding: 8px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3); transform: rotate(2.5deg); }
+        #__ID__-photo { width: 100%; max-height: 200px; object-fit: contain; display: block; }
+        #__ID__-photo-credit { margin: 4px 0 0; font-family: var(--mono); font-size: 9px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
         
-        /* masking tape strips at corners */
-        .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 6; }
-        #__ID__-tape1 { width: 70px; height: 22px; left: -6px; top: 18px; transform: rotate(-42deg); }
-        #__ID__-tape2 { width: 70px; height: 22px; right: -6px; top: 18px; transform: rotate(42deg); }
-        #__ID__-tape3 { width: 70px; height: 22px; left: -6px; bottom: 18px; transform: rotate(42deg); display: __PHOTO_DISPLAY__; }
-        #__ID__-tape4 { width: 70px; height: 22px; right: -6px; bottom: 18px; transform: rotate(-42deg); display: __PHOTO_DISPLAY__; }
+        /* masking tape strips */
+        .tape { position: absolute; background: rgba(230, 223, 200, 0.75); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 16; }
+        #__ID__-tape1 { width: 60px; height: 20px; left: -5px; top: 15px; transform: rotate(-45deg); }
+        #__ID__-tape2 { width: 60px; height: 20px; right: -5px; top: 15px; transform: rotate(45deg); }
+        #__ID__-tape3 { width: 60px; height: 20px; left: -5px; bottom: 15px; transform: rotate(45deg); display: __PHOTO_DISPLAY__; }
+        #__ID__-tape4 { width: 60px; height: 20px; right: -5px; bottom: 15px; transform: rotate(-45deg); display: __PHOTO_DISPLAY__; }
 
         /* footer */
         #__ID__-footer { position: absolute; left: __PAD__px; right: __PAD__px; bottom: 80px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 22px; z-index: 10; }
@@ -128,16 +128,16 @@ __AUDIO__
                 <p class="cf-readout-text">__CF_WHY_MATTERS__</p>
               </div>
             </div>
+          </div>
 
-            <div id="__ID__-photo-wrapper">
-              <div id="__ID__-photo-border">
-                <img id="__ID__-photo" src="__IMAGE_SRC__" alt="Case file image" />
-                <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
-                <div class="tape" id="__ID__-tape1"></div>
-                <div class="tape" id="__ID__-tape2"></div>
-                <div class="tape" id="__ID__-tape3"></div>
-                <div class="tape" id="__ID__-tape4"></div>
-              </div>
+          <div id="__ID__-photo-wrapper">
+            <div id="__ID__-photo-border">
+              <img id="__ID__-photo" src="__IMAGE_SRC__" alt="Case file image" />
+              <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
+              <div class="tape" id="__ID__-tape1"></div>
+              <div class="tape" id="__ID__-tape2"></div>
+              <div class="tape" id="__ID__-tape3"></div>
+              <div class="tape" id="__ID__-tape4"></div>
             </div>
           </div>
 
