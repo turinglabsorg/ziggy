@@ -34,22 +34,41 @@ __FONT_FACES__
         #__ID__-label { position: absolute; left: 60px; top: 100px; padding: 0 0 12px; border-bottom: 2px solid rgb(182, 64, 22); }
         #__ID__-label-text { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(182, 64, 22); }
 
-        /* headline */
-        #__ID__-headline { position: absolute; left: 60px; right: 60px; top: 160px; margin: 0; 
+        /* content column: flows from headline → dek → points → photo */
+        #__ID__-content { position: absolute; left: 60px; right: 60px; top: 160px; }
+
+        /* headline with safe shrink fallback for overflow */
+        #__ID__-headline { margin: 0 0 20px; 
           font-family: var(--display); font-weight: 600; font-size: __CF_HEADLINE__px; line-height: 1.12; letter-spacing: -0.015em; color: #0a0a0a; }
 
         /* dek */
-        #__ID__-dek { position: absolute; left: 60px; right: 60px; top: __CF_DEK_TOP__px; margin: 0; 
+        #__ID__-dek { margin: 0 0 28px; 
           font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.4; color: #3a3a3a; }
 
         /* points section with labels */
-        #__ID__-points { position: absolute; left: 60px; right: 60px; top: __CF_POINTS_TOP__px; }
-        .cf-section { margin-bottom: 32px; }
-        .cf-section-label { font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(182, 64, 22); margin-bottom: 10px; }
+        #__ID__-points { margin: 0 0 0; }
+        .cf-section { margin-bottom: 28px; }
+        .cf-section-label { font-family: var(--mono); font-size: __CF_LABEL__px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(182, 64, 22); margin-bottom: 10px; }
         .cf-section-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.45; color: #1a1a1a; margin: 0; }
 
-        /* redaction bars */
+        /* photo with tape effect */
+        #__ID__-photo-wrapper { position: relative; margin: 32px 0 0; width: 680px; display: __PHOTO_DISPLAY__; }
+        #__ID__-photo-border { position: relative; background: #fff; padding: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2); transform: rotate(-1.2deg); }
+        #__ID__-photo { width: 100%; height: auto; display: block; }
+        #__ID__-photo-credit { margin: 8px 0 0; font-family: var(--mono); font-size: 13px; font-weight: 400; color: #666; text-align: right; font-style: italic; }
+        
+        /* masking tape strips at corners */
+        .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); }
+        #__ID__-tape1 { width: 80px; height: 24px; left: -8px; top: 20px; transform: rotate(-42deg); }
+        #__ID__-tape2 { width: 80px; height: 24px; right: -8px; top: 20px; transform: rotate(42deg); }
+        #__ID__-tape3 { width: 80px; height: 24px; left: -8px; bottom: 20px; transform: rotate(42deg); display: __PHOTO_DISPLAY__; }
+        #__ID__-tape4 { width: 80px; height: 24px; right: -8px; bottom: 20px; transform: rotate(-42deg); display: __PHOTO_DISPLAY__; }
+
+        /* redaction bars - repositioned for photo layout */
         .redact-bar { position: absolute; height: 22px; background: var(--redact); opacity: 0; }
+        #__ID__-redact1 { left: 60px; width: 380px; top: 130px; }
+        #__ID__-redact2 { left: 80px; width: 420px; bottom: __REDACT2_BOTTOM__px; }
+        #__ID__-redact3 { right: 280px; width: 340px; bottom: __REDACT3_BOTTOM__px; }
 
         /* withheld stamp - fully opaque with backing for contrast compliance */
         #__ID__-stamp { position: absolute; right: 80px; bottom: 100px; width: 280px; height: 100px;
@@ -60,7 +79,7 @@ __FONT_FACES__
         #__ID__-stamp-sub { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; color: rgb(35, 3, 0); }
 
         /* source footer */
-        #__ID__-source { position: absolute; left: 60px; right: 60px; bottom: 48px; font-family: var(--mono); font-size: 15px; font-weight: 400; color: #5a5a5a; }
+        #__ID__-source { position: absolute; left: 60px; right: 60px; bottom: 48px; font-family: var(--mono); font-size: __CF_SOURCE_SIZE__px; font-weight: 400; color: #5a5a5a; }
 
         /* brand footer on dark background */
         #__ID__-footer { position: absolute; left: 0; right: 0; bottom: 60px; display: flex; align-items: center; justify-content: center; gap: 16px; }
@@ -85,27 +104,40 @@ __AUDIO__
               <div id="__ID__-label-text">CASE FILE</div>
             </div>
 
-            <h1 id="__ID__-headline">__COPY_HEADLINE__</h1>
-            <p id="__ID__-dek">__COPY_DEK__</p>
+            <div id="__ID__-content">
+              <h1 id="__ID__-headline">__COPY_HEADLINE__</h1>
+              <p id="__ID__-dek">__COPY_DEK__</p>
 
-            <div id="__ID__-points">
-              <div class="cf-section" id="__ID__-confirmed">
-                <div class="cf-section-label">__CF_LABEL_CONFIRMED__</div>
-                <p class="cf-section-text">__CF_CONFIRMED__</p>
+              <div id="__ID__-points">
+                <div class="cf-section" id="__ID__-confirmed">
+                  <div class="cf-section-label">__CF_LABEL_CONFIRMED__</div>
+                  <p class="cf-section-text">__CF_CONFIRMED__</p>
+                </div>
+                <div class="cf-section" id="__ID__-notconfirmed">
+                  <div class="cf-section-label">__CF_LABEL_NOT_CONFIRMED__</div>
+                  <p class="cf-section-text">__CF_NOT_CONFIRMED__</p>
+                </div>
+                <div class="cf-section" id="__ID__-whymatters">
+                  <div class="cf-section-label">__CF_LABEL_WHY_MATTERS__</div>
+                  <p class="cf-section-text">__CF_WHY_MATTERS__</p>
+                </div>
               </div>
-              <div class="cf-section" id="__ID__-notconfirmed">
-                <div class="cf-section-label">__CF_LABEL_NOT_CONFIRMED__</div>
-                <p class="cf-section-text">__CF_NOT_CONFIRMED__</p>
-              </div>
-              <div class="cf-section" id="__ID__-whymatters">
-                <div class="cf-section-label">__CF_LABEL_WHY_MATTERS__</div>
-                <p class="cf-section-text">__CF_WHY_MATTERS__</p>
+
+              <div id="__ID__-photo-wrapper">
+                <div id="__ID__-photo-border">
+                  <img id="__ID__-photo" src="__IMAGE_SRC__" alt="Case file image" />
+                  <div class="tape" id="__ID__-tape1"></div>
+                  <div class="tape" id="__ID__-tape2"></div>
+                  <div class="tape" id="__ID__-tape3"></div>
+                  <div class="tape" id="__ID__-tape4"></div>
+                </div>
+                <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
               </div>
             </div>
 
-            <div class="redact-bar" id="__ID__-redact1" style="left: 60px; width: 380px; top: 130px;"></div>
-            <div class="redact-bar" id="__ID__-redact2" style="left: 80px; width: 420px; top: 1180px;"></div>
-            <div class="redact-bar" id="__ID__-redact3" style="right: 280px; width: 340px; top: 1240px;"></div>
+            <div class="redact-bar" id="__ID__-redact1"></div>
+            <div class="redact-bar" id="__ID__-redact2"></div>
+            <div class="redact-bar" id="__ID__-redact3"></div>
 
             <div id="__ID__-stamp" style="display: __CF_STAMP_DISPLAY__;">
               <div id="__ID__-stamp-main">__CF_STAMP_TEXT__</div>
@@ -152,6 +184,19 @@ __AUDIO__
             tl.fromTo($("confirmed"), { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.7, ease: soft }, 2.8);
             tl.fromTo($("notconfirmed"), { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.7, ease: soft }, 3.4);
             tl.fromTo($("whymatters"), { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.7, ease: soft }, 4.0);
+
+            /* photo appears with tape strips (only if photo exists) */
+            if ($("photo-wrapper") && getComputedStyle($("photo-wrapper")).display !== "none") {
+              tl.fromTo($("photo-border"), { opacity: 0, scale: 0.85, rotateZ: -1.2 }, 
+                { opacity: 1, scale: 1, duration: 0.6, ease: soft }, 4.5);
+              tl.fromTo($("tape1"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 4.7);
+              tl.fromTo($("tape2"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 4.8);
+              tl.fromTo($("tape3"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 4.9);
+              tl.fromTo($("tape4"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 5.0);
+              if ($("photo-credit") && getComputedStyle($("photo-credit")).display !== "none") {
+                tl.fromTo($("photo-credit"), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: soft }, 5.1);
+              }
+            }
 
             /* redaction bars appear */
             tl.to($("redact1"), { opacity: 0.85, duration: 0.3, ease: "none" }, 4.8);

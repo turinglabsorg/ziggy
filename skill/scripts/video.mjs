@@ -45,7 +45,7 @@ export const TEMPLATE_VARIANTS = {
   },
   // case file dossier: declassified document sheet on dark background
   "casefile-dossier": {
-    reel: { rotation: 2.5, cfHeadline: 48, cfDek: 22, cfDekTop: 280, cfPoint: 20, cfPointsTop: 380, pad: 120 },
+    reel: { rotation: 2.5, cfHeadline: 66, cfDek: 30, cfLabel: 22, cfPoint: 28, cfSource: 20, redact2Bottom: 220, redact3Bottom: 160, pad: 120 },
     post: false,
     x: false,
   },
@@ -361,9 +361,13 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__CF_WHY_MATTERS__/g, cfWhyMatters)
       .replace(/__CF_HEADLINE__/g, String(v.cfHeadline ?? 50))
       .replace(/__CF_DEK__/g, String(v.cfDek ?? 22))
-      .replace(/__CF_DEK_TOP__/g, String(v.cfDekTop ?? 280))
+      .replace(/__CF_LABEL__/g, String(v.cfLabel ?? 22))
       .replace(/__CF_POINT__/g, String(v.cfPoint ?? 20))
-      .replace(/__CF_POINTS_TOP__/g, String(v.cfPointsTop ?? 380))
+      .replace(/__CF_SOURCE_SIZE__/g, String(v.cfSource ?? 20))
+      .replace(/__REDACT2_BOTTOM__/g, String(v.redact2Bottom ?? 220))
+      .replace(/__REDACT3_BOTTOM__/g, String(v.redact3Bottom ?? 160))
+      .replace(/__PHOTO_CREDIT__/g, escapeHtml(campaign.imageCredit || ""))
+      .replace(/__PHOTO_CREDIT_DISPLAY__/g, campaign.imageCredit ? "block" : "none")
       .replace(/__ROTATION__/g, String(v.rotation ?? 0))
       // standard tokens
       .replace(/__HOST_ID__/g, `${tenant.slug}-${campaign.name}-${variant}`)
