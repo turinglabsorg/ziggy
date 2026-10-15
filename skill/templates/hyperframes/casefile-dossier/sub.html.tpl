@@ -55,7 +55,7 @@ __FONT_FACES__
         #__ID__-photo-wrapper { position: relative; margin: 0 0 0; max-width: 600px; display: __PHOTO_DISPLAY__; flex-shrink: 0; }
         #__ID__-photo-border { position: relative; background: #fff; padding: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2); transform: rotate(-1.2deg); z-index: 1; }
         #__ID__-photo { width: 100%; max-height: 320px; object-fit: contain; display: block; }
-        #__ID__-photo-credit { margin: 6px 0 0; font-family: var(--mono); font-size: 11px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
+        #__ID__-photo-credit { margin: 10px 4px 0; font-family: var(--mono); font-size: 11px; font-weight: 400; color: #555555; text-align: right; font-style: italic; position: relative; z-index: 3; }
         
         /* masking tape strips at corners */
         .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 2; }
@@ -126,12 +126,12 @@ __AUDIO__
               <div id="__ID__-photo-wrapper">
                 <div id="__ID__-photo-border">
                   <img id="__ID__-photo" src="__IMAGE_SRC__" alt="Case file image" />
-                  <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
                   <div class="tape" id="__ID__-tape1"></div>
                   <div class="tape" id="__ID__-tape2"></div>
                   <div class="tape" id="__ID__-tape3"></div>
                   <div class="tape" id="__ID__-tape4"></div>
                 </div>
+                <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
               </div>
             </div>
 
