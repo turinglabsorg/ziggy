@@ -80,6 +80,22 @@ test("campaignFromCasefile builds a case file campaign with required structure",
   assert.equal(campaign.posts.twitter.enabled, false);
 });
 
+test("campaignFromCasefile enables twitter when in social.platforms", () => {
+  const tenantWithTwitter = {
+    ...TENANT,
+    social: { 
+      ...TENANT.social,
+      platforms: ["tiktok", "twitter"],
+    },
+  };
+  const campaign = campaignFromCasefile(tenantWithTwitter, CASEFILE_ITEM);
+  assert.equal(campaign.posts.twitter.enabled, true, "twitter should be enabled when in social.platforms");
+  assert.equal(campaign.posts.twitter.media, "slide-cover");
+  assert.equal(campaign.posts.twitter.thread.at(-1).body.includes("alienwatch.buzz"), true, "thread should end with site link");
+  assert.equal(campaign.posts.tiktok.enabled, true);
+  assert.equal(campaign.posts.instagram_post.enabled, false, "instagram_post not in platforms");
+});
+
 test("campaignFromCasefile validates required points", () => {
   const invalidItem = { ...CASEFILE_ITEM, points: ["one", "two"] };
   assert.throws(() => campaignFromCasefile(TENANT, invalidItem), /requires exactly 3 points/);

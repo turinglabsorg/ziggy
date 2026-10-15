@@ -464,17 +464,15 @@ test("casefile 'at' field is preserved through round execution", async () => {
   
   assert.equal(goodCasefiles[0].at, "2026-10-14T14:00:00Z", "'at' field should be preserved in mapping");
   
-  // Test scheduleRound respects the 'at' field
-  const { server, port } = await startMockPostproxy();
-  const client = { host: `http://127.0.0.1:${port}`, apiKey: API_KEY };
+  // Test scheduleRound respects the 'at' field  
+  const { createClient } = await import("../scripts/postproxy.mjs");
+  const client = createClient({ baseUrl: mock.baseUrl, apiKey: API_KEY });
   
   const scheduled = await scheduleRound(tenantWithCasefile, goodCasefiles, { 
     client, 
     now: new Date("2026-10-14T10:00:00Z"),
     dryRun: true 
   });
-  
-  server.close();
   
   assert.equal(scheduled.results.length, 1, "should schedule 1 item");
   assert.equal(scheduled.results[0].at, "2026-10-14T14:00:00.000Z", "should be scheduled at specified time, not next free slot");
