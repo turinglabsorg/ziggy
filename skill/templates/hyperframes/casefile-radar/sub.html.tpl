@@ -32,25 +32,39 @@ __FONT_FACES__
         #__ID__-blip-label { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--accent); }
         #__ID__-blip-status { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); font-size: 13px; color: var(--muted); }
 
-        /* content panel */
-        #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: 1180px; }
+        /* content panel with flow layout */
+        #__ID__-content { position: absolute; left: __PAD__px; right: __PAD__px; top: 1180px; bottom: 190px; display: flex; flex-direction: column; }
         
-        #__ID__-headline { margin: 0 0 24px; font-family: var(--display); font-weight: 600; font-size: __CF_HEADLINE__px; line-height: 1.14; letter-spacing: -0.015em; color: var(--fg); }
-        #__ID__-dek { margin: 0 0 44px; font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.42; color: var(--muted); }
+        #__ID__-headline { margin: 0 0 20px; font-family: var(--display); font-weight: 600; font-size: __CF_HEADLINE__px; line-height: 1.14; letter-spacing: -0.015em; color: var(--fg); }
+        #__ID__-dek { margin: 0 0 32px; font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.42; color: var(--muted); }
 
         /* data readouts as horizontal bars */
-        .cf-readout { margin-bottom: 36px; opacity: 0; }
-        .cf-readout-label { font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+        #__ID__-readouts { margin: 0 0 24px; }
+        .cf-readout { margin-bottom: 28px; opacity: 0; }
+        .cf-readout-label { font-family: var(--mono); font-size: __CF_LABEL__px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
         .cf-readout-bar { height: 6px; background: rgba(__ACCENT_RGB__, 0.15); border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
         .cf-readout-fill { height: 100%; background: var(--accent); width: 0%; }
         .cf-readout-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.45; color: var(--fg); margin: 0; }
 
+        /* photo with tape effect - fits between readouts and footer */
+        #__ID__-photo-wrapper { position: relative; margin: 0 0 0; max-width: 560px; display: __PHOTO_DISPLAY__; flex-shrink: 0; }
+        #__ID__-photo-border { position: relative; background: #fff; padding: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25); transform: rotate(-1.2deg); z-index: 5; }
+        #__ID__-photo { width: 100%; max-height: 280px; object-fit: contain; display: block; }
+        #__ID__-photo-credit { margin: 6px 0 0; font-family: var(--mono); font-size: 11px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
+        
+        /* masking tape strips at corners */
+        .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 6; }
+        #__ID__-tape1 { width: 70px; height: 22px; left: -6px; top: 18px; transform: rotate(-42deg); }
+        #__ID__-tape2 { width: 70px; height: 22px; right: -6px; top: 18px; transform: rotate(42deg); }
+        #__ID__-tape3 { width: 70px; height: 22px; left: -6px; bottom: 18px; transform: rotate(42deg); display: __PHOTO_DISPLAY__; }
+        #__ID__-tape4 { width: 70px; height: 22px; right: -6px; bottom: 18px; transform: rotate(-42deg); display: __PHOTO_DISPLAY__; }
+
         /* footer */
-        #__ID__-footer { position: absolute; left: __PAD__px; right: __PAD__px; bottom: 80px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 22px; }
+        #__ID__-footer { position: absolute; left: __PAD__px; right: __PAD__px; bottom: 80px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 22px; z-index: 10; }
         #__ID__-brand { font-family: var(--display); font-size: 36px; line-height: 1; letter-spacing: __LETTER_SPACING__; text-transform: __TEXT_TRANSFORM__; color: var(--fg); position: relative; }
         #__ID__-brand .part { display: inline-block; }
         #__ID__-brand .part + .part { margin-left: 0.3em; }
-        #__ID__-source { font-family: var(--mono); font-size: 16px; font-weight: 400; color: var(--muted); max-width: 420px; text-align: right; }
+        #__ID__-source { font-family: var(--mono); font-size: __CF_SOURCE_SIZE__px; font-weight: 400; color: var(--muted); max-width: 420px; text-align: right; }
         #__ID__-url { display: block; margin-top: 8px; font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--accent); text-align: right; }
       </style>
 
@@ -95,22 +109,35 @@ __AUDIO__
             <h1 id="__ID__-headline">__COPY_HEADLINE__</h1>
             <p id="__ID__-dek">__COPY_DEK__</p>
 
-            <div class="cf-readout" id="__ID__-confirmed">
-              <div class="cf-readout-label">__CF_LABEL_CONFIRMED__</div>
-              <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-confirmed-fill"></div></div>
-              <p class="cf-readout-text">__CF_CONFIRMED__</p>
+            <div id="__ID__-readouts">
+              <div class="cf-readout" id="__ID__-confirmed">
+                <div class="cf-readout-label">__CF_LABEL_CONFIRMED__</div>
+                <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-confirmed-fill"></div></div>
+                <p class="cf-readout-text">__CF_CONFIRMED__</p>
+              </div>
+
+              <div class="cf-readout" id="__ID__-notconfirmed">
+                <div class="cf-readout-label">__CF_LABEL_NOT_CONFIRMED__</div>
+                <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-notconfirmed-fill"></div></div>
+                <p class="cf-readout-text">__CF_NOT_CONFIRMED__</p>
+              </div>
+
+              <div class="cf-readout" id="__ID__-whymatters">
+                <div class="cf-readout-label">__CF_LABEL_WHY_MATTERS__</div>
+                <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-whymatters-fill"></div></div>
+                <p class="cf-readout-text">__CF_WHY_MATTERS__</p>
+              </div>
             </div>
 
-            <div class="cf-readout" id="__ID__-notconfirmed">
-              <div class="cf-readout-label">__CF_LABEL_NOT_CONFIRMED__</div>
-              <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-notconfirmed-fill"></div></div>
-              <p class="cf-readout-text">__CF_NOT_CONFIRMED__</p>
-            </div>
-
-            <div class="cf-readout" id="__ID__-whymatters">
-              <div class="cf-readout-label">__CF_LABEL_WHY_MATTERS__</div>
-              <div class="cf-readout-bar"><div class="cf-readout-fill" id="__ID__-whymatters-fill"></div></div>
-              <p class="cf-readout-text">__CF_WHY_MATTERS__</p>
+            <div id="__ID__-photo-wrapper">
+              <div id="__ID__-photo-border">
+                <img id="__ID__-photo" src="__IMAGE_SRC__" alt="Case file image" />
+                <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
+                <div class="tape" id="__ID__-tape1"></div>
+                <div class="tape" id="__ID__-tape2"></div>
+                <div class="tape" id="__ID__-tape3"></div>
+                <div class="tape" id="__ID__-tape4"></div>
+              </div>
             </div>
           </div>
 
@@ -158,6 +185,19 @@ __AUDIO__
               tl.fromTo($(id), { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6, ease: soft }, t);
               tl.fromTo($(id + "-fill"), { width: "0%" }, { width: (fills[i] * 100) + "%", duration: 0.9, ease: "power2.out" }, t + 0.2);
             });
+
+            /* photo appears with tape strips (only if photo exists) */
+            if ($("photo-wrapper") && getComputedStyle($("photo-wrapper")).display !== "none") {
+              tl.fromTo($("photo-border"), { opacity: 0, scale: 0.85, rotateZ: -1.2 }, 
+                { opacity: 1, scale: 1, duration: 0.6, ease: soft }, 5.0);
+              tl.fromTo($("tape1"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 5.2);
+              tl.fromTo($("tape2"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 5.3);
+              tl.fromTo($("tape3"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 5.4);
+              tl.fromTo($("tape4"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none" }, 5.5);
+              if ($("photo-credit") && getComputedStyle($("photo-credit")).display !== "none") {
+                tl.fromTo($("photo-credit"), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: soft }, 5.6);
+              }
+            }
 
             /* footer */
             tl.fromTo($("footer"), { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: soft }, 5.6);

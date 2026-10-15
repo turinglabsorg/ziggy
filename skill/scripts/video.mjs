@@ -45,13 +45,13 @@ export const TEMPLATE_VARIANTS = {
   },
   // case file dossier: declassified document sheet on dark background
   "casefile-dossier": {
-    reel: { rotation: 2.5, cfHeadline: 66, cfDek: 30, cfLabel: 22, cfPoint: 28, cfSource: 20, redact2Bottom: 220, redact3Bottom: 160, pad: 120 },
+    reel: { rotation: 2.5, cfHeadline: 66, cfDek: 30, cfLabel: 22, cfPoint: 28, cfSource: 20, pad: 120 },
     post: false,
     x: false,
   },
   // case file radar: HUD-style radar grid with data readouts
   "casefile-radar": {
-    reel: { cfHeadline: 52, cfDek: 24, cfPoint: 21, pad: 120 },
+    reel: { cfHeadline: 66, cfDek: 30, cfLabel: 22, cfPoint: 28, cfSource: 18, pad: 120 },
     post: false,
     x: false,
   },
@@ -364,8 +364,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__CF_LABEL__/g, String(v.cfLabel ?? 22))
       .replace(/__CF_POINT__/g, String(v.cfPoint ?? 20))
       .replace(/__CF_SOURCE_SIZE__/g, String(v.cfSource ?? 20))
-      .replace(/__REDACT2_BOTTOM__/g, String(v.redact2Bottom ?? 220))
-      .replace(/__REDACT3_BOTTOM__/g, String(v.redact3Bottom ?? 160))
+      .replace(/__REDACT_DISPLAY__/g, imageSrc ? "none" : "block")
       .replace(/__PHOTO_CREDIT__/g, escapeHtml(campaign.imageCredit || ""))
       .replace(/__PHOTO_CREDIT_DISPLAY__/g, campaign.imageCredit ? "block" : "none")
       .replace(/__ROTATION__/g, String(v.rotation ?? 0))

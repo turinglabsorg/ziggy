@@ -34,8 +34,8 @@ __FONT_FACES__
         #__ID__-label { position: absolute; left: 60px; top: 100px; padding: 0 0 12px; border-bottom: 2px solid rgb(182, 64, 22); }
         #__ID__-label-text { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: rgb(182, 64, 22); }
 
-        /* content column: flows from headline → dek → points → photo */
-        #__ID__-content { position: absolute; left: 60px; right: 60px; top: 160px; }
+        /* content column: flows from headline → dek → points → photo, all inside sheet bounds */
+        #__ID__-content { position: absolute; left: 60px; right: 60px; top: 160px; bottom: 100px; display: flex; flex-direction: column; }
 
         /* headline with safe shrink fallback for overflow */
         #__ID__-headline { margin: 0 0 20px; 
@@ -46,29 +46,29 @@ __FONT_FACES__
           font-family: var(--text); font-weight: 400; font-size: __CF_DEK__px; line-height: 1.4; color: #3a3a3a; }
 
         /* points section with labels */
-        #__ID__-points { margin: 0 0 0; }
-        .cf-section { margin-bottom: 28px; }
+        #__ID__-points { margin: 0 0 24px; }
+        .cf-section { margin-bottom: 24px; }
         .cf-section-label { font-family: var(--mono); font-size: __CF_LABEL__px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(182, 64, 22); margin-bottom: 10px; }
         .cf-section-text { font-family: var(--text); font-weight: 400; font-size: __CF_POINT__px; line-height: 1.45; color: #1a1a1a; margin: 0; }
 
-        /* photo with tape effect */
-        #__ID__-photo-wrapper { position: relative; margin: 32px 0 0; width: 680px; display: __PHOTO_DISPLAY__; }
-        #__ID__-photo-border { position: relative; background: #fff; padding: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2); transform: rotate(-1.2deg); }
-        #__ID__-photo { width: 100%; height: auto; display: block; }
-        #__ID__-photo-credit { margin: 8px 0 0; font-family: var(--mono); font-size: 13px; font-weight: 400; color: #666; text-align: right; font-style: italic; }
+        /* photo with tape effect - constrained to fit inside sheet with source line below */
+        #__ID__-photo-wrapper { position: relative; margin: 0 0 0; max-width: 600px; display: __PHOTO_DISPLAY__; flex-shrink: 0; }
+        #__ID__-photo-border { position: relative; background: #fff; padding: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2); transform: rotate(-1.2deg); z-index: 1; }
+        #__ID__-photo { width: 100%; max-height: 320px; object-fit: contain; display: block; }
+        #__ID__-photo-credit { margin: 6px 0 0; font-family: var(--mono); font-size: 11px; font-weight: 400; color: #888; text-align: right; font-style: italic; }
         
         /* masking tape strips at corners */
-        .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); }
-        #__ID__-tape1 { width: 80px; height: 24px; left: -8px; top: 20px; transform: rotate(-42deg); }
-        #__ID__-tape2 { width: 80px; height: 24px; right: -8px; top: 20px; transform: rotate(42deg); }
-        #__ID__-tape3 { width: 80px; height: 24px; left: -8px; bottom: 20px; transform: rotate(42deg); display: __PHOTO_DISPLAY__; }
-        #__ID__-tape4 { width: 80px; height: 24px; right: -8px; bottom: 20px; transform: rotate(-42deg); display: __PHOTO_DISPLAY__; }
+        .tape { position: absolute; background: rgba(230, 223, 200, 0.7); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 2; }
+        #__ID__-tape1 { width: 70px; height: 22px; left: -6px; top: 18px; transform: rotate(-42deg); }
+        #__ID__-tape2 { width: 70px; height: 22px; right: -6px; top: 18px; transform: rotate(42deg); }
+        #__ID__-tape3 { width: 70px; height: 22px; left: -6px; bottom: 18px; transform: rotate(42deg); display: __PHOTO_DISPLAY__; }
+        #__ID__-tape4 { width: 70px; height: 22px; right: -6px; bottom: 18px; transform: rotate(-42deg); display: __PHOTO_DISPLAY__; }
 
-        /* redaction bars - repositioned for photo layout */
-        .redact-bar { position: absolute; height: 22px; background: var(--redact); opacity: 0; }
+        /* redaction bars - hidden when photo present to avoid overlap */
+        .redact-bar { position: absolute; height: 22px; background: var(--redact); opacity: 0; z-index: 0; display: __REDACT_DISPLAY__; }
         #__ID__-redact1 { left: 60px; width: 380px; top: 130px; }
-        #__ID__-redact2 { left: 80px; width: 420px; bottom: __REDACT2_BOTTOM__px; }
-        #__ID__-redact3 { right: 280px; width: 340px; bottom: __REDACT3_BOTTOM__px; }
+        #__ID__-redact2 { left: 80px; width: 420px; top: 800px; }
+        #__ID__-redact3 { right: 280px; width: 340px; top: 860px; }
 
         /* withheld stamp - fully opaque with backing for contrast compliance */
         #__ID__-stamp { position: absolute; right: 80px; bottom: 100px; width: 280px; height: 100px;
@@ -126,12 +126,12 @@ __AUDIO__
               <div id="__ID__-photo-wrapper">
                 <div id="__ID__-photo-border">
                   <img id="__ID__-photo" src="__IMAGE_SRC__" alt="Case file image" />
+                  <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
                   <div class="tape" id="__ID__-tape1"></div>
                   <div class="tape" id="__ID__-tape2"></div>
                   <div class="tape" id="__ID__-tape3"></div>
                   <div class="tape" id="__ID__-tape4"></div>
                 </div>
-                <div id="__ID__-photo-credit" style="display: __PHOTO_CREDIT_DISPLAY__;">__PHOTO_CREDIT__</div>
               </div>
             </div>
 
