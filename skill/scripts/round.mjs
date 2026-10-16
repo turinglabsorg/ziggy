@@ -136,14 +136,22 @@ async function feedStories(tenant, fetchImpl) {
 export async function planRound(tenant, { fetchImpl, now = new Date(), archive = false } = {}) {
   const cfg = roundConfig(tenant);
   const t0 = now.getTime();
-  const covered = coveredStories(tenant.slug);
-  const stories = (await feedStories(tenant, fetchImpl)).filter((s) => !storyCovered(s, covered));
+  const placeNames = cfg.placeNames || [];
+  const covered = coveredStories(tenant.slug, placeNames);
+  const stories = (await feedStories(tenant, fetchImpl)).filter((s) => !storyCovered(s, covered, placeNames));
   return stories
     .map((s) => {
       const deadline = storyDeadline(cfg, s.date);
       return { prefix: s.slug.slice(0, 40), date: s.date, deadline: Number.isFinite(deadline) ? new Date(deadline).toISOString() : null, section: s.section, sources: s.sources, image: Boolean(s.image), title: s.title, dek: s.dek };
     })
-    .filter((s) => (s.deadline ? Date.parse(s.deadline) > t0 + 30 * 60_000 : archive || Date.parse(s.date) > t0 - 72 * 3600_000))
+    .filter((s) => {
+      // For archive mode: include stories with deadlines that haven't passed yet, or non-expiring stories
+      if (archive) {
+        return s.deadline ? Date.parse(s.deadline) > t0 + 30 * 60_000 : true;
+      }
+      // For non-archive: only stories with deadlines not yet passed, or very recent stories without deadlines
+      return s.deadline ? Date.parse(s.deadline) > t0 + 30 * 60_000 : Date.parse(s.date) > t0 - 72 * 3600_000;
+    })
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 

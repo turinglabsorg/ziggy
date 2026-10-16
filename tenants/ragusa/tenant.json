@@ -99,6 +99,20 @@
       "instagram_reel",
       "facebook_reel"
     ],
+    "placeNames": [
+      "Ragusa",
+      "Modica",
+      "Comiso",
+      "Scicli",
+      "Vittoria",
+      "Acate",
+      "Ispica",
+      "Pozzallo",
+      "Santa Croce Camerina",
+      "Giarratana",
+      "Monterosso Almo",
+      "Chiaramonte Gulfi"
+    ],
     "freshness": "next-day",
     "round": {
       "times": [

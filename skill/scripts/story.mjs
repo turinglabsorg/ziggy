@@ -28,15 +28,34 @@ export function pick(obj, path) {
   return String(path).split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
-export async function fetchStories(tenant, { fetchImpl = fetch } = {}) {
+export async function fetchStories(tenant, { fetchImpl = fetch, maxItems = 200 } = {}) {
   const feed = tenant.feed;
   if (!feed?.url) throw new Error(`tenant ${tenant.slug} has no feed configured (tenant.json → feed.url)`);
-  const res = await fetchImpl(feed.url, { headers: { "User-Agent": "Mozilla/5.0 ziggy", Accept: "application/json" } });
-  if (!res.ok) throw new Error(`feed ${feed.url} → ${res.status}`);
-  const body = await res.json();
-  const items = feed.items ? pick(body, feed.items) : body;
-  if (!Array.isArray(items)) throw new Error(`feed did not return an array at ${feed.items || "root"}`);
-  return items.map((it) => normalizeStory(it, feed));
+  
+  const allItems = [];
+  let cursor = null;
+  let fetchCount = 0;
+  const maxFetches = 10; // Safety limit to prevent infinite loops
+  
+  while (fetchCount < maxFetches && allItems.length < maxItems) {
+    const url = cursor ? `${feed.url}&cursor=${encodeURIComponent(cursor)}` : feed.url;
+    const res = await fetchImpl(url, { headers: { "User-Agent": "Mozilla/5.0 ziggy", Accept: "application/json" } });
+    if (!res.ok) throw new Error(`feed ${url} → ${res.status}`);
+    
+    const body = await res.json();
+    const items = feed.items ? pick(body, feed.items) : body;
+    if (!Array.isArray(items)) throw new Error(`feed did not return an array at ${feed.items || "root"}`);
+    
+    allItems.push(...items);
+    fetchCount++;
+    
+    // Check for pagination: try common patterns (nextCursor, page.nextCursor, next, etc.)
+    const nextCursor = body.page?.nextCursor || body.nextCursor || body.pagination?.nextCursor || body.next || null;
+    if (!nextCursor || items.length === 0) break;
+    cursor = nextCursor;
+  }
+  
+  return allItems.slice(0, maxItems).map((it) => normalizeStory(it, feed));
 }
 
 export function normalizeStory(item, feed) {

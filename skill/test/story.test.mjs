@@ -42,6 +42,65 @@ test("dotted paths, slugify, image rewrite and story url", () => {
   assert.match(st.url, /^https:\/\/acme\.example\/#\/b\/modelling-study/);
 });
 
+test("fetchStories handles pagination with nextCursor", async () => {
+  const tenant = { slug: "acme", feed: FEED };
+  let callCount = 0;
+  const mockFetch = async (url) => {
+    callCount++;
+    const hasNext = !url.includes("cursor=");
+    return {
+      ok: true,
+      json: async () => ({
+        data: [
+          { ...ITEM, slug: `story-${callCount}-abc123`, title: `Story ${callCount}` }
+        ],
+        page: hasNext ? { nextCursor: "cursor123" } : {}
+      })
+    };
+  };
+  const stories = await fetchStories(tenant, { fetchImpl: mockFetch });
+  assert.equal(callCount, 2, "Should fetch two pages");
+  assert.equal(stories.length, 2, "Should return stories from both pages");
+  assert.equal(stories[0].title, "Story 1");
+  assert.equal(stories[1].title, "Story 2");
+});
+
+test("fetchStories respects maxItems limit", async () => {
+  const tenant = { slug: "acme", feed: FEED };
+  let callCount = 0;
+  const mockFetch = async () => {
+    callCount++;
+    return {
+      ok: true,
+      json: async () => ({
+        data: Array.from({ length: 50 }, (_, i) => ({ ...ITEM, slug: `story-${i}`, title: `Story ${i}` })),
+        page: { nextCursor: "cursor123" }
+      })
+    };
+  };
+  const stories = await fetchStories(tenant, { fetchImpl: mockFetch, maxItems: 100 });
+  assert.ok(callCount >= 2, "Should fetch multiple pages");
+  assert.equal(stories.length, 100, "Should limit to maxItems");
+});
+
+test("fetchStories stops when no nextCursor", async () => {
+  const tenant = { slug: "acme", feed: FEED };
+  let callCount = 0;
+  const mockFetch = async () => {
+    callCount++;
+    return {
+      ok: true,
+      json: async () => ({
+        data: [{ ...ITEM, slug: "story-1", title: "Story 1" }],
+        page: {} // No nextCursor
+      })
+    };
+  };
+  const stories = await fetchStories(tenant, { fetchImpl: mockFetch });
+  assert.equal(callCount, 1, "Should fetch only one page when no cursor");
+  assert.equal(stories.length, 1);
+});
+
 test("campaignFromStory builds a story-template campaign with reel post and English copy", () => {
   const tenant = { slug: "acme", name: "Acme", site: "https://acme.example/", language: "en", feed: FEED };
   const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED));

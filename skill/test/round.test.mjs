@@ -36,6 +36,28 @@ test("deadline: the end of the day after the story's date, in the tenant's time;
   assert.equal(storyDeadline(roundConfig({ daily: { freshness: "archive" } }), "2026-10-11T09:00:00Z"), Infinity);
 });
 
+test("planRound with archive flag includes stories with deadlines still in the future", async () => {
+  const { planRound } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  
+  // Without --archive: only stories within deadline
+  const normalPlan = await planRound(loadTenant("acme"), { now: new Date("2026-10-12T08:00:00Z") });
+  const normalTitles = normalPlan.map((s) => s.title);
+  // Story from 2026-10-11 has deadline of end of 2026-10-12, still valid
+  assert.ok(normalTitles.includes("Harbour reopens after the storm"));
+  // Story from 2026-10-12 also valid
+  assert.ok(normalTitles.includes("Council approves the school budget"));
+  
+  // With --archive: includes all stories not past their deadline
+  const archivePlan = await planRound(loadTenant("acme"), { now: new Date("2026-10-12T08:00:00Z"), archive: true });
+  const archiveTitles = archivePlan.map((s) => s.title);
+  assert.ok(archiveTitles.includes("Harbour reopens after the storm"));
+  assert.ok(archiveTitles.includes("Council approves the school budget"));
+  
+  // Old story from 2026-10-09 with deadline of 2026-10-10 should not be included
+  assert.ok(!archiveTitles.includes("Autumn fair closes its doors"));
+});
+
 test("points: 3 or 4, none empty, none over 90 characters", () => {
   assert.deepEqual(pointProblems(["a", "b", "c", "d"]), []);
   assert.deepEqual(pointProblems(["a", "b", "c"]), []);

@@ -154,3 +154,85 @@ test("a campaign marked skip covers its story without any post: the loop leaves 
   writeFileSync(join(dir, "campaign.json"), JSON.stringify({ template: "story", skip: true, story: { slug: story.slug }, copy: { headline: story.title } }));
   assert.equal(storyCovered(story, coveredStories("acme")), true);
 });
+
+test("storyCovered: story ID matching is primary check", () => {
+  const covered = [
+    { slug: "petizione-a-ragusa-roditori-71903f2c-8e18e4cd", storyId: "71903f2c", tokens: new Set(["petizione", "ragusa", "roditori"]) }
+  ];
+  // Same story ID → covered
+  assert.equal(storyCovered({ slug: "petizione-a-ragusa-roditori-71903f2c-8e18e4cd", title: "Petizione a Ragusa per i roditori" }, covered), true);
+  // Same story ID but renamed → still covered
+  assert.equal(storyCovered({ slug: "petizione-a-ragusa-topi-71903f2c-99999999", title: "Petizione a Ragusa per i topi" }, covered), true);
+  // Different story ID → not covered
+  assert.equal(storyCovered({ slug: "confcooperative-ragusa-evento-12345678-87654321", title: "Confcooperative Ragusa organizza evento per le imprese" }, covered), false);
+});
+
+test("storyCovered: false-positive examples must NOT be covered", () => {
+  const placeNames = ["Ragusa", "Modica", "Comiso", "Scicli", "Vittoria", "Acate"];
+  
+  // Example 1: 'Petizione a Ragusa… roditori' should NOT be blocked by 'Confcooperative Ragusa…'
+  const covered1 = [
+    { slug: "confcooperative-ragusa-evento-12345678-87654321", storyId: "12345678", tokens: new Set(["confcooperative", "evento", "imprese"]) }
+  ];
+  assert.equal(
+    storyCovered({ slug: "petizione-a-ragusa-roditori-71903f2c-8e18e4cd", title: "Petizione a Ragusa per i roditori" }, covered1, placeNames),
+    false,
+    "Generic words (ragusa, per) should not cause false positive"
+  );
+  
+  // Example 2: 'Comiso approva tre misure… tributi' should NOT be blocked by 'Incidente a Comiso…'
+  const covered2 = [
+    { slug: "incidente-a-comiso-auto-12345678-87654321", storyId: "12345678", tokens: new Set(["incidente", "auto", "feriti"]) }
+  ];
+  assert.equal(
+    storyCovered({ slug: "comiso-approva-tre-misure-tributi-71903f2c-8e18e4cd", title: "Comiso approva tre misure per i tributi" }, covered2, placeNames),
+    false,
+    "Generic words (comiso, dei/per, tre) should not cause false positive"
+  );
+  
+  // Example 3: 'Una targa a Modica… crollo 1951' should NOT be blocked by 'Pnrr a Modica apre la palestra'
+  const covered3 = [
+    { slug: "pnrr-a-modica-palestra-12345678-87654321", storyId: "12345678", tokens: new Set(["pnrr", "palestra", "sport"]) }
+  ];
+  assert.equal(
+    storyCovered({ slug: "una-targa-a-modica-crollo-1951-71903f2c-8e18e4cd", title: "Una targa a Modica per il crollo del 1951" }, covered3, placeNames),
+    false,
+    "Generic words (una, modica, due) should not cause false positive"
+  );
+});
+
+test("storyCovered: true duplicates must be covered", () => {
+  const placeNames = ["Ragusa", "Modica", "Comiso", "Giarratana", "Scicli"];
+  
+  // Example 1: Same De Chirico at MACC story - meaningful tokens: chirico, macc, opere
+  const covered1 = [
+    { slug: "de-chirico-mostra-macc-ragusa-12345678-87654321", storyId: "12345678", tokens: new Set(["chirico", "mostra", "macc", "opere"]) }
+  ];
+  // New story has: chirico, macc, esposizione, opere → 3 shared tokens (chirico, macc, opere), 75% match
+  assert.equal(
+    storyCovered({ slug: "de-chirico-macc-esposizione-opere-99999999-11111111", title: "De Chirico al MACC: esposizione delle opere" }, covered1, placeNames),
+    true,
+    "Same story (De Chirico at MACC) should be detected despite rewording"
+  );
+  
+  // Example 2: Same Giarratana Volley story - meaningful tokens overlap
+  const covered2 = [
+    { slug: "giarratana-volley-vittoria-campionato-serie-12345678-87654321", storyId: "12345678", tokens: new Set(["volley", "vittoria", "campionato", "serie"]) }
+  ];
+  // New story has: volley, vince, campionato, serie → 3 shared tokens (volley, campionato, serie), 75% match
+  assert.equal(
+    storyCovered({ slug: "giarratana-volley-vince-campionato-serie-99999999-11111111", title: "Giarratana Volley vince il campionato di Serie B" }, covered2, placeNames),
+    true,
+    "Same story (Giarratana Volley) should be detected"
+  );
+  
+  // Example 3: Same story, high overlap of meaningful tokens
+  const covered3 = [
+    { slug: "scicli-restauro-chiesa-san-bartolomeo-12345678-87654321", storyId: "12345678", tokens: new Set(["restauro", "chiesa", "bartolomeo", "finanziamento"]) }
+  ];
+  assert.equal(
+    storyCovered({ slug: "scicli-chiesa-san-bartolomeo-restauro-regionale-99999999-11111111", title: "Scicli: restauro della chiesa di San Bartolomeo con finanziamento regionale" }, covered3, placeNames),
+    true,
+    "Same story with high token overlap should be covered"
+  );
+});
