@@ -76,7 +76,7 @@ test("campaignFromCasefile builds a case file campaign with required structure",
   assert.ok(campaign.posts.instagram_reel.body.includes(CASEFILE_ITEM.source.outlet));
   assert.ok(campaign.posts.instagram_reel.body.includes("alienwatch.buzz"));
   
-  // X post disabled by default (needs slide-cover still)
+  // X post disabled by default (opt in via social.platforms)
   assert.equal(campaign.posts.twitter.enabled, false);
 });
 
@@ -90,7 +90,7 @@ test("campaignFromCasefile enables twitter when in social.platforms", () => {
   };
   const campaign = campaignFromCasefile(tenantWithTwitter, CASEFILE_ITEM);
   assert.equal(campaign.posts.twitter.enabled, true, "twitter should be enabled when in social.platforms");
-  assert.equal(campaign.posts.twitter.media, "slide-cover");
+  assert.equal(campaign.posts.twitter.media, "reel", "X posts the reel the round renders");
   assert.equal(campaign.posts.twitter.thread.at(-1).body.includes("alienwatch.buzz"), true, "thread should end with site link");
   assert.equal(campaign.posts.tiktok.enabled, true);
   assert.equal(campaign.posts.instagram_post.enabled, false, "instagram_post not in platforms");

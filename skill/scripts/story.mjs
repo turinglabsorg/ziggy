@@ -175,7 +175,7 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
   const caption = `${story.title}\n\n${story.dek}${pointsBlock}${sourcesLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
   const thread = composeThread({ title: story.title, dek: story.dek, url: story.url, limit: 280 });
   // tenant.social.platforms opts a tenant into extra kinds: ["tiktok", "instagram_post"] —
-  // reels are always on, the X thread stays manual (it needs the slide-cover still)
+  // reels are always on; X (when listed) posts the same reel, which every round renders
   const extra = new Set(social.platforms || []);
   return {
     template: "story",
@@ -201,7 +201,7 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
       },
       twitter: {
         body: thread.body,
-        media: "slide-cover",
+        media: "reel",
         alt_text: story.title,
         thread: thread.thread,
         enabled: extra.has("twitter"),

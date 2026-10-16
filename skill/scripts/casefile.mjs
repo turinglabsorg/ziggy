@@ -198,7 +198,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
       },
       twitter: {
         body: thread.body,
-        media: "slide-cover",
+        media: "reel",
         alt_text: item.headline,
         thread: thread.thread,
         enabled: extra.has("twitter"),
