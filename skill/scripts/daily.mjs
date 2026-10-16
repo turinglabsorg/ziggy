@@ -58,7 +58,7 @@ export function livePosts(slug) {
  * re-slugs a story when it is updated (new content hash, tweaked title), so the exact slug
  * is not enough — the headline tokens catch the same event under a new name.
  */
-export function coveredStories(slug) {
+export function coveredStories(slug, placeNames = []) {
   const posted = new Set(livePosts(slug).map((r) => r.campaign).filter(Boolean));
   const covered = [];
   for (const name of listCampaigns(slug)) {
@@ -66,37 +66,88 @@ export function coveredStories(slug) {
       const c = loadCampaign(slug, name);
       // `"skip": true` in campaign.json: an editor dropped the story (e.g. an event already past)
       if (!posted.has(name) && !c.skip) continue;
-      if (c.story?.slug || c.copy?.headline) covered.push({ slug: c.story?.slug || null, tokens: titleTokens(c.copy?.headline || "") });
+      if (c.story?.slug || c.copy?.headline) covered.push({ slug: c.story?.slug || null, storyId: storyIdFromSlug(c.story?.slug), tokens: titleTokens(c.copy?.headline || "", placeNames) });
     } catch { /* a broken campaign does not block the run */ }
   }
   return covered;
 }
 
-/** Significant title words: slug tokens minus stop-short words and the feed's hex id segments. */
-export function titleTokens(title) {
-  return new Set(slugify(title).split("-").filter((w) => w.length > 2 && !/^[0-9a-f]{6,}$/.test(w)));
+/**
+ * Extract the stable story ID from a slug. For Ragusa.buzz and similar feeds, slugs end with
+ * two hex IDs (e.g., "story-name-71903f2c-8e18e4cd"); the first hex group is the source
+ * cluster ID and stays stable even when the briefing is renamed. Returns null if no ID found.
+ */
+export function storyIdFromSlug(slug) {
+  if (!slug) return null;
+  const match = String(slug).match(/[0-9a-f]{8,}-[0-9a-f]{8,}$/);
+  return match ? match[0].split("-")[0] : null;
 }
 
-/** Covered when the stripped slug matches, or ≥25% of the story's title words are already covered. */
-export function storyCovered(story, covered) {
+/** Italian stopwords and common short words that should be ignored in title matching. */
+const IT_STOPWORDS = new Set([
+  // Articles and determiners
+  "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
+  // Prepositions
+  "di", "a", "da", "in", "con", "su", "per", "tra", "fra", "del", "dei", "della", "delle", "dello", "degli", "al", "ai", "alla", "alle", "allo", "agli", "dal", "dai", "dalla", "dalle", "dallo", "dagli", "nel", "nei", "nella", "nelle", "nello", "negli", "sul", "sui", "sulla", "sulle", "sullo", "sugli", "col", "coi", "colla", "colle",
+  // Conjunctions
+  "e", "ed", "o", "od", "ma", "se", "che",
+  // Common short words
+  "è", "ha", "ho", "hai", "non", "più", "anche", "come", "chi", "cui",
+  // English stopwords for mixed content
+  "the", "a", "an", "and", "or", "but", "of", "to", "in", "for", "on", "at", "by", "with", "from", "as", "is", "was", "are", "be", "has", "had", "have",
+]);
+
+/**
+ * Significant title words: slug tokens minus stopwords, short words (<=3 chars), numbers,
+ * hex IDs, and the tenant's place names. This reduces false positives in fuzzy matching.
+ * Place names come from tenant.json → daily.placeNames.
+ */
+export function titleTokens(title, placeNames = []) {
+  const tokens = slugify(title).split("-");
+  const places = new Set(placeNames.map((p) => slugify(String(p))));
+  return new Set(tokens.filter((w) => 
+    w.length > 3 && 
+    !/^[0-9a-f]{6,}$/.test(w) && 
+    !/^\d+$/.test(w) && 
+    !IT_STOPWORDS.has(w) && 
+    !places.has(w)
+  ));
+}
+
+/**
+ * Covered when the story IDs match (primary check), or when the stripped slug matches
+ * (fallback for feeds without IDs), or when ≥60% of meaningful title words match and at
+ * least 3 words are shared (fuzzy fallback to catch the same story renamed).
+ */
+export function storyCovered(story, covered, placeNames = []) {
+  const storyId = storyIdFromSlug(story.slug);
   const bare = String(story.slug || "").replace(/(?:-[0-9a-f]{6,})+$/, "");
-  const tokens = titleTokens(story.title || "");
+  const tokens = titleTokens(story.title || "", placeNames);
+  
   for (const c of covered) {
+    // Primary: exact story ID match
+    if (storyId && c.storyId && storyId === c.storyId) return true;
+    
+    // Fallback 1: stripped slug match (for feeds without stable IDs)
     if (c.slug && bare === String(c.slug).replace(/(?:-[0-9a-f]{6,})+$/, "")) return true;
+    
+    // Fallback 2: high fuzzy title match with meaningful tokens only
     if (!tokens.size || !c.tokens.size) continue;
     let hit = 0;
     for (const w of tokens) if (c.tokens.has(w)) hit++;
-    if (hit / tokens.size >= 0.25) return true;
+    // Require ≥60% match AND at least 3 shared meaningful tokens
+    if (hit >= 3 && hit / tokens.size >= 0.6) return true;
   }
   return false;
 }
 
 /** Feed stories not yet covered and not too old — newest first, at most one per slot. */
 export function uncoveredStories(tenant, stories, { from = new Date(), daily = dailyConfig(tenant) } = {}) {
-  const covered = coveredStories(tenant.slug);
+  const placeNames = daily.placeNames || [];
+  const covered = coveredStories(tenant.slug, placeNames);
   const cutoff = from.getTime() - daily.maxAgeHours * 3600_000;
   return stories
-    .filter((s) => !storyCovered(s, covered))
+    .filter((s) => !storyCovered(s, covered, placeNames))
     .filter((s) => !s.date || Date.parse(s.date) >= cutoff)
     .slice(0, daily.slots.length);
 }
