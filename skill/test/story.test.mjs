@@ -53,7 +53,7 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.posts.instagram_reel.cover, true);
   assert.ok(c.posts.instagram_reel.body.includes(`Full story with sources: ${c.story.url}`));
   assert.equal(c.posts.instagram_reel.first_comment, undefined, "no comment-LINK flow: the caption carries the link");
-  assert.equal(c.posts.twitter.media, "slide-cover");
+  assert.equal(c.posts.twitter.media, "reel");
   assert.equal(c.posts.twitter.alt_text, c.copy.headline);
   assert.equal(c.posts.twitter.enabled, false);
   assert.equal(c.posts.twitter.body, c.copy.headline);
@@ -91,7 +91,7 @@ test("campaignFromStory enables twitter when in social.platforms", () => {
   };
   const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED));
   assert.equal(c.posts.twitter.enabled, true, "twitter should be enabled when in social.platforms");
-  assert.equal(c.posts.twitter.media, "slide-cover");
+  assert.equal(c.posts.twitter.media, "reel");
   assert.equal(c.posts.tiktok.enabled, true);
   assert.equal(c.posts.instagram_post.enabled, false, "instagram_post not in platforms");
 });
