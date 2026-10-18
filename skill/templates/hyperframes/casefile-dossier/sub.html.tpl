@@ -160,8 +160,28 @@ __AUDIO__
           var $ = function (s) { return document.getElementById(ID + "-" + s); };
           var DUR = __DUR__;
 
+          /* keep the photo credit (or the photo, without one) clear of the source line and the stamp:
+             shrink the photo 10px at a time until nothing overlaps. A no-op when it already fits. */
+          function fitPhoto() {
+            var wrap = $("photo-wrapper"), photo = $("photo");
+            if (!wrap || !photo || getComputedStyle(wrap).display === "none") return;
+            var credit = $("photo-credit");
+            var last = credit && getComputedStyle(credit).display !== "none" ? credit : $("photo-border");
+            var obstacles = [$("source"), $("stamp")].filter(function (el) { return el && getComputedStyle(el).display !== "none"; });
+            function clash() {
+              var r = last.getBoundingClientRect();
+              return obstacles.some(function (el) {
+                var o = el.getBoundingClientRect();
+                return r.bottom > o.top - 4 && r.top < o.bottom && r.right > o.left && r.left < o.right;
+              });
+            }
+            var h = parseFloat(getComputedStyle(photo).maxHeight) || 320;
+            while (clash() && h > 140) { h -= 10; photo.style.maxHeight = h + "px"; }
+          }
+
           function build() {
             if (window.__timelines[ID]) { window.__timelines[ID].kill(); }
+            fitPhoto();
             var tl = gsap.timeline({ paused: true });
             var soft = "power2.out", hard = "power3.out";
 
@@ -218,7 +238,16 @@ __AUDIO__
             if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
           }
 
-          if (document.fonts && document.fonts.ready) document.fonts.ready.then(build); else build();
+          /* measure only once the photo has its real size */
+          function start() {
+            var p = $("photo"), w = $("photo-wrapper");
+            if (p && w && !p.complete && getComputedStyle(w).display !== "none") {
+              p.addEventListener("load", build, { once: true });
+              p.addEventListener("error", build, { once: true });
+            } else build();
+          }
+
+          if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
         })();
       </script>
     </template>
