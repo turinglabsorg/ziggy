@@ -308,3 +308,10 @@ Branch: `cursor/case-file-format-57dd`
 Base: `main`
 
 All commits pushed, tests passing, documentation complete, alternating mode implemented.
+
+## Optional per-item link
+
+A case file item may carry `"link": "https://…"` (for example a dossier page on the site). When it
+is present, it replaces the tenant URL in the caption's closing CTA (`social.cta`'s `{url}`/`{site}`)
+and in the X thread's last reply. Without it the campaign is exactly as before. It must be an
+`https://` URL; anything else refuses that case file in the round. The video card is unchanged.

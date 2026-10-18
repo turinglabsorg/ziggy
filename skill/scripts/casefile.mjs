@@ -5,7 +5,7 @@
  * A case file is:
  * - A fact from official docs, FOIA replies, or reputable outlets (sourced)
  * - Followed by Confirmed / Not confirmed / Why it matters points
- * - Always ends pointing to alienwatch.buzz
+ * - Always ends pointing to alienwatch.buzz (or to the item's own `link`, e.g. a dossier page)
  * - No re-uploads of others' videos; only official public-domain or our own card
  * - Keeps source hedges; never invents facts
  */
@@ -138,8 +138,14 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
     throw new Error("Case file requires exactly 3 points: Confirmed, Not confirmed, Why it matters");
   }
   
+  // Optional per-item link (e.g. a dossier page on the site): it replaces the tenant URL in the
+  // caption's closing CTA and in the X thread's last reply. Without it, both stay as before.
+  const link = typeof item.link === "string" ? item.link.trim() : "";
+  if (item.link != null && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(link)) throw new Error(`case file link must be an https URL: ${JSON.stringify(item.link)}`);
+  const ctaUrl = link || displayUrl;
+
   // Caption carries the full story: headline, dek, the three points, source, then CTA
-  const cta = (social.cta || "Full story with sources: {url}").replace("{url}", displayUrl).replace("{site}", displayUrl);
+  const cta = (social.cta || "Full story with sources: {url}").replace("{url}", ctaUrl).replace("{site}", ctaUrl);
   const hashtags = (social.hashtags || "#UFO #UAP #Space #Astronomy").trim();
   
   const pointsBlock = `\n\n✅ ${labels[0]}: ${points[0]}\n\n❓ ${labels[1]}: ${points[1]}\n\n${labels[2]}: ${points[2]}`;
@@ -147,7 +153,7 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   const caption = `${item.headline}\n\n${item.dek}${pointsBlock}${sourceLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
   
   // Thread for X (optional, manually enabled)
-  const thread = composeThread({ title: item.headline, dek: item.dek, url: `https://${displayUrl}`, limit: 280 });
+  const thread = composeThread({ title: item.headline, dek: item.dek, url: link || `https://${displayUrl}`, limit: 280 });
   
   // Extra platforms from tenant config
   const extra = new Set(social.platforms || []);
