@@ -364,3 +364,36 @@ test("campaignFromCasefile trims the link and rejects non-https links", () => {
     assert.throws(() => campaignFromCasefile(GOLDEN_TENANT, { ...GOLDEN_ITEM, link: bad }), /link must be an https URL/, String(bad));
   }
 });
+
+// ── Photo credit position (case file layouts) ────────────────────────────────────────────────
+// Renders of 18 Oct failed the layout audit: on radar the credit sat under the bottom corner
+// tapes; on dossier a tall photo pushed the credit onto the source line.
+const tpl = (name) => readFileSync(new URL(`../templates/hyperframes/${name}/sub.html.tpl`, import.meta.url), "utf8");
+const rule = (css, sel) => (css.match(new RegExp(`#__ID__-${sel} \\{([^}]*)\\}`)) || [])[1] || "";
+const px = (decl, prop) => { const m = decl.match(new RegExp(`(?:^|;)\\s*${prop}:\\s*([^;]+)`)); return m ? m[1].trim() : null; };
+
+test("radar photo credit clears the bottom corner tapes", () => {
+  const css = tpl("casefile-radar");
+  const credit = rule(css, "photo-credit");
+  const [, side] = px(credit, "margin").split(/\s+/).map((v) => parseFloat(v));
+  for (const id of ["tape3", "tape4"]) {
+    const tape = rule(css, id);
+    const w = parseFloat(px(tape, "width")), h = parseFloat(px(tape, "height"));
+    const inset = Math.abs(parseFloat(px(tape, id === "tape3" ? "left" : "right")));
+    const deg = Math.abs(parseFloat(px(tape, "transform").match(/rotate\((-?[\d.]+)deg\)/)[1])) * Math.PI / 180;
+    // horizontal reach of the rotated strip into the border, measured from its edge
+    const reach = (w - inset) / 2 + (w * Math.cos(deg) + h * Math.sin(deg)) / 2;
+    assert.ok(side > reach, `${id}: credit side margin ${side}px must exceed the tape's reach ${reach.toFixed(1)}px`);
+  }
+  assert.ok(Number(px(credit, "z-index")) > Number(px(css.match(/\.tape \{([^}]*)\}/)[1], "z-index")), "credit above the tapes");
+});
+
+test("dossier template shrinks the photo until its credit clears the source line and the stamp", () => {
+  const html = tpl("casefile-dossier");
+  assert.match(html, /function fitPhoto\(\)/);
+  assert.match(html, /\[\$\("source"\), \$\("stamp"\)\]/);
+  assert.match(html, /function build\(\) \{\s*if \(window\.__timelines\[ID\]\) \{[^}]*\}\s*fitPhoto\(\);/);
+  // measured only once the photo is loaded, and never below a readable size
+  assert.match(html, /addEventListener\("load", build/);
+  assert.match(html, /h > 140/);
+});

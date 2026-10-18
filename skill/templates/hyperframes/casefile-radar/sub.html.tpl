@@ -50,7 +50,8 @@ __FONT_FACES__
         #__ID__-photo-wrapper { position: absolute; right: __PAD__px; top: 320px; max-width: 340px; display: __PHOTO_DISPLAY__; z-index: 15; }
         #__ID__-photo-border { position: relative; background: #fff; padding: 8px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3); transform: rotate(2.5deg); }
         #__ID__-photo { width: 100%; max-height: 200px; object-fit: contain; display: block; }
-        #__ID__-photo-credit { margin: 4px 0 0; font-family: var(--mono); font-size: 9px; font-weight: 400; color: #555555; text-align: right; font-style: italic; }
+        /* credit: on the white border, inset past the bottom corner tapes (≈56px square once rotated) and above them */
+        #__ID__-photo-credit { margin: 6px 60px 2px; font-family: var(--mono); font-size: 9px; font-weight: 400; color: #555555; text-align: center; font-style: italic; position: relative; z-index: 17; }
         
         /* masking tape strips */
         .tape { position: absolute; background: rgba(230, 223, 200, 0.75); box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1); z-index: 16; }
