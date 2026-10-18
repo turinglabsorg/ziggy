@@ -167,6 +167,13 @@ working **with** Ziggy.
   profile stats need it too, as `placement_id`). TikTok is video-only, always needs media, and its boolean
   params must keep their type: multipart posts send platforms with boolean/number params as one
   JSON `platforms` field; platforms with a `*_file` upload stay flattened.
+- Facebook Page guard (`fbguard.mjs`, used by `scheduleRound`): Meta throttles Pages that post too
+  often (Graph API 368 / 1390008, "We limit how often you can post"), and every attempt while blocked
+  counts again. A round gives a story its Facebook twin only if the Page has fewer than 6 Facebook
+  posts that local day, none within 2.5 h, and no 368 in the last 24 h (checked on the recent
+  Facebook posts via GET /api/posts/:id). Otherwise the story goes out without Facebook (Instagram
+  and the rest unchanged) and the report says so (📘). Tunable with `tenant.daily.facebook`
+  (`maxPerDay`, `minGapMinutes`, `pauseHours`, `enabled`). Posts already queued are not touched.
 - MIT license. No co-authorship lines in commits, PRs or comments.
 
 ## Commands

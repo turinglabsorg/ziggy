@@ -26,6 +26,7 @@ import { coveredStories, dailyConfig, livePosts, storyCovered } from "./daily.mj
 import { nextJingle } from "./music.mjs";
 import { POST_KINDS, publishCampaign } from "./publish.mjs";
 import { createClient } from "./postproxy.mjs";
+import { fbAllowed, fbGuardConfig, lastSpamBlock } from "./fbguard.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
@@ -360,7 +361,15 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
   const cfg = roundConfig(tenant);
   const t0 = now.getTime();
   const { kinds, down } = await activeKinds(tenant, cfg, client);
-  const taken = livePosts(tenant.slug).map((r) => Date.parse(r.scheduledAt || "")).filter((t) => t > t0 - 3600_000);
+  const live = livePosts(tenant.slug);
+  const taken = live.map((r) => Date.parse(r.scheduledAt || "")).filter((t) => t > t0 - 3600_000);
+  // Facebook Page guard (fbguard.mjs): fewer, spaced Facebook posts, none right after a 368
+  const fbKinds = kinds.filter((k) => POST_KINDS[k]?.platform === "facebook");
+  const fbCfg = fbGuardConfig(tenant);
+  const fbRows = live.filter((r) => r.platform === "facebook" && r.scheduledAt);
+  const fbTimes = fbRows.map((r) => Date.parse(r.scheduledAt)).filter(Number.isFinite);
+  const fbBlockedAt = fbKinds.length && fbCfg.enabled ? await lastSpamBlock(fbRows, client, { now: t0 }) : null;
+  const facebook = { kinds: fbKinds, blockedAt: fbBlockedAt ? new Date(fbBlockedAt).toISOString() : null, pausedUntil: fbBlockedAt ? new Date(fbBlockedAt + fbCfg.pauseMs).toISOString() : null, maxPerDay: fbCfg.maxPerDay, minGapMinutes: fbCfg.minGapMs / 60_000, held: [] };
   const candidates = [];
   for (let d = 0; d < SCHEDULE_DAYS; d++) for (const hm of cfg.times) candidates.push(localAt(localDay(t0 + d * 86400_000, cfg.tz), hm, cfg.tz));
   candidates.sort((a, b) => a - b);
@@ -387,16 +396,23 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
     
     taken.push(time);
     const at = new Date(time).toISOString();
-    const row = { name, at, local: localLabel(time, cfg.tz, t0), kinds };
+    let itemKinds = kinds;
+    if (fbKinds.length) {
+      const gate = fbAllowed(time, { fbTimes, blockedAt: fbBlockedAt, cfg: fbCfg, dayOf: (ms) => localDay(ms, cfg.tz) });
+      if (gate.ok) fbTimes.push(time);
+      else { itemKinds = kinds.filter((k) => !fbKinds.includes(k)); facebook.held.push({ name, at, reason: gate.reason }); }
+    }
+    const row = { name, at, local: localLabel(time, cfg.tz, t0), kinds: itemKinds };
+    if (!itemKinds.length) { results.push({ ...row, error: "no platform left after the Facebook guard" }); continue; }
     if (dryRun) { results.push({ ...row, dryRun: true }); continue; }
     try {
-      const posts = await publishCampaign({ tenant, campaign: { ...campaign, name }, live: true, scheduledAt: at, only: kinds, client });
+      const posts = await publishCampaign({ tenant, campaign: { ...campaign, name }, live: true, scheduledAt: at, only: itemKinds, client });
       results.push({ ...row, posts: posts.map((p) => p.post?.id).filter(Boolean) });
     } catch (error) {
       results.push({ ...row, error: String(error.message).split("\n")[0] });
     }
   }
-  return { kinds, down, results };
+  return { kinds, down, results, facebook };
 }
 
 const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, "").replace(/-/g, " ");
@@ -452,6 +468,13 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
   if (created.skipped.length) lines.push(`⤳ ${created.skipped.length} ${created.skipped.length === 1 ? "saltata" : "saltate"}: ${created.skipped.map((s) => short(s.name)).join(" · ")}`);
   if (created.casefiles?.length) lines.push(`📂 ${created.casefiles.length} case file ${created.casefiles.length === 1 ? "creato" : "creati"}${modeNote}`);
   for (const p of problems) lines.push(`✗ ${p}`);
+  const fb = scheduled.facebook;
+  if (fb?.held?.length) {
+    const why = fb.pausedUntil && fb.held.some((h) => h.reason === "pause")
+      ? `blocco anti-spam di Meta (errore 368), Facebook in pausa fino alle ${localLabel(Date.parse(fb.pausedUntil), cfg.tz, now.getTime())}`
+      : `limite Facebook: max ${fb.maxPerDay} al giorno, almeno ${Math.round(fb.minGapMinutes / 6) / 10} ore tra uno e l'altro`;
+    lines.push(`📘 ${fb.held.length} post solo su Instagram, senza Facebook (${why})`);
+  }
   if (scheduled.down.length) lines.push(`⚠️ non pubblicati su ${scheduled.down.join(", ")}: ricollega il profilo su Postproxy`);
   return {
     text: lines.join("\n"),
@@ -459,6 +482,7 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
     scheduled: scheduled.results,
     kinds: scheduled.kinds,
     down: scheduled.down,
+    facebook: scheduled.facebook || null,
     skipped: created.skipped,
     refused: created.refused,
     checks: checked,
