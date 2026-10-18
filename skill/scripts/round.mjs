@@ -176,7 +176,8 @@ export function pointProblems(points) {
  *   "story-prefix": [3-4 points],
  *   "skip": ["prefix"],
  *   "casefile": [
- *     { "headline": "...", "dek": "...", "points": [confirmed, notConfirmed, whyMatters], "source": { "outlet": "...", "url": "..." } }
+ *     { "headline": "...", "dek": "...", "points": [confirmed, notConfirmed, whyMatters], "source": { "outlet": "...", "url": "..." },
+ *       "link": "https://…" }   // optional: replaces the site URL in the caption CTA and the X thread's last reply
  *   ]
  * }
  */

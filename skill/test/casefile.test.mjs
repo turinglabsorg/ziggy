@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 
 import { campaignFromCasefile, casefileDuration, createCasefileCampaign, casefileEnabled } from "../scripts/casefile.mjs";
 
@@ -319,4 +320,47 @@ test("campaignFromCasefile handles partial labels in point objects", () => {
   assert.equal(campaign.casefile.labels[0], "CUSTOM1");
   assert.equal(campaign.casefile.labels[1], "NOT CONFIRMED"); // default
   assert.equal(campaign.casefile.labels[2], "CUSTOM3");
+});
+
+// ── Optional per-item link ───────────────────────────────────────────────────────────────────
+// casefile-golden-nolink.json was generated from main (dc6de6d) before `link` existed: without a
+// link the campaign must stay byte-identical, with a custom CTA and with the default one.
+const GOLDEN_TENANT = { slug: "alienwatch", name: "Alien Watch", site: "https://alienwatch.buzz/", language: "en",
+  feed: { displayUrl: "alienwatch.buzz" }, social: { cta: "Full log of UAP observations → {url}", hashtags: "#UAP #UFO #AARO #Disclosure", platforms: ["tiktok", "twitter"] }, casefile: { enabled: true } };
+const GOLDEN_ITEM = { headline: "AARO found the records. It released none.", dek: "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
+  points: ["AARO located responsive records and withheld them.", "This answers a FOIA request, not Congress.", "The written reports are not public."],
+  labels: ["THE REPLY", "THE LIMIT", "THE GAP"], source: { outlet: "The Black Vault", url: "https://example.org/foia" },
+  status: "withheld", template: "casefile-dossier", date: "2026-10-13", at: "2026-10-20T05:00:00Z",
+  image: "https://example.org/page.png", imageCredit: "Document: example (public domain)" };
+const GOLDEN_DEFAULT_TENANT = { ...GOLDEN_TENANT, social: { platforms: ["twitter"] } };
+const GOLDEN = JSON.parse(readFileSync(new URL("./fixtures/casefile-golden-nolink.json", import.meta.url), "utf8"));
+const LINK = "https://alienwatch.buzz/dossier/pursue";
+
+test("campaignFromCasefile without link is byte-identical to the pre-link output", () => {
+  assert.equal(JSON.stringify(campaignFromCasefile(GOLDEN_TENANT, GOLDEN_ITEM), null, 2), JSON.stringify(GOLDEN.custom, null, 2));
+  assert.equal(JSON.stringify(campaignFromCasefile(GOLDEN_DEFAULT_TENANT, GOLDEN_ITEM), null, 2), JSON.stringify(GOLDEN.defaultCta, null, 2));
+});
+
+test("campaignFromCasefile with link uses it in the caption CTA and the X thread's last reply", () => {
+  const c = campaignFromCasefile(GOLDEN_TENANT, { ...GOLDEN_ITEM, link: LINK });
+  for (const k of ["instagram_reel", "instagram_post", "tiktok", "facebook_reel"]) {
+    assert.ok(c.posts[k].body.includes(`\n\nFull log of UAP observations → ${LINK}\n\n#UAP`), k);
+  }
+  assert.deepEqual(c.posts.twitter.thread.at(-1), { body: LINK });
+  // only those two places change
+  const strip = (x) => JSON.parse(JSON.stringify(x).replaceAll(`→ ${LINK}`, "→ alienwatch.buzz").replaceAll(`"body":"${LINK}"`, '"body":"https://alienwatch.buzz"'));
+  assert.deepEqual(strip(c), GOLDEN.custom);
+});
+
+test("campaignFromCasefile with link and the default tenant CTA", () => {
+  const c = campaignFromCasefile(GOLDEN_DEFAULT_TENANT, { ...GOLDEN_ITEM, link: LINK });
+  assert.ok(c.posts.tiktok.body.includes(`Full story with sources: ${LINK}`));
+  assert.equal(c.posts.twitter.thread.at(-1).body, LINK);
+});
+
+test("campaignFromCasefile trims the link and rejects non-https links", () => {
+  assert.equal(campaignFromCasefile(GOLDEN_TENANT, { ...GOLDEN_ITEM, link: `  ${LINK} ` }).posts.twitter.thread.at(-1).body, LINK);
+  for (const bad of ["http://alienwatch.buzz/dossier/pursue", "alienwatch.buzz/dossier", "", "https://", "javascript:alert(1)", 42]) {
+    assert.throws(() => campaignFromCasefile(GOLDEN_TENANT, { ...GOLDEN_ITEM, link: bad }), /link must be an https URL/, String(bad));
+  }
 });

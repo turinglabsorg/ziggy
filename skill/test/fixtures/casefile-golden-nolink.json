@@ -1,0 +1,224 @@
+{
+  "custom": {
+    "template": "casefile-dossier",
+    "language": "en",
+    "duration": 25,
+    "intent": "Case File: AARO found the records. It released none.",
+    "casefile": {
+      "source": "https://example.org/foia",
+      "outlet": "The Black Vault",
+      "date": "2026-10-13",
+      "caseNum": "",
+      "status": "withheld",
+      "stamp": "",
+      "stampSub": "",
+      "labels": [
+        "THE REPLY",
+        "THE LIMIT",
+        "THE GAP"
+      ]
+    },
+    "at": "2026-10-20T05:00:00Z",
+    "copy": {
+      "kicker": "CASE FILE · 13 Oct 2026",
+      "headline": "AARO found the records. It released none.",
+      "dek": "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
+      "points": [
+        "AARO located responsive records and withheld them.",
+        "This answers a FOIA request, not Congress.",
+        "The written reports are not public."
+      ],
+      "meta": "The Black Vault",
+      "url": "alienwatch.buzz"
+    },
+    "image": "https://example.org/page.png",
+    "imageCredit": "Document: example (public domain)",
+    "audio": {
+      "bed": "ambient",
+      "volume": 0.6,
+      "swellAt": 1.6,
+      "beats": [
+        [
+          0.6,
+          1318.5,
+          1.2,
+          0.07
+        ],
+        [
+          1.5,
+          659.3,
+          1.6,
+          0.06
+        ],
+        [
+          7.6,
+          987.8,
+          0.9,
+          0.035
+        ]
+      ]
+    },
+    "posts": {
+      "instagram_reel": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull log of UAP observations → alienwatch.buzz\n\n#UAP #UFO #AARO #Disclosure",
+        "media": "reel",
+        "cover": true
+      },
+      "instagram_post": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull log of UAP observations → alienwatch.buzz\n\n#UAP #UFO #AARO #Disclosure",
+        "media": [
+          "slide-cover",
+          "slide-dek",
+          "slide-close"
+        ],
+        "alt_text": [
+          "AARO found the records. It released none.",
+          "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
+          "Alien Watch — alienwatch.buzz"
+        ],
+        "enabled": false
+      },
+      "twitter": {
+        "body": "AARO found the records. It released none.",
+        "media": "reel",
+        "alt_text": "AARO found the records. It released none.",
+        "thread": [
+          {
+            "body": "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified."
+          },
+          {
+            "body": "https://alienwatch.buzz"
+          }
+        ],
+        "enabled": true
+      },
+      "tiktok": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull log of UAP observations → alienwatch.buzz\n\n#UAP #UFO #AARO #Disclosure",
+        "media": "reel",
+        "platform": {
+          "privacy_status": "PUBLIC_TO_EVERYONE",
+          "disable_comment": false,
+          "disable_duet": true,
+          "disable_stitch": true
+        },
+        "enabled": true
+      },
+      "facebook_reel": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull log of UAP observations → alienwatch.buzz\n\n#UAP #UFO #AARO #Disclosure",
+        "media": "reel",
+        "enabled": false
+      }
+    }
+  },
+  "defaultCta": {
+    "template": "casefile-dossier",
+    "language": "en",
+    "duration": 25,
+    "intent": "Case File: AARO found the records. It released none.",
+    "casefile": {
+      "source": "https://example.org/foia",
+      "outlet": "The Black Vault",
+      "date": "2026-10-13",
+      "caseNum": "",
+      "status": "withheld",
+      "stamp": "",
+      "stampSub": "",
+      "labels": [
+        "THE REPLY",
+        "THE LIMIT",
+        "THE GAP"
+      ]
+    },
+    "at": "2026-10-20T05:00:00Z",
+    "copy": {
+      "kicker": "CASE FILE · 13 Oct 2026",
+      "headline": "AARO found the records. It released none.",
+      "dek": "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
+      "points": [
+        "AARO located responsive records and withheld them.",
+        "This answers a FOIA request, not Congress.",
+        "The written reports are not public."
+      ],
+      "meta": "The Black Vault",
+      "url": "alienwatch.buzz"
+    },
+    "image": "https://example.org/page.png",
+    "imageCredit": "Document: example (public domain)",
+    "audio": {
+      "bed": "ambient",
+      "volume": 0.6,
+      "swellAt": 1.6,
+      "beats": [
+        [
+          0.6,
+          1318.5,
+          1.2,
+          0.07
+        ],
+        [
+          1.5,
+          659.3,
+          1.6,
+          0.06
+        ],
+        [
+          7.6,
+          987.8,
+          0.9,
+          0.035
+        ]
+      ]
+    },
+    "posts": {
+      "instagram_reel": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull story with sources: alienwatch.buzz\n\n#UFO #UAP #Space #Astronomy",
+        "media": "reel",
+        "cover": true
+      },
+      "instagram_post": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull story with sources: alienwatch.buzz\n\n#UFO #UAP #Space #Astronomy",
+        "media": [
+          "slide-cover",
+          "slide-dek",
+          "slide-close"
+        ],
+        "alt_text": [
+          "AARO found the records. It released none.",
+          "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
+          "Alien Watch — alienwatch.buzz"
+        ],
+        "enabled": false
+      },
+      "twitter": {
+        "body": "AARO found the records. It released none.",
+        "media": "reel",
+        "alt_text": "AARO found the records. It released none.",
+        "thread": [
+          {
+            "body": "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified."
+          },
+          {
+            "body": "https://alienwatch.buzz"
+          }
+        ],
+        "enabled": true
+      },
+      "tiktok": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull story with sources: alienwatch.buzz\n\n#UFO #UAP #Space #Astronomy",
+        "media": "reel",
+        "platform": {
+          "privacy_status": "PUBLIC_TO_EVERYONE",
+          "disable_comment": false,
+          "disable_duet": true,
+          "disable_stitch": true
+        },
+        "enabled": false
+      },
+      "facebook_reel": {
+        "body": "AARO found the records. It released none.\n\nA FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.\n\n✅ THE REPLY: AARO located responsive records and withheld them.\n\n❓ THE LIMIT: This answers a FOIA request, not Congress.\n\nTHE GAP: The written reports are not public.\n\nSource: The Black Vault · https://example.org/foia\n\nFull story with sources: alienwatch.buzz\n\n#UFO #UAP #Space #Astronomy",
+        "media": "reel",
+        "enabled": false
+      }
+    }
+  }
+}
