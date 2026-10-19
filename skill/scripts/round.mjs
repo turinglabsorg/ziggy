@@ -22,11 +22,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCampaign, rendersDir, saveCampaign } from "./config.mjs";
 import { campaignFromStory, campaignNameFor, fetchStories, slugify } from "./story.mjs";
-import { coveredStories, dailyConfig, livePosts, storyCovered } from "./daily.mjs";
+import { coveredStories, dailyConfig, livePosts, storyCovered, storyIdFromSlug } from "./daily.mjs";
 import { nextJingle } from "./music.mjs";
 import { POST_KINDS, publishCampaign } from "./publish.mjs";
 import { createClient } from "./postproxy.mjs";
-import { fbAllowed, fbGuardConfig, lastSpamBlock } from "./fbguard.mjs";
+import { dropQueuedFacebook, fbAllowed, fbGuardConfig, lastSpamBlock, queuedInPause } from "./fbguard.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
@@ -355,21 +355,33 @@ export function interleaveNewsAndCasefiles(tenant, newsItems, casefileItems) {
  * Schedule campaigns into the next free times: nearest deadline first (then newest), one story
  * per time, at least gapMinutes from anything queued, never past a story's deadline.
  * Items with `at` (ISO time) are scheduled at that exact time; others get the next free slot.
- * `items` are `{ name, campaign, at? }`.
+ * `items` are `{ name, campaign, at? }`. The Facebook guard (fbguard.mjs) runs first: after a
+ * 368 the Facebook-only posts queued inside the pause are deleted (`facebook.dropped`, or
+ * `flagged` when the post is not Facebook-only), and a story gets one Facebook post at most.
  */
 export async function scheduleRound(tenant, items, { client = createClient(), now = new Date(), dryRun = false } = {}) {
   const cfg = roundConfig(tenant);
   const t0 = now.getTime();
   const { kinds, down } = await activeKinds(tenant, cfg, client);
-  const live = livePosts(tenant.slug);
-  const taken = live.map((r) => Date.parse(r.scheduledAt || "")).filter((t) => t > t0 - 3600_000);
-  // Facebook Page guard (fbguard.mjs): fewer, spaced Facebook posts, none right after a 368
+  const allLive = livePosts(tenant.slug);
+  // Facebook Page guard (fbguard.mjs): fewer, spaced Facebook posts, none right after a 368,
+  // and one Facebook post per story
   const fbKinds = kinds.filter((k) => POST_KINDS[k]?.platform === "facebook");
   const fbCfg = fbGuardConfig(tenant);
-  const fbRows = live.filter((r) => r.platform === "facebook" && r.scheduledAt);
-  const fbTimes = fbRows.map((r) => Date.parse(r.scheduledAt)).filter(Number.isFinite);
-  const fbBlockedAt = fbKinds.length && fbCfg.enabled ? await lastSpamBlock(fbRows, client, { now: t0 }) : null;
-  const facebook = { kinds: fbKinds, blockedAt: fbBlockedAt ? new Date(fbBlockedAt).toISOString() : null, pausedUntil: fbBlockedAt ? new Date(fbBlockedAt + fbCfg.pauseMs).toISOString() : null, maxPerDay: fbCfg.maxPerDay, minGapMinutes: fbCfg.minGapMs / 60_000, held: [] };
+  const fbQueue = allLive.filter((r) => r.platform === "facebook" && r.scheduledAt);
+  const fbBlockedAt = fbKinds.length && fbCfg.enabled ? await lastSpamBlock(fbQueue, client, { now: t0 }) : null;
+  // the Facebook posts already queued inside the pause would fire into the block: off the queue
+  const queued = queuedInPause(fbQueue, { now: t0, blockedAt: fbBlockedAt, pauseMs: fbCfg.pauseMs });
+  const drop = queued.length ? await dropQueuedFacebook(tenant.slug, queued, client, { live: allLive, dryRun }) : { dropped: [], flagged: [], errors: [] };
+  const gone = new Set(drop.dropped.map((d) => d.postId));
+  const live = allLive.filter((r) => !gone.has(r.postId));
+  const taken = live.map((r) => Date.parse(r.scheduledAt || "")).filter((t) => t > t0 - 3600_000);
+  const fbRows = live.filter((r) => r.platform === "facebook");
+  const fbTimes = fbRows.map((r) => Date.parse(r.scheduledAt || "")).filter(Number.isFinite);
+  const storyIdOf = (name) => { try { return storyIdFromSlug(loadCampaign(tenant.slug, name).story?.slug); } catch { return null; } };
+  const fbCampaigns = new Set(fbKinds.length ? fbRows.map((r) => r.campaign).filter(Boolean) : []);
+  const fbStories = new Set([...fbCampaigns].map(storyIdOf).filter(Boolean));
+  const facebook = { kinds: fbKinds, blockedAt: fbBlockedAt ? new Date(fbBlockedAt).toISOString() : null, pausedUntil: fbBlockedAt ? new Date(fbBlockedAt + fbCfg.pauseMs).toISOString() : null, maxPerDay: fbCfg.maxPerDay, minGapMinutes: fbCfg.minGapMs / 60_000, held: [], dropped: drop.dropped, flagged: drop.flagged, dropErrors: drop.errors };
   const candidates = [];
   for (let d = 0; d < SCHEDULE_DAYS; d++) for (const hm of cfg.times) candidates.push(localAt(localDay(t0 + d * 86400_000, cfg.tz), hm, cfg.tz));
   candidates.sort((a, b) => a - b);
@@ -398,8 +410,11 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
     const at = new Date(time).toISOString();
     let itemKinds = kinds;
     if (fbKinds.length) {
-      const gate = fbAllowed(time, { fbTimes, blockedAt: fbBlockedAt, cfg: fbCfg, dayOf: (ms) => localDay(ms, cfg.tz) });
-      if (gate.ok) fbTimes.push(time);
+      const storyId = storyIdFromSlug(campaign.story?.slug);
+      const gate = fbCampaigns.has(name) || (storyId && fbStories.has(storyId))
+        ? { ok: false, reason: "duplicate" }
+        : fbAllowed(time, { fbTimes, blockedAt: fbBlockedAt, cfg: fbCfg, dayOf: (ms) => localDay(ms, cfg.tz) });
+      if (gate.ok) { fbTimes.push(time); fbCampaigns.add(name); if (storyId) fbStories.add(storyId); }
       else { itemKinds = kinds.filter((k) => !fbKinds.includes(k)); facebook.held.push({ name, at, reason: gate.reason }); }
     }
     const row = { name, at, local: localLabel(time, cfg.tz, t0), kinds: itemKinds };
@@ -416,6 +431,7 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
 }
 
 const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, "").replace(/-/g, " ");
+const fbPost = (p) => `Facebook ${p.postId}${p.campaign ? ` (${short(p.campaign)})` : ""}`;
 
 /**
  * The whole round: points → campaigns → renders → checks → schedule, and the summary for the
@@ -448,13 +464,18 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
   // Interleave according to tenant config
   const interleaved = interleaveNewsAndCasefiles(tenant, goodNews, goodCasefiles);
   
-  const scheduled = interleaved.length ? await scheduleRound(tenant, interleaved, { client, now, dryRun }) : { kinds: [], down: [], results: [] };
+  // with nothing new to schedule the round still looks at the Facebook queue (a 368 empties it)
+  const scheduled = await scheduleRound(tenant, interleaved, { client, now, dryRun });
+  const down = interleaved.length ? scheduled.down : [];
+  const fb = scheduled.facebook;
 
   const ok = scheduled.results.filter((r) => !r.error).sort((a, b) => a.at.localeCompare(b.at));
   const problems = [
     ...created.refused.map((r) => `${r.title || r.prefix}: ${r.reason}`),
     ...checked.filter((c) => !c.ok).map((c) => `${short(c.name)}: ${c.problems.join(", ")}`),
     ...scheduled.results.filter((r) => r.error).map((r) => `${short(r.name)}: ${r.error}`),
+    ...(fb?.flagged || []).map((f) => `${fbPost(f)}: in coda durante il blocco 368, non tolto perché è anche su ${f.platforms.join(", ")}`),
+    ...(fb?.dropErrors || []).map((e) => `${fbPost(e)}: non tolto dalla coda (${e.error})`),
   ];
   
   const casefileMode = tenant.casefile?.mode || "fill";
@@ -468,20 +489,27 @@ export async function runRound(tenant, points, { fetchImpl, client = createClien
   if (created.skipped.length) lines.push(`⤳ ${created.skipped.length} ${created.skipped.length === 1 ? "saltata" : "saltate"}: ${created.skipped.map((s) => short(s.name)).join(" · ")}`);
   if (created.casefiles?.length) lines.push(`📂 ${created.casefiles.length} case file ${created.casefiles.length === 1 ? "creato" : "creati"}${modeNote}`);
   for (const p of problems) lines.push(`✗ ${p}`);
-  const fb = scheduled.facebook;
-  if (fb?.held?.length) {
-    const why = fb.pausedUntil && fb.held.some((h) => h.reason === "pause")
-      ? `blocco anti-spam di Meta (errore 368), Facebook in pausa fino alle ${localLabel(Date.parse(fb.pausedUntil), cfg.tz, now.getTime())}`
+  const pausedUntil = fb?.pausedUntil ? localLabel(Date.parse(fb.pausedUntil), cfg.tz, now.getTime()) : null;
+  const held = (fb?.held || []).filter((h) => h.reason !== "duplicate");
+  const twins = (fb?.held || []).length - held.length;
+  if (held.length) {
+    const why = pausedUntil && held.some((h) => h.reason === "pause")
+      ? `blocco anti-spam di Meta (errore 368), Facebook in pausa fino alle ${pausedUntil}`
       : `limite Facebook: max ${fb.maxPerDay} al giorno, almeno ${Math.round(fb.minGapMinutes / 6) / 10} ore tra uno e l'altro`;
-    lines.push(`📘 ${fb.held.length} post solo su Instagram, senza Facebook (${why})`);
+    lines.push(`📘 ${held.length} post solo su Instagram, senza Facebook (${why})`);
   }
-  if (scheduled.down.length) lines.push(`⚠️ non pubblicati su ${scheduled.down.join(", ")}: ricollega il profilo su Postproxy`);
+  if (twins) lines.push(`📘 ${twins} ${twins === 1 ? "storia ha" : "storie hanno"} già il suo post Facebook: niente secondo post`);
+  if (fb?.dropped?.length) {
+    const n = fb.dropped.length;
+    lines.push(`📘 ${n} post Facebook già in coda ${dryRun ? "da togliere" : n === 1 ? "tolto" : "tolti"} (blocco Meta 368, pausa fino alle ${pausedUntil}); Instagram resta`);
+  }
+  if (down.length) lines.push(`⚠️ non pubblicati su ${down.join(", ")}: ricollega il profilo su Postproxy`);
   return {
     text: lines.join("\n"),
-    ok: problems.length === 0 && scheduled.down.length === 0,
+    ok: problems.length === 0 && down.length === 0,
     scheduled: scheduled.results,
     kinds: scheduled.kinds,
-    down: scheduled.down,
+    down,
     facebook: scheduled.facebook || null,
     skipped: created.skipped,
     refused: created.refused,

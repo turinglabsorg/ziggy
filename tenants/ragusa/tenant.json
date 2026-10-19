@@ -135,6 +135,11 @@
         "23:00"
       ],
       "gapMinutes": 55
+    },
+    "facebook": {
+      "maxPerDay": 3,
+      "minGapMinutes": 240,
+      "pauseHours": 48
     }
   },
   "music": {
