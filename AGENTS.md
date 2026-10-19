@@ -173,7 +173,14 @@ working **with** Ziggy.
   posts that local day, none within 2.5 h, and no 368 in the last 24 h (checked on the recent
   Facebook posts via GET /api/posts/:id). Otherwise the story goes out without Facebook (Instagram
   and the rest unchanged) and the report says so (📘). Tunable with `tenant.daily.facebook`
-  (`maxPerDay`, `minGapMinutes`, `pauseHours`, `enabled`). Posts already queued are not touched.
+  (`maxPerDay`, `minGapMinutes`, `pauseHours`, `enabled`; Ragusa: 3/day, 4 h apart, 48 h pause).
+  After a 368, every round (even one with nothing new) deletes the Facebook posts already queued
+  inside the pause, like `ziggy delete` (delete event in posts.jsonl). Only Facebook-only posts go:
+  a post that also carries another platform is flagged, never deleted. The Instagram twins are
+  separate posts and stay, so the story stays covered. `--dry-run` only lists them; a failed
+  delete is reported and the round goes on. A story gets one Facebook post at most: no twin when
+  a live Facebook row exists for its campaign or its story id (`storyIdFromSlug`), this round's
+  included (`held` reason `duplicate`).
 - MIT license. No co-authorship lines in commits, PRs or comments.
 
 ## Commands
