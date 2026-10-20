@@ -145,5 +145,44 @@
   "music": {
     "prompt": "Light, modern news intro for Ragusa Buzz, a young local news brand. Understated and friendly, not epic, not orchestral, no brass: tight light percussion (rimshot, shaker, soft kick), gently pulsing staccato strings kept in the background, warm synth bass, a simple three-note synth motif that opens the track and returns, bright and clean, 116 BPM, major key. No folk instruments (no mandolin, no accordion, no marimba), no vocals. It sits under on-screen text and ends with a light, clean button.",
     "seconds": 30
+  },
+  "events": {
+    "apiUrl": "https://ragusa.buzz/v1/events",
+    "url": "https://ragusa.buzz/eventi",
+    "tz": "Europe/Rome",
+    "excludeCategories": [
+      "religione",
+      "istituzionale",
+      "corsi",
+      "formazione"
+    ],
+    "excludeTitles": [
+      "cresim",
+      "consiglio comunale",
+      "seduta"
+    ],
+    "exclusiveEndSources": [
+      "ccn-antica-ibla-api"
+    ],
+    "maxEvents": 6,
+    "minEvents": 3,
+    "template": "eventi-settimana",
+    "teaserTemplate": "eventi-teaser",
+    "hashtags": "#Ragusa #Sicilia #EventiRagusa #CosaFareARagusa",
+    "categoryLabels": {
+      "musica-live": "Musica live",
+      "teatro": "Teatro",
+      "mostre": "Mostra",
+      "sagre": "Sagra",
+      "feste": "Festa",
+      "cinema": "Cinema",
+      "libri": "Libri",
+      "danza": "Danza",
+      "natura": "Natura",
+      "sport": "Sport",
+      "bambini": "Per bambini",
+      "altro": "Evento",
+      "": "Evento"
+    }
   }
 }

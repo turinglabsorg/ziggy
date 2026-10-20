@@ -79,6 +79,45 @@ timing scales to it) and `audio.jingle` (one of the tenant's jingles).
   word stays centred. The background card falls back to `--ink-raised`. A brand with a star
   field gets its sky behind the settled logo.
 
+## Weekly events (`templates/hyperframes/eventi-settimana`, 1080×1920 and 1080×1350, 15–20s)
+
+The week's events in the brand's night, as an agenda. Layout numbers live in
+`TEMPLATE_VARIANTS["eventi-settimana"]` and reach the CSS as `--v-*` variables. Category chips use
+the brand's own extra colours from `palette.raw` (`--sun`, `--hot`, `--lime`, `--sea`); no other
+colour is added.
+
+- **Safe area**: the same Reels bands as the story (`padTop` 250, `padBottom` 300, 110px sides);
+  the post variant uses 70/80px.
+- **Background**: `--bg` with two soft pools of `--card` and `--night-2`.
+- **Intro (3s)**: the range as a filled accent chip («26 OTT – 1 NOV», mono), the title in the
+  display face at 800 with the town word in accent, then the seven days as `--card` tiles, a dot
+  under every day that has an event.
+- **Cards (≈2.2s each)**: a header line (accent dot, «EVENTI · range», card counter) and a week
+  strip whose bars light up under the card's days. The poster sits in a 26px-radius box over a
+  blurred, darkened copy of itself (`object-fit: contain`, never cropped); the box takes the space
+  the text leaves, up to `posterH`. Under it, the credit «Locandina: <fonte>» in small mono. Then
+  the date chip (accent text on a 16% accent tint: it keeps its contrast while fading), the time,
+  the title (display 720, balanced, three lines at most — the template shrinks it), the category
+  as an outline chip in its brand colour, and «town · venue». A card without a poster gets a
+  typographic panel: the day number huge in accent, month and weekday, the week strip.
+- **Outro (3.5s)**: the range chip and the title again, a `--line` rule, the mark, «Tutti gli
+  eventi:», the url big in accent with an underline (shrunk to fit one line), «Organizzi
+  qualcosa? Proponilo sul sito» small. The last frame is the reel's cover (`snapshot` at the end),
+  so it has to say which week it is.
+- **Footer**: mark + wordmark, the url in mono, from the first second.
+- **Rule**: dark text never sits on a bright chip that fades in — the contrast audit samples
+  mid-fade. Bright colours carry the text themselves, on the night.
+
+## Events teaser (`templates/hyperframes/eventi-teaser`, 13.5s)
+
+The evergreen ad for the calendar: no dates, no titles, no posters. A 7×5 grid of day cells with
+no numbers (the calendar motif) fills with dots in the brand colours, in a fixed shuffled order.
+«Che si fa / a Ragusa?» (a one-letter word never ends a line), then «Il calendario di» with the
+category words rolling through a mask (each in its colour), «In tutta la provincia» and a
+full-bleed ticker of the towns, then «Aggiornato ogni giorno» while an accent ring runs across the
+days, then the end card: the question again over a `--line` rule, the mark, «Tutti gli eventi
+su», the url, «Organizzi qualcosa? Proponilo sul sito». Headings wrap balanced.
+
 ## Sound
 
 Each tenant has a set of about five jingles, all composed by ElevenLabs Music from the same

@@ -1,0 +1,881 @@
+{
+ "note": "ragusa.buzz /v1/events, trimmed, around the week 26 Oct – 1 Nov 2026",
+ "data": [
+  {
+   "id": "e_4da0e6315d5b",
+   "title": "Ritiro inizio Anno Sociale della Vita Consacrata",
+   "startsLocal": "2026-10-26T00:00",
+   "endsLocal": "2026-10-26T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "RAGUSA - Cor Jesu",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_739fd3a4e58e",
+   "title": "Percorsi formativi e di aggiornamento di Pastorale della Salute",
+   "startsLocal": "2026-10-26T00:00",
+   "endsLocal": "2026-10-26T23:59",
+   "allDay": true,
+   "category": "corsi",
+   "place": {
+    "name": "Vicariato di Ragusa",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_8fdc27507a8a",
+   "title": "Cresime",
+   "startsLocal": "2026-10-26T14:00",
+   "endsLocal": "2026-10-26T19:00",
+   "allDay": false,
+   "category": "religione",
+   "place": {
+    "name": "VITTORIA - Madonna Assunta",
+    "town": "Vittoria"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_63b88cd9b0dc",
+   "title": "Momento ecumenico e interreligioso in occasione del 40° anniversario dello “Spirito di Assisi”",
+   "startsLocal": "2026-10-27T14:00",
+   "endsLocal": "2026-10-27T19:00",
+   "allDay": false,
+   "category": "religione",
+   "place": {
+    "name": "",
+    "town": ""
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_817af1b45970",
+   "title": "Cresime",
+   "startsLocal": "2026-10-29T00:00",
+   "endsLocal": "2026-10-29T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "VITTORIA - Spirito Santo",
+    "town": "Vittoria"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_40e67e64eb9f",
+   "title": "La mente è più vasta del cielo",
+   "startsLocal": "2026-10-29T18:30",
+   "endsLocal": null,
+   "allDay": false,
+   "category": "cinema",
+   "place": {
+    "name": "Auditorium Floridia",
+    "town": "Modica"
+   },
+   "url": "https://www.quotidianodiragusa.it/2026/10/06/appuntamenti/rassegna-cinema-salute-mentale-auditorium-floridia/",
+   "sources": [
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    },
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_948d058d477425552942495d",
+    "width": 1200,
+    "height": 852
+   }
+  },
+  {
+   "id": "e_ccf77ca6c1c6",
+   "title": "Ciclo di conversazioni su Democrazia, guerre, media, IA e coscienza morale",
+   "startsLocal": "2026-10-29T19:00",
+   "endsLocal": "2026-10-29T20:00",
+   "allDay": false,
+   "category": "libri",
+   "place": {
+    "name": "COMISO",
+    "town": "Comiso"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_526d2dd516a8",
+   "title": "ChocoModica 2026",
+   "startsLocal": "2026-10-30T00:00",
+   "endsLocal": "2026-11-01T00:00",
+   "allDay": true,
+   "category": "sagre",
+   "place": {
+    "name": "Modica",
+    "town": "Modica"
+   },
+   "url": "https://www.quotidianodiragusa.it/2026/09/12/appuntamenti/chocomodica-2026-modica-date/",
+   "sources": [
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_0ded275e54b6a673951309d1",
+    "width": 1127,
+    "height": 747
+   }
+  },
+  {
+   "id": "e_4ad840d7b105",
+   "title": "MODICA – Chocomodica, festival del cioccolato modicano",
+   "startsLocal": "2026-10-30T08:00",
+   "endsLocal": "2026-11-01T17:00",
+   "allDay": false,
+   "category": "sagre",
+   "place": {
+    "name": "",
+    "town": "Modica"
+   },
+   "url": "https://turismoibleo.com/event/chocomodica-festival-del-cioccolato-modicano/",
+   "sources": [
+    {
+     "sourceId": "turismoibleo-eventi",
+     "name": "Turismo Ibleo - Eventi"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_0ded275e54b6a673951309d1",
+    "width": 1127,
+    "height": 747
+   }
+  },
+  {
+   "id": "e_e7b55a9d36de",
+   "title": "Franca V.",
+   "startsLocal": "2026-10-30T20:30",
+   "endsLocal": "2026-10-30T22:30",
+   "allDay": false,
+   "category": "teatro",
+   "place": {
+    "name": "Teatro Donnafugata, Via Pietro Novelli, 3, Ragusa Ibla",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ccnanticaibla.com/evento/ragusa-dietro-il-sipario/",
+   "sources": [
+    {
+     "sourceId": "ccn-antica-ibla-api",
+     "name": "Antica Ibla - Centro Commerciale Naturale"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_f9cb4966f9f2866f09107790",
+    "width": 480,
+    "height": 602
+   }
+  },
+  {
+   "id": "e_a6fd4a66d6a4",
+   "title": "Arsura Darkvoid",
+   "startsLocal": "2026-10-30T21:30",
+   "endsLocal": "2026-10-30T23:59",
+   "allDay": false,
+   "category": "musica-live",
+   "place": {
+    "name": "Lucernaio Pub, Via Orfanotrofio,20, Ragusa Ibla",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ccnanticaibla.com/evento/arsura-darkvoid/",
+   "sources": [
+    {
+     "sourceId": "ccn-antica-ibla-api",
+     "name": "Antica Ibla - Centro Commerciale Naturale"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_ef38bda0c3dcca40813c504a",
+    "width": 325,
+    "height": 324
+   }
+  },
+  {
+   "id": "e_5747b0df5f31",
+   "title": "DAL LEGNO DI GEPPETTO AI LEGNI DI BARTOLINI – PINOCCHIO E GIUFÀ",
+   "startsLocal": "2026-10-31T00:00",
+   "endsLocal": "2026-11-02T00:00",
+   "allDay": true,
+   "category": "mostre",
+   "place": {
+    "name": "teatro di donnafugata",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ccnanticaibla.com/evento/dal-legno-di-geppetto-ai-legni-di-bartolini-pinocchio-e-giufa-2/",
+   "sources": [
+    {
+     "sourceId": "ccn-antica-ibla-api",
+     "name": "Antica Ibla - Centro Commerciale Naturale"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_060352458d593970f863ca85",
+    "width": 493,
+    "height": 599
+   }
+  },
+  {
+   "id": "e_ca770f23e88a",
+   "title": "Ai Nostri Tempi (biblici) - Ragusa dietro il Sipario",
+   "startsLocal": "2026-10-31T20:30",
+   "endsLocal": "2026-10-31T22:30",
+   "allDay": false,
+   "category": "teatro",
+   "place": {
+    "name": "Teatro Donnafugata, Via Pietro Novelli, 3, Ragusa Ibla",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ccnanticaibla.com/evento/ai-nostri-tempi-biblici-ragusa-dietro-il-sipario/",
+   "sources": [
+    {
+     "sourceId": "ccn-antica-ibla-api",
+     "name": "Antica Ibla - Centro Commerciale Naturale"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_1c145e4d0e5a320d6dad000d",
+    "width": 1120,
+    "height": 1400
+   }
+  },
+  {
+   "id": "e_49da973a28c0",
+   "title": "Solennità di Tutti i Santi - Giornata della santificazione universale",
+   "startsLocal": "2026-11-01T00:00",
+   "endsLocal": "2026-11-01T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "",
+    "town": ""
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_1b77a5b720f1",
+   "title": "Celebrazione Eucaristica presieduta dal Vescovo",
+   "startsLocal": "2026-11-01T18:30",
+   "endsLocal": "2026-11-01T19:30",
+   "allDay": false,
+   "category": "religione",
+   "place": {
+    "name": "RAGUSA - Cattedrale",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_d8a56dd1a580",
+   "title": "Ai Nostri Tempi (biblici) – Ragusa dietro il Sipario",
+   "startsLocal": "2026-11-01T18:30",
+   "endsLocal": "2026-11-01T20:30",
+   "allDay": false,
+   "category": "teatro",
+   "place": {
+    "name": "Teatro Donnafugata",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ccnanticaibla.com/evento/ai-nostri-tempi-biblici-ragusa-dietro-il-sipario-2/",
+   "sources": [
+    {
+     "sourceId": "ccn-antica-ibla-api",
+     "name": "Antica Ibla - Centro Commerciale Naturale"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_1c145e4d0e5a320d6dad000d",
+    "width": 1120,
+    "height": 1400
+   }
+  },
+  {
+   "id": "e_2dde712d6490",
+   "title": "Cresime",
+   "startsLocal": "2026-09-26T14:00",
+   "endsLocal": "2026-09-26T19:00",
+   "allDay": false,
+   "category": "",
+   "place": {
+    "name": "MONTEROSSO ALMO - Maria SS. Assunta",
+    "town": "Monterosso Almo"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_c7e5439adece",
+   "title": "In viaggio con i Cabrera",
+   "startsLocal": "2026-10-03T00:00",
+   "endsLocal": "2026-12-07T00:00",
+   "allDay": true,
+   "category": "",
+   "place": {
+    "name": "Comiso, Pozzallo, Modica, Ragusa e Scicli",
+    "town": "Pozzallo"
+   },
+   "url": "https://www.quotidianodiragusa.it/2026/09/28/appuntamenti/in-viaggio-con-i-cabrera-programma/",
+   "sources": [
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_c76d58d98b33b90773deefea",
+    "width": 1183,
+    "height": 760
+   }
+  },
+  {
+   "id": "e_a941ffc81379",
+   "title": "Comiso: \"In viaggio con i Cabrera\", alla scoperta del Castello",
+   "startsLocal": "2026-10-06T00:00",
+   "endsLocal": null,
+   "allDay": true,
+   "category": "",
+   "place": {
+    "name": "Castello di Comiso",
+    "town": "Comiso"
+   },
+   "url": "https://www.videomediterraneo.it/video/eventi/comiso-in-viaggio-con-i-cabrera-alla-scoperta-del-castello-06-10-2026/",
+   "sources": [
+    {
+     "sourceId": "videomediterraneo-eventi",
+     "name": "Video Mediterraneo - Eventi"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_22901b44e9415fa7261a9f48",
+    "width": 1400,
+    "height": 788
+   }
+  },
+  {
+   "id": "e_b2083b223290",
+   "title": "Ciclo di conversazioni su Democrazia, guerre, media, IA e coscienza morale",
+   "startsLocal": "2026-10-09T19:00",
+   "endsLocal": "2026-10-09T20:00",
+   "allDay": false,
+   "category": "",
+   "place": {
+    "name": "COMISO",
+    "town": "Comiso"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_6ab86c30a9aa",
+   "title": "Cresime",
+   "startsLocal": "2026-10-10T00:00",
+   "endsLocal": "2026-10-10T23:59",
+   "allDay": true,
+   "category": "",
+   "place": {
+    "name": "COMISO - Sant’Antonio di Padova",
+    "town": "Comiso"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_aa00c131b49f",
+   "title": "Cresime",
+   "startsLocal": "2026-10-10T00:00",
+   "endsLocal": "2026-10-10T23:59",
+   "allDay": true,
+   "category": "",
+   "place": {
+    "name": "RAGUSA - Sacro Cuore",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_dae1be1d86e4",
+   "title": "Cresime",
+   "startsLocal": "2026-10-11T00:00",
+   "endsLocal": "2026-10-11T23:59",
+   "allDay": true,
+   "category": "",
+   "place": {
+    "name": "COMISO - Sant’Antonio di Padova",
+    "town": "Comiso"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_1455172f117c",
+   "title": "La mente è più vasta del cielo",
+   "startsLocal": "2026-10-15T18:30",
+   "endsLocal": null,
+   "allDay": false,
+   "category": "cinema",
+   "place": {
+    "name": "Auditorium Floridia",
+    "town": "Modica"
+   },
+   "url": "https://www.quotidianodiragusa.it/2026/10/06/appuntamenti/rassegna-cinema-salute-mentale-auditorium-floridia/",
+   "sources": [
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    },
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_948d058d477425552942495d",
+    "width": 1200,
+    "height": 852
+   }
+  },
+  {
+   "id": "e_2353cee28832",
+   "title": "Di giorno, la notte - Mostra di Salvatore Fratantonio",
+   "startsLocal": "2026-10-15T18:30",
+   "endsLocal": "2026-11-01T12:30",
+   "allDay": false,
+   "category": "mostre",
+   "place": {
+    "name": "Auditorium \"San Vincenzo Ferreri\"",
+    "town": "Ragusa"
+   },
+   "url": "https://comune.ragusa.it/it/eventi/di-giorno-la-notte-mostra-di-salvatore-fratantonio",
+   "sources": [
+    {
+     "sourceId": "comune-ragusa-eventi",
+     "name": "Comune di Ragusa - Eventi"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_2944d33d9dfc16b6c5cdb751",
+    "width": 600,
+    "height": 360
+   }
+  },
+  {
+   "id": "e_558d9104ae69",
+   "title": "I Custodi del Giardino. 80 anni di presenza dei Padri Carmelitani a Ragusa",
+   "startsLocal": "2026-10-15T19:30",
+   "endsLocal": "2027-01-24T21:00",
+   "allDay": false,
+   "category": "mostre",
+   "place": {
+    "name": "Convento di piazza Carmine",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ragusaoggi.it/ragusa-80-anni-di-storia-custoditi-tra-fotografie-e-ricordi-una-mostra-da-scoprire/",
+   "sources": [
+    {
+     "sourceId": "ragusaoggi-eventi",
+     "name": "Ragusa Oggi - Eventi"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_3febdccf866cf2a231944f81",
+    "width": 1400,
+    "height": 840
+   }
+  },
+  {
+   "id": "e_8beb7339017f",
+   "title": "Cresime",
+   "startsLocal": "2026-10-17T00:00",
+   "endsLocal": "2026-10-17T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "RAGUSA - Preziosissimo Sangue di N.S. Gesù Cristo",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_942374a06218",
+   "title": "Cresime",
+   "startsLocal": "2026-10-17T00:00",
+   "endsLocal": "2026-10-17T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "RAGUSA - Sacro Cuore",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_16215d396bb9",
+   "title": "Identità dei luoghi - mostra di Rosario Tumino",
+   "startsLocal": "2026-10-17T09:00",
+   "endsLocal": "2026-11-02T20:00",
+   "allDay": false,
+   "category": "mostre",
+   "place": {
+    "name": "Galleria del Centro Commerciale Culturale \"Mimì Arezzo\"",
+    "town": "Ragusa"
+   },
+   "url": "https://comune.ragusa.it/it/eventi/identita-dei-luoghi-mostra-di-rosario-tumino",
+   "sources": [
+    {
+     "sourceId": "comune-ragusa-eventi",
+     "name": "Comune di Ragusa - Eventi"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_3c282b2ccaed2ceb38ac9942",
+    "width": 600,
+    "height": 360
+   }
+  },
+  {
+   "id": "e_180289e9ea6c",
+   "title": "Cresime degli adulti",
+   "startsLocal": "2026-10-17T19:00",
+   "endsLocal": "2026-10-17T20:00",
+   "allDay": false,
+   "category": "religione",
+   "place": {
+    "name": "Cattedrale",
+    "town": ""
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_f1eb156c5dd0",
+   "title": "Cresime",
+   "startsLocal": "2026-10-18T00:00",
+   "endsLocal": "2026-10-18T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "COMISO - Sacro Cuore",
+    "town": "Comiso"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_43116a3c2299",
+   "title": "Inaugurazione della mostra fotografica della Capitaneria di Porto di Pozzallo",
+   "startsLocal": "2026-10-21T11:00",
+   "endsLocal": "2026-10-30T00:00",
+   "allDay": false,
+   "category": "mostre",
+   "place": {
+    "name": "Spazio Cultura \"Meno Assenza\"",
+    "town": "Pozzallo"
+   },
+   "url": "https://www.ragusaoggi.it/pozzallo-25-anni-di-storie-e-salvataggi-in-mare-una-mostra-racconta-la-guardia-costiera/",
+   "sources": [
+    {
+     "sourceId": "ragusaoggi-eventi",
+     "name": "Ragusa Oggi - Eventi"
+    },
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_6cb23779cf2d624c01fc9b0a",
+    "width": 700,
+    "height": 522
+   }
+  },
+  {
+   "id": "e_a2339f8c012a",
+   "title": "Mostra fotografica: 25 anni della Capitaneria di Porto di Pozzallo",
+   "startsLocal": "2026-10-21T11:00",
+   "endsLocal": "2026-10-30T00:00",
+   "allDay": false,
+   "category": "mostre",
+   "place": {
+    "name": "Spazio Cultura \"Meno Assenza\"",
+    "town": "Pozzallo"
+   },
+   "url": "https://www.ragusaoggi.it/pozzallo-25-anni-di-storie-e-salvataggi-in-mare-una-mostra-racconta-la-guardia-costiera/",
+   "sources": [
+    {
+     "sourceId": "ragusaoggi-eventi",
+     "name": "Ragusa Oggi - Eventi"
+    },
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    },
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_6cb23779cf2d624c01fc9b0a",
+    "width": 700,
+    "height": 522
+   }
+  },
+  {
+   "id": "e_dc901a239a57",
+   "title": "La mente è più vasta del cielo",
+   "startsLocal": "2026-10-22T18:30",
+   "endsLocal": null,
+   "allDay": false,
+   "category": "cinema",
+   "place": {
+    "name": "Auditorium Floridia",
+    "town": "Modica"
+   },
+   "url": "https://www.quotidianodiragusa.it/2026/10/06/appuntamenti/rassegna-cinema-salute-mentale-auditorium-floridia/",
+   "sources": [
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    },
+    {
+     "sourceId": "quotidiano-di-ragusa-appuntamenti",
+     "name": "Quotidiano di Ragusa - Appuntamenti"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_948d058d477425552942495d",
+    "width": 1200,
+    "height": 852
+   }
+  },
+  {
+   "id": "e_842a83a53aa8",
+   "title": "Cresime",
+   "startsLocal": "2026-10-23T00:00",
+   "endsLocal": "2026-10-23T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "VITTORIA - S. Francesco di Paola",
+    "town": "Vittoria"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_53857567d6d0",
+   "title": "DAL LEGNO DI GEPPETTO AI LEGNI DI BARTOLINI - PINOCCHIO E GIUFÀ",
+   "startsLocal": "2026-10-24T00:00",
+   "endsLocal": "2026-10-26T00:00",
+   "allDay": true,
+   "category": "mostre",
+   "place": {
+    "name": "teatro di donnafugata",
+    "town": "Ragusa"
+   },
+   "url": "https://www.ccnanticaibla.com/evento/dal-legno-di-geppetto-ai-legni-di-bartolini-pinocchio-e-giufa/",
+   "sources": [
+    {
+     "sourceId": "ccn-antica-ibla-api",
+     "name": "Antica Ibla - Centro Commerciale Naturale"
+    }
+   ],
+   "poster": {
+    "url": "/v1/posters/p_060352458d593970f863ca85",
+    "width": 493,
+    "height": 599
+   }
+  },
+  {
+   "id": "e_7036b7ea38a1",
+   "title": "Cresime",
+   "startsLocal": "2026-10-24T14:00",
+   "endsLocal": "2026-10-24T19:00",
+   "allDay": false,
+   "category": "religione",
+   "place": {
+    "name": "RAGUSA - Preziosissimo Sangue di N.S.G.C.",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_cc441fb4dc8b",
+   "title": "Cresime",
+   "startsLocal": "2026-10-24T14:00",
+   "endsLocal": "2026-10-24T19:00",
+   "allDay": false,
+   "category": "religione",
+   "place": {
+    "name": "RAGUSA - Sacro Cuore",
+    "town": "Ragusa"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  },
+  {
+   "id": "e_09b551e2a1c2",
+   "title": "Cresime",
+   "startsLocal": "2026-10-25T00:00",
+   "endsLocal": "2026-10-25T23:59",
+   "allDay": true,
+   "category": "religione",
+   "place": {
+    "name": "COMISO - Sacro Cuore",
+    "town": "Comiso"
+   },
+   "url": "https://calendario.diocesidiragusa.it/",
+   "sources": [
+    {
+     "sourceId": "diocesi-ragusa",
+     "name": "Diocesi di Ragusa - Calendario"
+    }
+   ],
+   "poster": null
+  }
+ ]
+}

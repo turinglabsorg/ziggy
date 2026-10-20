@@ -25,6 +25,7 @@ When working from the repo without installing: `node ziggy/skill/index.js …`.
 | 4. Campaign | `ziggy campaign add <slug> <name>` → edit `campaign.json`, or `ziggy story <slug>` for the latest story of a publishing tenant | copy + per-platform posts + variants |
 | 5. Video | `ziggy video <slug> <name>` | HyperFrames projects, checked + rendered: reel 9:16, X 16:9, feed 4:5 + stills |
 | 5b. Carousel | `ziggy slides <slug> <name>` | three feed stills (cover, dek, close) for an Instagram carousel |
+| 5d. Events | `ziggy events <slug> --week [--from YYYY-MM-DD]` · `ziggy events <slug> --teaser` | the week's events reel (campaign `eventi-<monday>`, reel + post) or the evergreen events teaser; renders only, never posts |
 | 5c. Thread | `ziggy thread <slug> <name>` | X thread: cover image on the opening post, replies, the link in the last reply |
 | 6. Publish | `ziggy post <slug> <name>` (drafts) → `ziggy publish <slug> <ids>` or `ziggy post … --live` | Postproxy posts, permalinks in `ziggy status` |
 | 7. Listen | `ziggy inbox <slug>` · `ziggy stats <slug>` | new comments, DM threads, engagement |
@@ -32,7 +33,7 @@ When working from the repo without installing: `node ziggy/skill/index.js …`.
 | 9. Schedule | `ziggy watch <slug> --install --interval 900` | launchd/cron job running the autopilot |
 
 Read the reference for the step you are on — `references/tenants.md`, `brand.md`, `video.md`,
-`copy.md`, `postproxy.md`, `autopilot.md` — not all of them.
+`copy.md`, `postproxy.md`, `autopilot.md`, `events.md` — not all of them.
 
 ## Rules
 
@@ -285,6 +286,14 @@ ziggy video alienwatch story-… --variants reel   # the video
 ziggy slides alienwatch story-…                  # the carousel: cover, dek, close
 ziggy thread alienwatch story-… --enable         # the thread; the cover image is on the first post, the link in the last reply
 ziggy post alienwatch story-… --live --only instagram_reel --watch
+```
+
+The week's events as a reel (tenant.json → `events`; nothing is posted):
+```bash
+ziggy events ragusa --week --dry-run                    # the selection: chosen cards, the ones left out and why
+ziggy events ragusa --week                              # campaign eventi-<monday>, posters, reel + post renders
+ziggy events ragusa --week --from 2026-10-26            # a given week; exit 3 = fewer than events.minEvents, skipped
+ziggy events ragusa --teaser                            # the evergreen teaser (no dates), campaign eventi-teaser
 ```
 
 Daily run on an existing tenant:

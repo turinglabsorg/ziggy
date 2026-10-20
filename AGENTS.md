@@ -91,6 +91,15 @@ working **with** Ziggy.
   from `ELEVENLABS_API_KEY` via `hush run` (`ZIGGY_ELEVENLABS_API_KEY` in hush), and the Music
   API needs a paid ElevenLabs plan. Never borrow another client's key. Tests fake ElevenLabs on
   localhost (`ZIGGY_ELEVENLABS_BASE_URL`) and ffmpeg (`ZIGGY_FFMPEG_BIN`).
+- `ziggy events <slug> --week | --teaser` (events.mjs) renders the week's events reel
+  (`eventi-settimana`, campaign `eventi-<monday>`) or the evergreen events teaser
+  (`eventi-teaser`) from `tenant.json → events` (the public events API). It writes a campaign and
+  renders reel + post; it **never posts** and nothing schedules it. `tenant.events` is read by
+  this command only. The selection is pure and pinned by `test/events.test.mjs` (exclusions,
+  merge of recurrences and near-duplicates, score, town spread, max/min, week incl. DST). An end
+  at `00:00` is a date (inclusive) except for `events.exclusiveEndSources` (iCal-style). Events
+  campaigns carry no `copy.headline`/`story` (the daily coverage reads those) and take no jingle
+  from the rotation. Fewer than `minEvents` → exit 3; `--notify` uses `ZIGGY_REPORT_HOOK` only.
 - Templates: `story` (one reel per feed story), `teaser` (the original brand teaser) and `intro`
   (a ~10s launch video: a −45° wall of `campaign.images` in a burst, then the brand as it is; see DESIGN.md). Remote images are
   fetched on every scaffold, because assets are named by position and a stale file would

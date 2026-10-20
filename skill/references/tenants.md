@@ -35,6 +35,31 @@ The definition is enough to rebuild the work layer anywhere: `ziggy brand fonts`
   (dotted path to the array), `fields` (dotted paths for title, dek, section, date, image, slug,
   sources, languages), `imageRewrite` (regex → public asset host), `storyUrl` with `{slug}`,
   `displayUrl`. See `tenants/alienwatch/tenant.json` for a complete example.
+- `events` (optional) — the tenant's public events calendar, read only by `ziggy events`
+  (nothing schedules it and no other command looks at it). See `events.md`.
+
+  ```json
+  "events": {
+    "apiUrl": "https://ragusa.buzz/v1/events",
+    "url": "https://ragusa.buzz/eventi",
+    "tz": "Europe/Rome",
+    "excludeCategories": ["religione", "istituzionale", "corsi", "formazione"],
+    "excludeTitles": ["cresim", "consiglio comunale", "seduta"],
+    "exclusiveEndSources": ["ccn-antica-ibla-api"],
+    "maxEvents": 6,
+    "minEvents": 3,
+    "template": "eventi-settimana",
+    "teaserTemplate": "eventi-teaser",
+    "hashtags": "#Ragusa #Sicilia #EventiRagusa",
+    "categoryLabels": { "musica-live": "Musica live", "teatro": "Teatro", "mostre": "Mostra", "": "Evento" }
+  }
+  ```
+
+  `apiUrl` is the events endpoint (`?from&to&limit`, `{data: [...]}`), `url` the public calendar
+  page the reels and captions point to. `excludeTitles` are case-insensitive regex sources.
+  `exclusiveEndSources` lists sources whose `00:00` end is the day after the last one.
+  `categoryLabels` (Italian) merge over the defaults. Optional: `lookbackDays` (45),
+  `weights`, `categoryWeights`, `teaser.categories`, `teaser.towns`.
 
 ## Commands
 
