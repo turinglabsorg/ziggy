@@ -35,8 +35,9 @@ The definition is enough to rebuild the work layer anywhere: `ziggy brand fonts`
   (dotted path to the array), `fields` (dotted paths for title, dek, section, date, image, slug,
   sources, languages), `imageRewrite` (regex → public asset host), `storyUrl` with `{slug}`,
   `displayUrl`. See `tenants/alienwatch/tenant.json` for a complete example.
-- `events` (optional) — the tenant's public events calendar, read only by `ziggy events`
-  (nothing schedules it and no other command looks at it). See `events.md`.
+- `events` (optional) — the tenant's public events calendar, read only by `ziggy events`;
+  `events.schedule` is read by `ziggy serve`, which then runs `events --week --publish
+  --notify` weekly. See `events.md`.
 
   ```json
   "events": {
@@ -48,6 +49,7 @@ The definition is enough to rebuild the work layer anywhere: `ziggy brand fonts`
     "exclusiveEndSources": ["ccn-antica-ibla-api"],
     "maxEvents": 6,
     "minEvents": 3,
+    "schedule": { "weekday": "mon", "time": "07:00", "tz": "Europe/Rome" },
     "template": "eventi-settimana",
     "teaserTemplate": "eventi-teaser",
     "hashtags": "#Ragusa #Sicilia #EventiRagusa",
@@ -58,6 +60,8 @@ The definition is enough to rebuild the work layer anywhere: `ziggy brand fonts`
   `apiUrl` is the events endpoint (`?from&to&limit`, `{data: [...]}`), `url` the public calendar
   page the reels and captions point to. `excludeTitles` are case-insensitive regex sources.
   `exclusiveEndSources` lists sources whose `00:00` end is the day after the last one.
+  `schedule` (optional) is the weekly publishing job in `ziggy serve`: weekday `mon`…`sun`,
+  local `HH:MM`, `tz` (default `events.tz`); leave it out and nothing publishes the week.
   `categoryLabels` (Italian) merge over the defaults. Optional: `lookbackDays` (45),
   `weights`, `categoryWeights`, `teaser.categories`, `teaser.towns`.
 

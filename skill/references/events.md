@@ -1,20 +1,24 @@
 # Events
 
 `ziggy events` turns a tenant's public events calendar into two kinds of video. It writes a
-campaign and renders it; it **never posts**. Publishing stays a separate, explicit step
-(`ziggy post`), and nothing schedules this command.
+campaign and renders it. Only `--week --publish` posts (live, at once: see
+[Publishing the week](#publishing-the-week)); without it nothing is posted, and the teaser is
+never published by this command. `ziggy serve` runs `--week --publish --notify` once a week
+for a tenant with `events.schedule` ([The weekly job](#the-weekly-job)).
 
 ```bash
 ziggy events ragusa --week --dry-run                 # the selection for the week, nothing written
 ziggy events ragusa --week                           # campaign eventi-<monday> + reel and post renders
 ziggy events ragusa --week --from 2026-10-26         # a given week (any day of it: snapped to its Monday)
 ziggy events ragusa --week --no-render               # campaign and posters only; render later with ziggy video
+ziggy events ragusa --week --publish --dry-run       # the selection + what would be published, nothing written or posted
+ziggy events ragusa --week --publish --notify        # render, publish live on daily.only, summary to ZIGGY_REPORT_HOOK
 ziggy events ragusa --teaser                         # the evergreen teaser (campaign eventi-teaser)
 ```
 
 Flags: `--force` overwrites an existing campaign, `--json` prints the selection (and the render
-manifest) as JSON with progress on stderr, `--quality` passes through to the render, `--now <ISO>`
-pins the clock (tests).
+manifest, and with `--publish` the outcome per platform) as JSON with progress on stderr,
+`--quality` passes through to the render, `--now <ISO>` pins the clock (tests).
 
 ## The week
 
@@ -102,6 +106,76 @@ Length: 3 s intro + one card per event + 3.5 s outro, held between 15 and 20 s (
 
 Renders land as usual in `~/.ziggy/tenants/<slug>/renders/eventi-<monday>/`:
 `<slug>-eventi-<monday>-reel-1080x1920.mp4|png` and `…-post-1080x1350.mp4|png`.
+
+## Publishing the week
+
+`--publish` (with `--week` only) goes on after the render and publishes the reel **live, now**
+(no draft, no schedule) through `publishCampaign`, the same path as `ziggy post`, so each post is
+a line in `posts.jsonl` like a round's. The line carries the time it went out as `scheduledAt`,
+so the rounds' slot and Facebook accounting see it.
+
+- **Platforms**: the tenant's reel kinds, `tenant.daily.only` that the campaign defines
+  (Ragusa: `instagram_reel`, `facebook_reel`), one post each, Instagram first. A kind whose
+  Postproxy profile is not active is reported (`ricollega il profilo`) and the others still go.
+- **The check**: the reel must pass the round's `checkReel` (rendered, an audio track, mean
+  volume above −40 dB, at least 10 s), because nobody looks at it first. A reel that fails is
+  not published on any platform.
+- **Facebook guard**: `facebook_reel` goes out only if `fbguard.mjs` allows it now, with the
+  round's rules and the tenant's `daily.facebook` (Ragusa: at most 3 a day, 4 h apart, a 48 h
+  pause after a Meta 368). Every live Facebook post counts: the ones a round queued and the
+  ones that went out at once. When the guard says no, Instagram goes out alone and Facebook is
+  reported held with the reason (`pause`, `gap`, `cap`, `disabled`). This command never drops
+  queued posts: after a 368 that is the next round's job.
+- **Idempotent**: a platform that already has a live (not deleted) post of this campaign in
+  `posts.jsonl` is never published again (`already published`). A re-run reuses the week's
+  campaign and its renders (`--force` rebuilds and re-renders them, still without a second
+  post), so running the same command again later publishes only what is missing — e.g. the
+  Facebook post the guard held. To retry a platform whose post failed on Postproxy, remove it
+  first with `ziggy delete` (it logs the delete event).
+- **Fewer than `minEvents`**: no campaign, no render, no post, exit 3, the `⏭️` line.
+- **`--dry-run`**: the selection and, per platform, `would publish live now` / `already
+  published` / held by the guard; nothing is written, rendered or posted (it reads
+  `posts.jsonl` and Postproxy only).
+- **`--notify`**: one Italian line through `ZIGGY_REPORT_HOOK`, e.g.
+
+  ```
+  🗓️ Ragusa Buzz · Eventi della settimana 26 ott – 1 nov: reel pubblicato su Instagram (id …), Facebook (id …)
+  🗓️ Ragusa Buzz · Eventi della settimana 26 ott – 1 nov: reel pubblicato su Instagram (id …), Facebook (in attesa: un altro post Facebook a meno di 4 ore)
+  ```
+
+  A render or Postproxy error sends `✗ … reel non pubblicato (…)` instead.
+- **Exit codes**: 0 published (a Facebook post held by the guard included), 1 a platform failed,
+  its profile is down or the reel failed the check, 3 skipped. It needs the Postproxy key
+  (`POSTPROXY_API_KEY_<SLUG>` in a container, hush on a dev machine), also for `--dry-run`.
+
+## The weekly job
+
+`ziggy serve` runs `ziggy events <slug> --week --publish --notify` for every served tenant with
+an `events.schedule` block:
+
+```json
+"events": { "schedule": { "weekday": "mon", "time": "07:00", "tz": "Europe/Rome" } }
+```
+
+`weekday` is `mon`…`sun`, `time` is local `HH:MM`, `tz` falls back to `events.tz`. Serve checks
+every minute and runs the job:
+
+- never before the time, and only on that weekday (in `tz`, so 07:00 stays 07:00 across the DST
+  change). A process that was down at 07:00 catches up later the **same** day; on a later day
+  it waits for the next week;
+- at most once per ISO week: the week is written to `$ZIGGY_HOME/state/<slug>-events-schedule.json`
+  (`lastWeek`, `startedAt`, then `finishedAt` and the exit `code`) **before** the run starts, so
+  a restart — even one in the middle of the run — never runs it twice. Re-run it by hand
+  (idempotent) if a run was cut short;
+- with `--no-daily` too (production runs `serve ragusa alienwatch --no-daily`); `--no-events`
+  turns it off;
+- as a child CLI run like daily and report (keys from `POSTPROXY_API_KEY_<SLUG>`), waiting while
+  the same tenant's `daily` run is going. Serve has no lock with a round run by hand
+  (`docker exec … round`): the two may overlap, renders included.
+
+Exit 3 (a skipped week) is not an error. `GET /healthz` shows `tenants.<slug>.events`:
+`schedule`, `next` (the next run, ISO), `lastWeek`, and the last run's `lastOk`/`error`. Serve
+also logs `events → weekly mon 07:00 Europe/Rome, next …` at boot.
 
 ## The teaser
 

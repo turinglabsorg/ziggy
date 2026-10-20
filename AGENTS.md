@@ -94,8 +94,19 @@ working **with** Ziggy.
 - `ziggy events <slug> --week | --teaser` (events.mjs) renders the week's events reel
   (`eventi-settimana`, campaign `eventi-<monday>`) or the evergreen events teaser
   (`eventi-teaser`) from `tenant.json → events` (the public events API). It writes a campaign and
-  renders reel + post; it **never posts** and nothing schedules it. `tenant.events` is read by
-  this command only. The selection is pure and pinned by `test/events.test.mjs` (exclusions,
+  renders reel + post; without `--publish` it never posts. `tenant.events` is read by
+  this command (and `events.schedule` by serve) only.
+  - `--week --publish` (eventspub.mjs) then publishes the reel **live, now** on the tenant's
+    `daily.only` kinds the campaign defines, one `publishCampaign` call per kind, logged in
+    posts.jsonl with the time it went out as `scheduledAt` (`publishedAt`), so the rounds'
+    Facebook guard and slots count it. The reel must pass `checkReel` first. `facebook_reel`
+    passes `fbAllowed` now (cap, gap, pause after a 368; every live Facebook row counts,
+    `scheduledAt || at`) or is held and reported; Instagram goes out anyway. It never drops
+    queued posts (the round's job). Idempotent: a platform with a live row of the campaign is
+    `already published`, and a re-run reuses the campaign and its renders (`--force` rebuilds,
+    still no second post). `--dry-run` shows the plan and posts nothing; `--notify` sends one
+    Italian line through `ZIGGY_REPORT_HOOK`. Exit 0 ok (held included), 1 failure/profile
+    down/check failed, 3 skipped. The selection is pure and pinned by `test/events.test.mjs` (exclusions,
   merge of recurrences and near-duplicates, score, town spread, max/min, week incl. DST). An end
   at `00:00` is a date (inclusive) except for `events.exclusiveEndSources` (iCal-style). Events
   campaigns carry no `copy.headline`/`story` (the daily coverage reads those) and take no jingle
@@ -110,8 +121,10 @@ working **with** Ziggy.
   comments. A scheduler pipes it wherever (`ZIGGY_REPORT_HOOK='grog telegram-send --to me
   "$ZIGGY_REPORT_TEXT"'` under serve, or a plain cron line). Deleted posts drop out.
 - **Operating mode (owner's rule): a Claude session always drives publishing.** No autonomous agent
-  and no Anthropic key in the container. Production runs `serve … --no-daily`, which only sends
-  reports. Publishing happens in rounds, which a Claude session runs through
+  and no Anthropic key in the container. Production runs `serve … --no-daily`, which sends
+  reports and runs one deterministic job: the weekly events reel (`events --week --publish
+  --notify`, Ragusa every Monday at 07:00 Rome, `events.schedule`). Story publishing happens in
+  rounds, which a Claude session runs through
   `docker exec ziggy-ziggy-1 node skill/index.js round …`.
 - `ziggy round <slug>` (round.mjs) is that round, made deterministic so that any agent given
   the skill does it the same way. The fixed rules for points and skips are in
@@ -160,6 +173,14 @@ working **with** Ziggy.
   tenant's digest combined as `ZIGGY_REPORT_TEXT` (blank line between tenants) and
   `ZIGGY_REPORT_TENANT` as the comma list (e.g. a grog send). A failing run is logged in
   `state` and never stops the loop.
+  The weekly events job lives in serve too: for each tenant with `tenant.json →
+  events.schedule` (`weekday`, `time`, `tz`) a check every minute runs `events <slug> --week
+  --publish --notify` as a child, on that weekday from that local time to the end of the day
+  (a container down at 07:00 catches up the same day, never later), at most once per ISO week:
+  the week goes to `$ZIGGY_HOME/state/<slug>-events-schedule.json` before the run, so a restart
+  never repeats it. It runs with `--no-daily`, `--no-events` turns it off, exit 3 (skipped) is
+  not an error, and /healthz shows `events.next`. It waits for the same tenant's `daily` run but
+  has no lock with a round run via `docker exec`: the two may overlap.
   The image carries everything a render needs — the HyperFrames CLI pinned globally
   (`ZIGGY_HYPERFRAMES_BIN=hyperframes`: an npx download per fresh container raced under
   parallel renders), the headless Chrome (fetched at build time, not on the first story), ffmpeg/ffprobe, `unzip` for puppeteer's browser zip, and the Chromium

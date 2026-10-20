@@ -122,8 +122,10 @@ export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt
 /**
  * Create the campaign's posts. Returns [{ kind, post, published }].
  * `client` defaults to a Postproxy client reading POSTPROXY_API_KEY.
+ * `publishedAt` (a live post without `scheduledAt`, going out now) is logged as the post's
+ * `scheduledAt`, so the slot and Facebook accounting of rounds see when it went out.
  */
-export async function publishCampaign({ tenant, campaign, live = false, scheduledAt, only, client = createClient(), log = () => {}, dryRun = false }) {
+export async function publishCampaign({ tenant, campaign, live = false, scheduledAt, publishedAt, only, client = createClient(), log = () => {}, dryRun = false }) {
   const manifest = readManifest(tenant.slug, campaign.name);
   const profiles = await client.listProfiles();
   const results = [];
@@ -146,7 +148,7 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
     log(`→ ${plan.kind} on ${plan.profile.name}${names.length ? ` (${names.join(", ")})` : ""}`);
     if (dryRun) { results.push({ kind: plan.kind, request: plan.request, profile: plan.profile.name, dryRun: true }); continue; }
     const post = await client.createPost(plan.request);
-    logPost(tenant.slug, { campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || null, link: campaign.story?.url || campaign.link || null });
+    logPost(tenant.slug, { campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || (live && publishedAt) || null, link: campaign.story?.url || campaign.link || null });
     results.push({ kind: plan.kind, post, profile: plan.profile.name, published: live });
     log(`  ${summarizePost(post).split("\n")[0]}`);
   }
