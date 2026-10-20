@@ -100,9 +100,9 @@ The **points file** covers every story the plan listed, with no exceptions:
       "headline": "AARO found the records. It released none.",
       "dek": "A FOIA reply tied to five cases on Rep. Luna's UAP list was withheld in full as classified.",
       "points": [
-        "Per a Pentagon letter dated 30 Sept 2026 (FOIA 26-F-1892), published by researcher John Greenewald, AARO located responsive records and withheld them under national-security exemptions.",
-        "This answers a FOIA request, not Congress. It does not show the task force was denied the same files.",
-        "The videos are public for most cited cases, but the written reports that explain them are not."
+        "A Pentagon letter of 30 Sept 2026 cites national-security exemptions for all five.",
+        "It answers a FOIA request, not Congress; it does not show the task force was denied.",
+        "The videos of most cases are public; the written reports that explain them are not."
       ],
       "source": {
         "outlet": "The Black Vault via Dark Files",
@@ -153,9 +153,16 @@ Each case file is a sourced UAP fact followed by our perspective in three parts:
 
 Rules:
 
+- **The dek adds facts not in the headline; never restate the headline.**
+- **Each point adds a fact.** No point repeats the headline, the dek or another point. Ziggy
+  lints the caption (headline, dek and the three points; the labels and the source line are not
+  compared) and refuses a case file that repeats itself, with the two sentences that match
+  (`caption repeats itself: "…" ~ "…"`), the same rule as a story.
 - Exactly 3 points (Confirmed, Not confirmed, Why it matters), each ≤90 characters
 - Points should NOT include the label prefixes ("Confirmed:", "Not confirmed:", "Why it matters:") — write them as plain statements; Ziggy strips any prefixes automatically
-- Source must have `outlet` and `url`
+- Source must have `outlet` and `url`. The caption's source line is `Source: <outlet> · <url>`;
+  when the outlet already names the URL (`"PURSUE, war.gov/UFO"` with `"war.gov"`) it is the
+  outlet alone
 - Optional `labels`: array of 3 custom section labels (e.g., `["VERIFIED", "DISPUTED", "IMPLICATIONS"]`) to replace the defaults
 - Alternatively, points can be objects with `{ label?, text }` — when provided, `label` overrides the default for that point
 - Optional `template`: `"casefile-dossier"` or `"casefile-radar"` (default: alternates based on persisted last-used template)
@@ -222,6 +229,8 @@ How to write the points. These rules are fixed, so do not improvise.
   Ziggy refuses anything other than 3–4 points, and any point over 90 characters.
 - **One fact per point**, as a plain sentence. Read in order, the points tell the story: what
   happened (who, where, when), then the details, then what comes next.
+- **Point 1 does not repeat the title; each point adds a new fact.** The points are the reel's
+  slides only: the caption is the title, the dek, the sources line, the link and the hashtags.
 - **Only what the title and dek say.** Copy numbers, names and places as written. Use no other
   source and no background of your own.
 - **No adjectives of judgement, comments, questions, emojis, hashtags or calls to action.**
@@ -238,8 +247,11 @@ When to skip a story (list its prefix under `"skip"`; the skip is permanent):
 - it makes a private person in distress identifiable (a victim, an injured or sick person).
 
 When in doubt, skip. Everything else goes out. Ziggy refuses some stories by itself: one with no
-photo, one past its deadline, one already covered, one not in the feed. You do not need to skip
-those.
+photo, one past its deadline, one already covered, one not in the feed, one whose caption repeats
+itself (`caption repeats itself: "…" ~ "…"`: the feed's dek retelling its title — a dek adds facts
+not in the headline and never restates it). You do not need to skip those. The same lint runs on
+every caption before it is scheduled or posted: case files in a round, `ziggy daily`, and
+`ziggy post` (the weekly events list is not linted: its lines share towns and venues).
 
 Reading the result:
 

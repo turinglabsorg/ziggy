@@ -73,6 +73,23 @@ test("validation stops the whole campaign before any upload", async () => {
   writeFileSync(campaign, JSON.stringify(c));
 });
 
+test("a caption that repeats itself makes the campaign not publishable; the kinds left out are not linted", async () => {
+  const campaign = join(world.repo, "tenants", "acme", "campaigns", "launch", "campaign.json");
+  const c = JSON.parse(readFileSync(campaign, "utf8"));
+  const saved = c.posts.instagram_reel.body;
+  c.posts.instagram_reel.body = "The night watch begins in the harbour tonight.\n\nTonight the night watch begins in the harbour.\n\nMore at acme.example";
+  writeFileSync(campaign, JSON.stringify(c));
+  const before = mock.calls.filter((x) => x.method === "POST").length;
+  const r = await run(["post", "acme", "launch"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /instagram_reel: caption repeats itself: "The night watch begins in the harbour tonight\." ~ "Tonight the night watch begins in the harbour\."/);
+  assert.equal(mock.calls.filter((x) => x.method === "POST").length, before, "nothing was created");
+  const x = await run(["post", "acme", "launch", "--only", "twitter", "--dry-run"]);
+  assert.equal(x.status, 0, x.stderr);
+  c.posts.instagram_reel.body = saved;
+  writeFileSync(campaign, JSON.stringify(c));
+});
+
 test("without POSTPROXY_API_KEY the command re-executes itself under hush and the key reaches only the child", async () => {
   const hushDir = join(world.root, "fakebin");
   fakeHush(hushDir, { names: ["ziggy.acme.postproxy"], secretValue: API_KEY });

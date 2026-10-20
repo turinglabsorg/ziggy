@@ -104,8 +104,8 @@ export function buildSummaryPrompt(tenant, story) {
   const lang = tenant.language || "en";
   return [
     lang === "it"
-      ? `Riassumi questa notizia in 3-4 slide per un reel verticale. Ogni slide deve aggiungere un pezzo della storia (cosa è successo, chi, quando/dove, cosa comporta), non ripetere il titolo.`
-      : `Summarise this story as 3-4 slides for a vertical reel. Each slide must add one piece of the story (what happened, who, when/where, what it means), not repeat the headline.`,
+      ? `Riassumi questa notizia in 3-4 slide per un reel verticale. Ogni slide aggiunge un fatto nuovo (cosa è successo, chi, quando/dove, cosa comporta): la prima non ripete il titolo, nessuna ripete un'altra.`
+      : `Summarise this story as 3-4 slides for a vertical reel. Each slide adds a new fact (what happened, who, when/where, what it means): the first does not repeat the headline, none repeats another.`,
     lang === "it"
       ? `Regole: frasi brevi (max 90 caratteri l'una), italiano semplice, niente emoji, niente numerazione, una frase per slide.`
       : `Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.`,
@@ -177,8 +177,8 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
   const langsPart = story.languages ? (lang === "it" ? count(story.languages, "lingua", "lingue") : plural(story.languages, "language")) : null;
   const sourcesLine = story.sources != null
     ? lang === "it"
-      ? ` Basato su ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
-      : ` Sourced from ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
+      ? `Basato su ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
+      : `Sourced from ${sourcesPart}${langsPart ? ` in ${langsPart}` : ""}.`
     : "";
   // the caption carries the full story link: Instagram captions are not clickable, but
   // whoever wants the sources copies the URL — no "comment LINK" DM round-trip
@@ -188,10 +188,9 @@ export function campaignFromStory(tenant, story, { name, points: summaryPoints }
   // ends, one point per slide (edit them in campaign.json)
   const points = summaryPoints?.length ? summaryPoints.slice(0, 4)
     : story.dek.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 12).slice(0, 4);
-  // long caption: headline, dek, then the story told slide by slide — the caption should
-  // carry the whole story, not make the reader leave Instagram to understand it
-  const pointsBlock = points.length ? `\n\n${points.join("\n\n")}` : "";
-  const caption = `${story.title}\n\n${story.dek}${pointsBlock}${sourcesLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
+  // caption: headline, dek, sources, link, hashtags. The points stay on the reel slides only:
+  // they retell the headline and dek, so in the caption they said everything twice
+  const caption = `${story.title}\n\n${story.dek}${sourcesLine ? `\n\n${sourcesLine}` : ""}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
   const thread = composeThread({ title: story.title, dek: story.dek, url: story.url, limit: 280 });
   // tenant.social.platforms opts a tenant into extra kinds: ["tiktok", "instagram_post"] —
   // reels are always on; X (when listed) posts the same reel, which every round renders

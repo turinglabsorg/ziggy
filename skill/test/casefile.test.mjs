@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { readFileSync } from "node:fs";
+import { after, test } from "node:test";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { campaignFromCasefile, casefileDuration, createCasefileCampaign, casefileEnabled } from "../scripts/casefile.mjs";
+import { campaignFromCasefile, casefileDuration, createCasefileCampaign, casefileEnabled, sourceLine } from "../scripts/casefile.mjs";
+import { campaignRepetition, captionSentences } from "../scripts/lint.mjs";
+
+// the template rotation state goes to a scratch home, not the real ~/.ziggy
+const home = mkdtempSync(join(tmpdir(), "ziggy-casefile-"));
+process.env.ZIGGY_HOME = home;
+after(() => rmSync(home, { recursive: true, force: true }));
 
 const TENANT = {
   slug: "alienwatch",
@@ -396,4 +404,55 @@ test("dossier template shrinks the photo until its credit clears the source line
   // measured only once the photo is loaded, and never below a readable size
   assert.match(html, /addEventListener\("load", build/);
   assert.match(html, /h > 140/);
+});
+
+// ── Source line and caption lint ─────────────────────────────────────────────────────────────
+// A real dossier caption read "Source: PURSUE, war.gov/UFO · war.gov": the URL repeated the outlet.
+const PURSUE = {
+  headline: "The Pentagon put its UFO files online",
+  dek: "PURSUE, the Department of War's records portal, opened with 46 case documents and 12 videos.",
+  labels: ["THE CLAIM", "THE CHECK", "THE ANSWER"],
+  points: ["Officials call it the largest UAP release yet.", "Most files were already public through FOIA.", "New: three range-fouler reports from 2021."],
+  source: { outlet: "PURSUE, war.gov/UFO", url: "war.gov" },
+  template: "casefile-dossier", date: "2026-10-16",
+};
+
+test("source line: the URL is dropped when the outlet already names it", () => {
+  assert.equal(sourceLine("PURSUE, war.gov/UFO", "war.gov"), "Source: PURSUE, war.gov/UFO");
+  assert.equal(sourceLine("PURSUE, war.gov/UFO", "https://www.war.gov/"), "Source: PURSUE, war.gov/UFO");
+  assert.equal(sourceLine("PURSUE, war.gov/UFO", "https://war.gov/UFO"), "Source: PURSUE, war.gov/UFO");
+  // a URL the outlet does not name stays: it points to the document
+  assert.equal(sourceLine("The Black Vault", "https://example.org/foia"), "Source: The Black Vault · https://example.org/foia");
+  assert.equal(sourceLine("war.gov", "https://www.war.gov/UFO/"), "Source: war.gov · https://www.war.gov/UFO/");
+  assert.equal(sourceLine("Notes on war.gov", "https://ar.gov"), "Source: Notes on war.gov · https://ar.gov", "a host inside another host is a different host");
+  assert.equal(sourceLine("Test Source", ""), "Source: Test Source");
+  const body = campaignFromCasefile(TENANT, PURSUE).posts.instagram_reel.body;
+  assert.match(body, /\n\nTHE ANSWER: New: three range-fouler reports from 2021\.\n\nSource: PURSUE, war\.gov\/UFO\n\nFull log of UAP observations → alienwatch\.buzz\n\n/);
+  assert.doesNotMatch(body, /· war\.gov/);
+});
+
+test("case file lint: headline, dek and each point add a fact; labels and the source line are not compared", () => {
+  const c = campaignFromCasefile(TENANT, PURSUE);
+  assert.deepEqual(campaignRepetition(c), { ok: true, pairs: [] });
+  // what the lint reads: the dek, the points without their labels, no source line
+  assert.deepEqual(captionSentences(c.posts.instagram_reel.body, PURSUE.headline, { labels: c.casefile.labels }).slice(0, 4), [PURSUE.dek, ...PURSUE.points]);
+  // a source named like the headline (a press release title) is not a repetition
+  const release = campaignFromCasefile(TENANT, { ...PURSUE, source: { outlet: "Department of War: The Pentagon put its UFO files online", url: "https://www.war.gov/UFO/" } });
+  assert.equal(campaignRepetition(release).ok, true);
+  const refused = (item) => campaignRepetition(campaignFromCasefile(TENANT, { ...PURSUE, ...item }));
+  // the dek restates the headline
+  let r = refused({ dek: "The Pentagon has put its UFO files online on a new portal." });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'caption repeats itself: "The Pentagon put its UFO files online" ~ "The Pentagon has put its UFO files online on a new portal."');
+  // a point restates the headline
+  r = refused({ points: ["The Pentagon put its UFO files online this week.", PURSUE.points[1], PURSUE.points[2]] });
+  assert.deepEqual(r.pairs.map((p) => [p.a, p.b, p.score]), [[PURSUE.headline, "The Pentagon put its UFO files online this week.", 1]]);
+  // two points say the same thing
+  r = refused({ points: [PURSUE.points[0], "Most files were already public through FOIA requests.", "Most of the files were already public through FOIA."] });
+  assert.deepEqual(r.pairs.map((p) => [p.a, p.b]), [["Most files were already public through FOIA requests.", "Most of the files were already public through FOIA."]]);
+  // a point retells the dek
+  r = refused({ points: ["The records portal opened with 46 case documents and 12 videos.", PURSUE.points[1], PURSUE.points[2]] });
+  assert.equal(r.pairs[0].a, PURSUE.dek);
+  // the examples the docs and the tests use all pass
+  for (const item of [CASEFILE_ITEM, GOLDEN_ITEM]) assert.equal(campaignRepetition(campaignFromCasefile(TENANT, item)).ok, true, item.headline);
 });

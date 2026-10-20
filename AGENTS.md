@@ -57,9 +57,19 @@ working **with** Ziggy.
   campaigns. "ambient" stays byte-stable — never change its defaults.
 - An X story post always carries the cover image: `posts.twitter.media` is `slide-cover`. Do not
   ship a text-only thread, and do not put the reel on that post instead of the still.
-- Story captions carry the whole story: headline, dek, one paragraph per summary slide, then
-  sources/CTA/hashtags. The caption ends with the **full story URL** (not clickable on Instagram,
-  but copyable) — there is no comment-LINK/DM flow, and no first comment is posted. The autopilot's
+- Story captions are headline, dek, the sources line ("Basato su N fonti in M lingue." /
+  "Sourced from N reports in M languages."), CTA and hashtags, one paragraph each. The summary
+  points stay on the reel slides only: they retell headline and dek, so the caption said
+  everything twice. Every caption is linted before it is scheduled or posted (`lint.mjs`
+  `campaignRepetition`: content-word overlap ≥ 0.6 between two sentences, ≥ 0.8 against the
+  headline, which a dek legitimately echoes): a round refuses the story or case file before the
+  render, `ziggy daily` reports it and leaves the campaign for an editor to fix, and
+  `publishCampaign` refuses it on any path. A case file is linted on headline, dek and points,
+  without their labels and its `Source:` line, whose URL is dropped when the outlet already names
+  it (`casefile.mjs` `sourceLine`). The weekly events caption is a list (towns and venues repeat
+  by design) and is not linted. The caption ends with
+  the **full story URL** (not clickable on Instagram, but copyable) — there is no comment-LINK/DM
+  flow, and no first comment is posted. The autopilot's
   `linkReply` (autopilot.mjs) still exists but is opt-in per tenant.
   `ziggy delete <slug> <postId…>` removes drafts or scheduled posts (no
   media cleanup — recreating a scheduled post re-uploads) and logs a delete event in posts.jsonl.

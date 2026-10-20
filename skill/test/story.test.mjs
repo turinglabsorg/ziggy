@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 
 import { campaignFromStory, campaignNameFor, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, parseSummaryLines, summarizeStory } from "../scripts/story.mjs";
+import { campaignRepetition, captionRepetition, stripPointLabels } from "../scripts/lint.mjs";
 import { endCard, resolveVariants, scaffold, sourceCount } from "../scripts/video.mjs";
 import { makeWorld } from "./helpers.mjs";
 
@@ -12,6 +13,8 @@ after(world.cleanup);
 process.env.ZIGGY_HOME = world.home;
 process.env.ZIGGY_REPO = world.repo;
 const { loadTenant } = await import("../scripts/config.mjs");
+// after ZIGGY_HOME: casefile.mjs keeps its template state there
+const { campaignFromCasefile } = await import("../scripts/casefile.mjs");
 
 const FEED = {
   url: "https://acme.example/feed/v1/briefings?lang=en&limit=5",
@@ -141,6 +144,102 @@ test("campaignFromStory honours the tenant's social copy and Italian sources lin
   assert.match(c.posts.instagram_reel.body, /#Ragusa #Sicilia$/);
   assert.ok(!c.posts.instagram_reel.body.includes("#UFO"));
   assert.equal(c.posts.instagram_reel.first_comment, undefined);
+});
+
+// a real Ragusa story: the AI points retell the title and the dek
+const SCICLI = {
+  title: "Merci ferme e serre piene a Scicli: lo sciopero dei tir pesa sul florovivaismo",
+  dek: "La FlorGuarino denuncia 100mila euro di orchidee e rose olandesi in parte non arrivate, 20mila euro di ordini già cancellati e 12mila piante di basilico rimaste in serra.",
+  points: [
+    "Lo sciopero dei tir pesa sul florovivaismo di Scicli.",
+    "La FlorGuarino segnala 100mila euro di orchidee e rose olandesi in parte non arrivate.",
+    "Sono già stati cancellati ordini per 20mila euro.",
+    "12mila piante di basilico sono rimaste in serra.",
+  ],
+  url: "https://ragusa.buzz/#/b/la-protesta-degli-autotrasportatori-paralizza-la-florguarino-ordini-pers-90e6f218-9ed6dbea?lang=it",
+};
+const RAGUSA = {
+  slug: "ragusa", name: "Ragusa Buzz", site: "https://ragusa.buzz/", language: "it", feed: { displayUrl: "ragusa.buzz" },
+  social: { cta: "La storia completa: {url}", hashtags: "#Ragusa #Sicilia #Cronaca #Notizie" },
+};
+const scicliStory = () => ({ title: SCICLI.title, dek: SCICLI.dek, slug: "la-protesta-degli-autotrasportatori-90e6f218", url: SCICLI.url, date: "2026-10-19T08:00:00Z", section: "Cronaca", sources: 2, languages: 1 });
+
+test("story caption: headline, dek, sources, link, hashtags — the points stay on the reel", () => {
+  const c = campaignFromStory(RAGUSA, scicliStory(), { points: SCICLI.points });
+  const body = c.posts.instagram_reel.body;
+  assert.equal(body, `${SCICLI.title}\n\n${SCICLI.dek}\n\nBasato su 2 fonti in 1 lingua.\n\nLa storia completa: ${SCICLI.url}\n\n#Ragusa #Sicilia #Cronaca #Notizie`);
+  for (const p of SCICLI.points) assert.ok(!body.includes(p), `no points paragraph: ${p}`);
+  assert.deepEqual(c.copy.points, SCICLI.points, "the reel slides keep the points");
+  assert.equal(c.duration, 27);
+  for (const k of ["tiktok", "facebook_reel", "instagram_post"]) assert.equal(c.posts[k].body, body, k);
+  // the sources line is its own paragraph, never glued to the sentence before
+  const en = campaignFromStory({ slug: "acme", name: "Acme", site: "https://acme.example/", language: "en", feed: FEED }, normalizeStory(ITEM, FEED));
+  assert.ok(en.posts.instagram_reel.body.split("\n\n").includes("Sourced from 2 reports in 2 languages."), en.posts.instagram_reel.body);
+  assert.doesNotMatch(en.posts.instagram_reel.body, / Sourced from/);
+  // without a source count there is no sources paragraph at all
+  const none = campaignFromStory(RAGUSA, { ...scicliStory(), sources: null }).posts.instagram_reel.body;
+  assert.equal(none, `${SCICLI.title}\n\n${SCICLI.dek}\n\nLa storia completa: ${SCICLI.url}\n\n#Ragusa #Sicilia #Cronaca #Notizie`);
+  // and no sentence in it is a near-copy of the title or of another sentence
+  assert.deepEqual(captionRepetition(body, { title: SCICLI.title }), { ok: true, pairs: [] });
+});
+
+test("caption lint: the old caption with paraphrased points is flagged, the new one passes", () => {
+  const old = [SCICLI.title, SCICLI.dek, ...SCICLI.points.slice(0, 3), `${SCICLI.points[3]} Basato su 2 fonti in 1 lingua.`, `La storia completa: ${SCICLI.url}`, "#Ragusa #Sicilia #Cronaca #Notizie"].join("\n\n");
+  const r = captionRepetition(old, { title: SCICLI.title });
+  assert.equal(r.ok, false);
+  assert.ok(r.pairs.some((p) => p.a === SCICLI.title && p.b === SCICLI.points[0] && p.score === 1), "point 1 retells the title");
+  for (const p of SCICLI.points.slice(1)) assert.ok(r.pairs.some((x) => x.a === SCICLI.dek && x.b === p && x.score >= 0.6), `dek ~ ${p}`);
+  assert.ok(r.pairs.every((p, i) => i === 0 || r.pairs[i - 1].score >= p.score), "worst pair first");
+  // links, hashtags and the sources line are not sentences of the story
+  assert.ok(r.pairs.every((p) => !/https?:|#Ragusa|Basato su/.test(p.a + p.b)), JSON.stringify(r.pairs));
+  // a dek may echo its headline (names, places) without being a copy: 0.8 against the headline
+  const title = "A Briefcase in New Jersey and a Researcher's Call for Plasma Orb Testimony";
+  const dek = "Two separate bids to gather UFO testimony: a confidential briefcase handoff to MUFON in New Jersey, and an appeal by researcher Robert Hastings for accounts of plasma orbs.";
+  assert.equal(captionRepetition(`${title}\n\n${dek}`, { title }).ok, true);
+  assert.equal(captionRepetition(`${title}\n\n${dek}`, { title, titleThreshold: 0.6 }).ok, false);
+  // sentences under 4 content words are not compared
+  assert.equal(captionRepetition("Storm hits the coast\n\nStorm hits.\n\nStorm hits.", { title: "Storm hits the coast" }).ok, true);
+});
+
+test("a dek that restates its headline is refused; one that adds facts goes out", () => {
+  const ferry = { title: "Ferry service to the island resumes after the storm", slug: "ferry-resumes-1a2b3c4d", url: "https://acme.example/#/b/ferry-resumes-1a2b3c4d", date: "2026-10-19T08:00:00Z", section: "News", sources: 2, languages: 1 };
+  const tenant = { slug: "acme", name: "Acme", site: "https://acme.example/", language: "en", feed: FEED };
+  // the dek reorders the headline and changes a verb form: still the headline, told twice
+  const echo = campaignFromStory(tenant, { ...ferry, dek: "After the storm, ferry service to the island has resumed. Tickets go on sale today." });
+  const r = campaignRepetition(echo);
+  assert.equal(r.ok, false);
+  assert.equal(r.kind, "instagram_reel");
+  assert.deepEqual(r.pairs.map((p) => [p.a, p.b, p.score]), [[ferry.title, "After the storm, ferry service to the island has resumed.", 0.8]]);
+  assert.equal(r.reason, 'caption repeats itself: "Ferry service to the island resumes after the storm" ~ "After the storm, ferry service to the island has resumed."');
+  // Italian: the dek folds the headline's words into a longer sentence
+  const scicli = campaignFromStory(RAGUSA, { ...scicliStory(), title: "Scicli, lo sciopero dei tir pesa sul florovivaismo", dek: "A Scicli il florovivaismo paga lo sciopero dei tir: pesa sulle serre della FlorGuarino." });
+  assert.equal(campaignRepetition(scicli).pairs[0].score, 1);
+  // a dek that adds facts not in the headline passes
+  const fresh = campaignFromStory(tenant, { ...ferry, dek: "The first crossing leaves Marina at 7:00 on Monday; the port authority expects delays all week." });
+  assert.deepEqual(campaignRepetition(fresh), { ok: true, pairs: [] });
+  assert.equal(campaignRepetition(campaignFromStory(RAGUSA, scicliStory(), { points: SCICLI.points })).ok, true);
+});
+
+test("case file points never carry their label twice", () => {
+  assert.equal(stripPointLabels("Confirmed: Confirmed: The records exist."), "The records exist.");
+  assert.equal(stripPointLabels("✅ Confirmed: ✅ CONFIRMED: The records exist."), "The records exist.");
+  assert.equal(stripPointLabels("❓ Not confirmed: not confirmed: Congress was denied them."), "Congress was denied them.");
+  assert.equal(stripPointLabels("Confermato: Confermato: il fatto."), "il fatto.");
+  assert.equal(stripPointLabels("VERIFIED: VERIFIED: radar data.", ["VERIFIED", "DISPUTED", "IMPLICATIONS"]), "radar data.");
+  assert.equal(stripPointLabels("Confirmed sightings rose in 2026."), "Confirmed sightings rose in 2026.", "a word, not a label");
+  const c = campaignFromCasefile({ slug: "acme-casefile", name: "Acme", site: "https://acme.example/", language: "en", feed: { displayUrl: "acme.example" } }, {
+    headline: "AARO found the records. It released none.",
+    dek: "A FOIA reply tied to five cases was withheld in full as classified.",
+    points: ["Confirmed: Confirmed: AARO located the records.", "❓ Not confirmed: Not confirmed: Congress was denied them.", "Why it matters: Why it matters: the reports stay secret."],
+    source: { outlet: "The Black Vault", url: "https://example.com/foia" },
+    template: "casefile-dossier",
+  });
+  assert.deepEqual(c.copy.points, ["AARO located the records.", "Congress was denied them.", "the reports stay secret."]);
+  const body = c.posts.instagram_reel.body;
+  assert.match(body, /✅ CONFIRMED: AARO located the records\./);
+  assert.match(body, /❓ NOT CONFIRMED: Congress was denied them\./);
+  assert.match(body, /WHY IT MATTERS: the reports stay secret\./);
+  assert.doesNotMatch(body, /(confirmed|why it matters):\s*(✅\s*|❓\s*)?(not )?(confirmed|why it matters):/i);
 });
 
 test("campaignFromStory enables twitter when in social.platforms", () => {
