@@ -51,6 +51,15 @@ tokens filled from brand + campaign. The shipped template:
   `post` (no 16:9). Copy keys: `kicker`, `headline`, `dek`, `meta`, `url`; `image` is a URL or a
   path relative to the campaign folder.
 
+- **eventi-settimana** (15–20 s): the week's events. Intro (range chip, «Gli eventi di Ragusa
+  della settimana», the seven days with a dot where something happens), one ~2.2 s card per
+  event (poster with its credit line, or a typographic day card; date chip, time, title, category,
+  town · venue) under a week strip that lights the card's days, then the calendar's url. Built
+  by `ziggy events <slug> --week`; variants `reel` and `post`. See `events.md`.
+
+- **eventi-teaser** (13.5 s): the evergreen ad for the events calendar — hook, category words,
+  towns ticker, «aggiornato ogni giorno» over a calendar grid, url. `ziggy events <slug> --teaser`.
+
 Any `campaign.copy` key is available to a template as `__COPY_<KEY>__` (HTML-escaped).
 
 The projects follow the HyperFrames authoring contract (one paused GSAP timeline registered on
