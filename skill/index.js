@@ -31,6 +31,7 @@ import { serve, keyEnvFor, SERVER_DEFAULTS } from "./scripts/server.mjs";
 import { notifyTelegram, planRound, roundConfig, runRound } from "./scripts/round.mjs";
 import { threadForCampaign } from "./scripts/thread.mjs";
 import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
+import { downloadPosters, eventsConfig, fetchWeekEvents, localDay, resolveWeek, runReportHook, selectEvents, teaserCampaign, weekCampaign, weekCampaignName } from "./scripts/events.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const args = process.argv.slice(2);
@@ -49,7 +50,7 @@ const quiet = has("--quiet");
 const positional = () => {
   const out = [];
   for (let i = 1; i < args.length; i++) {
-    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once", "--plan", "--archive", "--notify"].includes(args[i])) i++; continue; }
+    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once", "--plan", "--archive", "--notify", "--week", "--teaser", "--no-render"].includes(args[i])) i++; continue; }
     out.push(args[i]);
   }
   return out;
@@ -89,6 +90,14 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
                                                     step 2: {"<prefix>": [3–4 points], "skip": [prefixes]} →
                                                     campaigns → renders → checks (audio, loudness, length) →
                                                     scheduled on the free times (tenant.json → daily: freshness, round)
+  ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] [--force] [--notify] [--json]
+                                                    the week's events (tenant.json → events) → campaign eventi-<monday>
+                                                    on the eventi-settimana template, posters downloaded, reel + post
+                                                    rendered; nothing is posted. Week = Monday–Sunday: Fri–Sun pick the
+                                                    next one, Mon–Thu the current one, --from any day of the wanted week.
+                                                    Fewer than events.minEvents → no render, exit 3 (--notify: ZIGGY_REPORT_HOOK)
+  ziggy events <slug> --teaser [--dry-run] [--no-render] [--force]
+                                                    the evergreen events teaser (campaign eventi-teaser): no dates, no titles
   ziggy copy <slug> <name> [--json]                show + validate the per-platform copy, including thread replies
   ziggy thread <slug> <name> [--limit 280] [--enable]
                                                     rewrite posts.twitter as a thread (cover image on the opening post, link in the last reply)
@@ -357,6 +366,65 @@ async function main() {
       }
       fail("usage: ziggy keys status|pull|run <slug>");
       break;
+    }
+
+    case "events": {
+      const t = loadTenant(pos[0]);
+      const cfg = eventsConfig(t);
+      const render = !has("--no-render") && !has("--dry-run");
+      const quality = flag("--quality", "high");
+      const renderCampaign = async (name) => {
+        if (!installedFonts(fontsDir(t.slug)).length) fail(`no fonts — run: ziggy brand fonts ${t.slug}`);
+        const c = loadCampaign(t.slug, name);
+        return produce({ tenant: t, campaign: c, variants: resolveVariants(c), quality, version: loadConfig().hyperframesVersion, log: say, skipCheck: has("--skip-check") });
+      };
+      const exists = (name) => { try { loadCampaign(t.slug, name); return true; } catch { return false; } };
+      const outputs = (m) => Object.entries(m?.outputs || {}).map(([v, o]) => `  ${v.padEnd(5)} ${o.video || o.project}${o.still ? `\n        still ${o.still}` : ""}`).join("\n");
+
+      if (has("--teaser")) {
+        const name = "eventi-teaser";
+        const campaign = teaserCampaign(t, cfg);
+        if (has("--dry-run")) return out({ name, campaign }, `campaign ${name} (dry run, nothing written) · ${campaign.template} · ${campaign.duration}s\n${campaign.posts.instagram_reel.body}`);
+        if (exists(name) && !has("--force")) fail(`campaign ${name} already exists for ${t.slug} — pass --force to overwrite`);
+        const dir = saveCampaign(t.slug, name, campaign);
+        const manifest = render ? await renderCampaign(name) : null;
+        return out({ name, dir, manifest }, `campaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : `\nrender: ziggy video ${t.slug} ${name}`}\nnothing was posted`);
+      }
+
+      if (!has("--week")) fail("usage: ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] | --teaser", 2);
+      const nowFlag = flag("--now");
+      const now = nowFlag && nowFlag !== true ? new Date(nowFlag) : new Date();
+      const fromFlag = flag("--from");
+      const week = resolveWeek({ now, tz: cfg.tz, from: fromFlag && fromFlag !== true ? String(fromFlag) : undefined });
+      const raw = await fetchWeekEvents(cfg, week);
+      const sel = selectEvents(raw, cfg, { week, today: localDay(now, cfg.tz) });
+      const name = weekCampaignName(week);
+      const line = (c) => `  ${c.when}${c.time ? ` · ${c.time}` : ""} · ${c.title} · ${[c.town, c.venue].filter(Boolean).join(", ")} · ${c.categoryLabel}${c.poster ? " · locandina" : ""}${c.source?.name ? ` · ${c.source.name}` : ""}`;
+      const summary = (s) => [
+        `eventi ${t.slug} · settimana ${week.label} (${week.from} → ${week.to}) · ${s.candidates} candidati, ${s.chosen.length} scelti`,
+        ...s.chosen.map(line),
+        ...(s.notPicked.length ? ["non scelti:", ...s.notPicked.map((e) => `  ${e.title} (${e.town}) — ${e.reason}`)] : []),
+        ...(s.excluded.length ? ["esclusi:", ...s.excluded.map((e) => `  ${e.title}${e.town ? ` (${e.town})` : ""} — ${e.reason}`)] : []),
+      ].join("\n");
+      const data = { tenant: t.slug, week, campaign: name, skip: sel.skip, reason: sel.reason, chosen: sel.chosen, notPicked: sel.notPicked, excluded: sel.excluded, duplicates: sel.duplicates };
+      if (sel.skip) {
+        // no reel this week: say so, and through the report hook when asked; exit 3 marks a skip
+        const text = `⏭️ ${t.name} · ${sel.reason}`;
+        let notified = false;
+        if (has("--notify") && !has("--dry-run")) {
+          try { notified = await runReportHook(t.slug, text); } catch (e) { console.error(`ziggy: ${e.message}`); }
+        }
+        out({ ...data, notified }, `${text}${has("--notify") && !notified && !has("--dry-run") ? " (no ZIGGY_REPORT_HOOK: printed only)" : ""}\n${summary(sel)}`);
+        process.exitCode = 3;
+        return;
+      }
+      if (has("--dry-run")) return out(data, `${summary(sel)}\n(dry run: nothing written)`);
+      if (exists(name) && !has("--force")) fail(`campaign ${name} already exists for ${t.slug} — pass --force to overwrite`);
+      const dir = join(tenantDir(t.slug), "campaigns", name);
+      const cards = await downloadPosters(sel.chosen, dir, { log: say });
+      saveCampaign(t.slug, name, weekCampaign(t, cfg, week, cards));
+      const manifest = render ? await renderCampaign(name) : null;
+      return out({ ...data, dir, manifest }, `${summary(sel)}\ncampaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : `\nrender: ziggy video ${t.slug} ${name}`}\nnothing was posted`);
     }
 
     /* ── key-needing commands ── */

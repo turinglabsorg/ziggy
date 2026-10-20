@@ -19,6 +19,7 @@ import { fitJingle, pickJingle } from "./music.mjs";
 import { fontsDir, videosDir, rendersDir } from "./config.mjs";
 import { hexToRgb, installedFonts } from "./brand.mjs";
 import { formatDate } from "./story.mjs";
+import { eventTemplateTokens } from "./events.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const TEMPLATES_DIR = join(HERE, "..", "templates", "hyperframes");
@@ -53,6 +54,18 @@ export const TEMPLATE_VARIANTS = {
   "casefile-radar": {
     reel: { cfHeadline: 66, cfDek: 30, cfLabel: 22, cfPoint: 28, cfSource: 18, pad: 120 },
     post: false,
+    x: false,
+  },
+  // the week's events: intro with the date range, one card per event, outro to the calendar
+  "eventi-settimana": {
+    reel: { padX: 110, padTop: 250, padBottom: 300, head: 24, strip: 92, posterH: 820, credit: 18, evDate: 28, evTitle: 76, evMeta: 28, introTitle: 132, introKicker: 38, introStrip: 196, ctaLead: 60, ctaUrl: 104, propose: 38, foot: 34 },
+    post: { padX: 80, padTop: 70, padBottom: 70, head: 22, strip: 74, posterH: 680, credit: 16, evDate: 24, evTitle: 60, evMeta: 24, introTitle: 104, introKicker: 32, introStrip: 150, ctaLead: 50, ctaUrl: 88, propose: 32, foot: 30 },
+    x: false,
+  },
+  // evergreen teaser for the events calendar: no dates, no titles
+  "eventi-teaser": {
+    reel: { padX: 110, padTop: 250, padBottom: 300, hook: 150, lead: 54, word: 132, town: 58, daily: 118, ctaLead: 52, ctaUrl: 92, propose: 34, cell: 110, cellGap: 15, foot: 34 },
+    post: { padX: 80, padTop: 80, padBottom: 80, hook: 116, lead: 44, word: 104, town: 48, daily: 92, ctaLead: 44, ctaUrl: 80, propose: 30, cell: 78, cellGap: 12, foot: 30 },
     x: false,
   },
 };
@@ -159,6 +172,14 @@ async function placeImages(campaign, dir, fetchImpl = fetch) {
   return out;
 }
 
+/** The eventi-settimana cards' posters: campaign.events[i].poster as assets/poster-NN.*; null where a card has none. */
+async function placeEventPosters(campaign, dir, fetchImpl = fetch) {
+  const events = Array.isArray(campaign.events) ? campaign.events : [];
+  const out = [];
+  for (const [i, ev] of events.entries()) out.push(ev?.poster ? await placeAsset(ev.poster, `poster-${String(i + 1).padStart(2, "0")}`, campaign, dir, fetchImpl) : null);
+  return out;
+}
+
 async function placeAsset(ref, base, campaign, dir, fetchImpl) {
   const ext = (ref.split("?")[0].match(/\.(jpe?g|png|webp)$/i) || [, "jpg"])[1].toLowerCase();
   const target = join(dir, "assets", `${base}.${ext}`);
@@ -226,6 +247,8 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
     // intro template: four identical grids (rows × cols panels) the timeline refills with the
     // campaign's images; every image is preloaded so a cut never shows an empty panel
     const pageSrcs = await placeImages(campaign, dir, fetchImpl);
+    const posterSrcs = await placeEventPosters(campaign, dir, fetchImpl);
+    const evTokens = template.startsWith("eventi-") ? eventTemplateTokens({ campaign, v, posterSrcs, brand }) : null;
     const grid = { cols: v.cols ?? 3, rows: v.rows ?? 6, w: v.cellW ?? 700, h: v.cellH ?? 394, gap: v.gap ?? 28 };
     const gridW = grid.cols * grid.w + (grid.cols - 1) * grid.gap;
     const gridH = grid.rows * grid.h + (grid.rows - 1) * grid.gap;
@@ -298,7 +321,7 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
 
     let fill = (s) => s
       // the intro sets the wordmark in its own weights (e.g. 300/600): the display face must span them
-      .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles, { displayWeights: template === "intro" ? (brand.wordmark?.parts || []).map((x) => x.weight).filter(Number.isFinite) : [] }))
+      .replace(/__FONT_FACES__/g, fontFaces(brand, fontFiles, { displayWeights: template === "intro" || template.startsWith("eventi-") ? (brand.wordmark?.parts || []).map((x) => x.weight).filter(Number.isFinite) : [] }))
       .replace(/__STARS_JSON__/g, JSON.stringify(stars))
       .replace(/__STARS__/g, starHtml)
       .replace(/__WORDS__/g, words(brand))
@@ -392,7 +415,9 @@ export async function scaffold({ tenant, campaign, variants, hyperframesVersion 
       .replace(/__W__/g, String(v.w))
       .replace(/__H__/g, String(v.h));
     const copyTokens = (s) => s.replace(/__COPY_([A-Z0-9_]+)__/g, (_, key) => escapeHtml(copy[key.toLowerCase()] ?? ""));
-    const fillAll = (s) => copyTokens(fill(s));
+    // eventi-* templates: their cards and numbers first, so the shared tokens inside them fill too
+    const eventTokens = (s) => (evTokens ? s.replace(/__EV_([A-Z0-9_]+)__/g, (m, key) => evTokens[key] ?? m) : s);
+    const fillAll = (s) => copyTokens(fill(eventTokens(s)));
 
     writeFileSync(join(dir, "compositions", `${id}.html`), fillAll(sub));
     writeFileSync(join(dir, "index.html"), fillAll(host));
