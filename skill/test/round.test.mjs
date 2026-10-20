@@ -500,3 +500,41 @@ test("casefile 'at' field is preserved through round execution", async () => {
   assert.equal(scheduled.results[0].at, "2026-10-14T14:00:00.000Z", "should be scheduled at specified time, not next free slot");
   assert.ok(scheduled.results[0].dryRun, "should be marked as dry run");
 });
+
+test("a story or a case file whose caption repeats itself is refused before any render, and said", async () => {
+  const { runRound } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  const { createClient } = await import("../scripts/postproxy.mjs");
+  const tenant = { ...loadTenant("acme"), casefile: { enabled: true } };
+  const feed = [
+    { title: "Ferry service resumes to the island", dek: "The ferry service resumes to the island this week. Tickets go on sale today.", storyDate: "2026-10-12T06:00:00Z", sector: { name: "Cronaca" }, imageUrl: "https://acme.example/f.jpg", slug: "ferry-echo-1a2b3c4d", sourceCount: 2, languageCount: 1 },
+    { title: "Library opens a new reading room", dek: "The room seats forty readers and opens on Monday.", storyDate: "2026-10-12T07:00:00Z", sector: { name: "Cultura" }, imageUrl: "https://acme.example/l.jpg", slug: "library-fresh-5e6f7a8b", sourceCount: 2, languageCount: 1 },
+  ];
+  const fetchImpl = async () => new Response(JSON.stringify({ data: feed }), { status: 200 });
+  const good = {
+    headline: "AARO found the records. It released none.",
+    dek: "A FOIA reply tied to five cases was withheld in full as classified.",
+    points: ["Confirmed: Confirmed: AARO located the records for five cases.", "Not confirmed: That Congress was denied them.", "Why it matters: The reports stay secret."],
+    source: { outlet: "The Black Vault", url: "https://example.com/foia" },
+    template: "casefile-dossier",
+  };
+  // the third point says the first one again
+  const echo = { ...good, headline: "Five UAP case files stay classified", points: [good.points[0], good.points[1], "Why it matters: AARO located records for five cases."] };
+  const out = await runRound(tenant, { "ferry-echo": FOUR, "library-fresh": FOUR, casefile: [echo, good] }, {
+    fetchImpl, client: createClient({ baseUrl: mock.baseUrl, apiKey: API_KEY }), now: new Date(NOW), dryRun: true,
+  });
+  assert.deepEqual(out.refused.map((r) => [r.prefix, r.title, r.reason]), [
+    ["ferry-echo", "Ferry service resumes to the island", 'caption repeats itself: "Ferry service resumes to the island" ~ "The ferry service resumes to the island this week."'],
+    ["Five UAP case files stay classified", "Five UAP case files stay classified", 'caption repeats itself: "AARO located the records for five cases." ~ "AARO located records for five cases."'],
+  ]);
+  assert.match(out.text, /✗ Ferry service resumes to the island: caption repeats itself: /);
+  assert.match(out.text, /✗ Five UAP case files stay classified: caption repeats itself: /);
+  assert.equal(out.ok, false);
+  assert.deepEqual(out.checks.map((c) => c.name).sort(), [out.casefiles[0].name, "story-2026-10-12-library-fresh-5e6f7a8b"].sort(), "the repeating ones never reach the render");
+  // the good case file goes through, with its label once
+  assert.equal(out.casefiles.length, 1);
+  const body = out.casefiles[0].campaign.posts.instagram_reel.body;
+  assert.match(body, /✅ CONFIRMED: AARO located the records for five cases\./);
+  assert.doesNotMatch(body, /CONFIRMED: Confirmed:/i);
+  assert.equal(out.scheduled.filter((s) => s.dryRun).length, 2);
+});

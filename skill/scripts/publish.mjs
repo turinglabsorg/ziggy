@@ -14,12 +14,14 @@
  * `media` names a render variant (its video, or its still when the variant is a slide),
  * `<variant>-still` (the PNG final frame), or an array of those — two or more images on an
  * Instagram feed post is a carousel. An absolute path or URL is used as-is.
- * Posts with `"enabled": false` are skipped. `thread` is the list of reply posts.
+ * Posts with `"enabled": false` are skipped. `thread` is the list of reply posts. A caption that
+ * repeats itself (lint.mjs) makes the campaign not publishable, whatever path posts it.
  */
 import { existsSync, statSync } from "node:fs";
 import { logPost } from "./config.mjs";
 import { LIMITS, createClient, pickProfile, summarizePost } from "./postproxy.mjs";
 import { readManifest } from "./video.mjs";
+import { campaignRepetition } from "./lint.mjs";
 
 export const POST_KINDS = {
   twitter: { platform: "twitter", format: null, limits: LIMITS.twitter },
@@ -141,6 +143,8 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
     plans.push({ ...buildRequest(kind, spec, { profile, manifest, draft: !live, scheduledAt, facebookPageId: tenant.postproxy?.facebookPageId }), profile });
   }
   const problems = plans.flatMap((p) => p.problems);
+  const repeat = campaignRepetition(campaign, { only });
+  if (!repeat.ok) problems.push(`${repeat.kind}: ${repeat.reason}`);
   if (problems.length) throw new Error(`campaign ${campaign.name} is not publishable:\n  ${problems.join("\n  ")}`);
 
   for (const plan of plans) {

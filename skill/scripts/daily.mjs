@@ -13,7 +13,9 @@
  *
  * Idempotent: a story already covered by a campaign (matched on story.slug) is never
  * re-created, re-rendered or re-scheduled, so the timer can fire as often as it likes.
- * One story failing must not sink the run — errors are collected per story.
+ * One story failing must not sink the run — errors are collected per story. A story whose
+ * caption repeats itself (lint.mjs) is neither rendered nor scheduled: its error says which
+ * sentences, and fixing the copy in campaign.json lets the next run reuse the campaign.
  */
 import { existsSync } from "node:fs";
 import { listCampaigns, loadCampaign, loadConfig, readPostLog } from "./config.mjs";
@@ -21,6 +23,7 @@ import { fetchStories, createStoryCampaign, slugify } from "./story.mjs";
 import { produce, resolveVariants } from "./video.mjs";
 import { publishCampaign } from "./publish.mjs";
 import { createClient } from "./postproxy.mjs";
+import { campaignRepetition } from "./lint.mjs";
 
 export const DEFAULT_DAILY = {
   slots: ["07:30", "13:00", "17:30", "20:00"],
@@ -211,6 +214,8 @@ export async function runDaily(tenant, {
         log(`↺ reusing unfinished campaign ${name}`);
       }
       log(`→ campaign ${name} (${story.title.slice(0, 60)})`);
+      const repeat = campaignRepetition(campaign, { only: daily.only });
+      if (!repeat.ok) throw new Error(repeat.reason);
       const manifest = await (produceImpl || produce)({
         tenant, campaign, variants: resolveVariants(campaign, ["reel"]),
         version, log, dryRun,

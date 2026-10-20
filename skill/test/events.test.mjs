@@ -10,6 +10,7 @@ import {
   venueOf, weekCampaign, weekdayOf, wordSpans,
 } from "../scripts/events.mjs";
 import { planWeekPublish, weekPublishText } from "../scripts/eventspub.mjs";
+import { campaignRepetition, captionRepetition } from "../scripts/lint.mjs";
 import { createClient } from "../scripts/postproxy.mjs";
 import { resolveVariants, scaffold } from "../scripts/video.mjs";
 import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
@@ -264,6 +265,15 @@ test("the weekly campaign: copy, timing, captions ending with the calendar url, 
   assert.deepEqual(c.events[5].days, ["2026-10-31", "2026-11-01"]);
   assert.equal(eventsTimeline(3).duration, 15);
   assert.equal(eventsTimeline(10).duration, 20);
+});
+
+test("caption lint: the weekly list is not linted (its lines share venues by design), the teaser is", () => {
+  const r = selectEvents(FIXTURE, CFG, { week: WEEK });
+  const c = weekCampaign({ name: "Ragusa Buzz", language: "it" }, CFG, WEEK, r.chosen);
+  // two shows at Teatro Donnafugata: as sentences, their lines would read as a repetition
+  assert.equal(captionRepetition(c.posts.instagram_reel.body).ok, false);
+  assert.deepEqual(campaignRepetition(c), { ok: true, skipped: "list caption", pairs: [] });
+  assert.deepEqual(campaignRepetition(teaserCampaign({ name: "Ragusa Buzz", language: "it" }, CFG)), { ok: true, pairs: [] });
 });
 
 test("the teaser campaign is evergreen: no dates, no event titles, the calendar url", () => {

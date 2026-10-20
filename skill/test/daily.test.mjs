@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
@@ -235,4 +235,26 @@ test("storyCovered: true duplicates must be covered", () => {
     true,
     "Same story with high token overlap should be covered"
   );
+});
+
+test("the daily loop does not render or schedule a story whose caption repeats itself; fixed copy goes out next run", async () => {
+  items.unshift({ title: "Ferry service resumes to the island", dek: "The ferry service resumes to the island this week. Tickets go on sale today.", storyDate: "2026-10-06T18:30:00Z", sector: { name: "Cronaca" }, imageUrl: "__FEED__/img.jpg", slug: "ferry-echo-1a2b3c4d", sourceCount: 1, languageCount: 1 });
+  const postsBefore = mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts").length;
+  const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:30:00Z", "--json"], ENV());
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(r.stdout);
+  assert.deepEqual(report.planned, []);
+  assert.deepEqual(report.errors, ['ferry-echo-1a2b3c4d: caption repeats itself: "Ferry service resumes to the island" ~ "The ferry service resumes to the island this week."']);
+  assert.equal(mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts").length, postsBefore, "nothing scheduled");
+  const name = "story-2026-10-06-ferry-echo-1a2b3c4d";
+  assert.equal(existsSync(join(world.home, "tenants", "acme", "renders", name)), false, "nothing rendered");
+  // the editor rewrites the dek in campaign.json: the next run reuses the campaign and schedules it
+  const file = join(world.repo, "tenants", "acme", "campaigns", name, "campaign.json");
+  const c = JSON.parse(readFileSync(file, "utf8"));
+  for (const p of Object.values(c.posts)) p.body = p.body.replace("The ferry service resumes to the island this week.", "The first crossing leaves on Monday at 7:00.");
+  writeFileSync(file, JSON.stringify(c, null, 2));
+  const again = JSON.parse((await runCli(["daily", "acme", "--from", "2026-10-06T19:35:00Z", "--json"], ENV())).stdout);
+  assert.deepEqual(again.errors, []);
+  assert.deepEqual(again.planned.map((p) => p.campaign), [name]);
+  assert.ok(existsSync(join(world.home, "tenants", "acme", "renders", name)), "rendered now");
 });

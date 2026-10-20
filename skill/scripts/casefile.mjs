@@ -11,18 +11,20 @@
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { saveCampaign } from "./config.mjs";
+import { loadCampaign, saveCampaign } from "./config.mjs";
 import { slugify, formatDate } from "./story.mjs";
 import { composeThread } from "./thread.mjs";
 import { SLIDE_IDS } from "./slides.mjs";
+import { stripPointLabels } from "./lint.mjs";
 
-const STATE_DIR = process.env.ZIGGY_HOME ? join(process.env.ZIGGY_HOME, "state") : join(process.env.HOME || "/tmp", ".ziggy", "state");
+// read when used, not on import: a caller may set ZIGGY_HOME after importing this module
+const stateDir = () => (process.env.ZIGGY_HOME ? join(process.env.ZIGGY_HOME, "state") : join(process.env.HOME || "/tmp", ".ziggy", "state"));
 
 /**
  * Get the last used case file template for a tenant, to alternate across rounds.
  */
 function getLastTemplate(slug) {
-  const stateFile = join(STATE_DIR, `${slug}-casefile-template.json`);
+  const stateFile = join(stateDir(), `${slug}-casefile-template.json`);
   try {
     if (existsSync(stateFile)) {
       const data = JSON.parse(readFileSync(stateFile, "utf8"));
@@ -39,12 +41,25 @@ function getLastTemplate(slug) {
  */
 function saveLastTemplate(slug, template) {
   try {
-    mkdirSync(STATE_DIR, { recursive: true });
-    const stateFile = join(STATE_DIR, `${slug}-casefile-template.json`);
+    mkdirSync(stateDir(), { recursive: true });
+    const stateFile = join(stateDir(), `${slug}-casefile-template.json`);
     writeFileSync(stateFile, JSON.stringify({ lastTemplate: template, updatedAt: new Date().toISOString() }));
   } catch {
     // Non-fatal: if state can't be saved, just continue
   }
+}
+
+const bareUrl = (s) => String(s || "").trim().toLowerCase().replace(/https?:\/\//g, "").replace(/\bwww\./g, "").replace(/\/+$/, "");
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The caption's source line: "Source: <outlet> · <url>", without the URL when the outlet already
+ * names it ("PURSUE, war.gov/UFO · war.gov" → "PURSUE, war.gov/UFO").
+ */
+export function sourceLine(outlet, url) {
+  const u = bareUrl(url);
+  const named = u && new RegExp(`(?:^|[^a-z0-9.-])${escapeRe(u)}(?:$|[^a-z0-9-])`).test(bareUrl(outlet));
+  return u && !named ? `Source: ${outlet} · ${String(url).trim()}` : `Source: ${outlet}`;
 }
 
 /** Case file reel duration: ~7s title + 4.5s per point + 4s close */
@@ -125,14 +140,8 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
     }
   }
   
-  // Strip any leading labels if present in text (e.g., "Confirmed: " or "✅ Confirmed: ")
-  const stripLabel = (point) => {
-    const p = String(point).trim();
-    // Remove "Confirmed:", "Not confirmed:", "Why it matters:", with optional emoji/bullets
-    return p.replace(/^(?:[✅❓•\-*]\s*)?(?:Confirmed|Not confirmed|Why it matters):\s*/i, "").trim();
-  };
-  
-  points = points.map(p => stripLabel(p));
+  // Strip leading labels, stacked ones included ("✅ Confirmed: Confirmed: "): the caption adds its own
+  points = points.map((p) => stripPointLabels(p, labels));
   
   if (points.length !== 3 || points.some(p => !p)) {
     throw new Error("Case file requires exactly 3 points: Confirmed, Not confirmed, Why it matters");
@@ -144,13 +153,13 @@ export function campaignFromCasefile(tenant, item, { name, template } = {}) {
   if (item.link != null && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(link)) throw new Error(`case file link must be an https URL: ${JSON.stringify(item.link)}`);
   const ctaUrl = link || displayUrl;
 
-  // Caption carries the full story: headline, dek, the three points, source, then CTA
+  // Caption: headline, dek, the three labelled points, source, then CTA. Each one adds a fact:
+  // a round refuses a case file whose caption repeats itself (lint.mjs)
   const cta = (social.cta || "Full story with sources: {url}").replace("{url}", ctaUrl).replace("{site}", ctaUrl);
   const hashtags = (social.hashtags || "#UFO #UAP #Space #Astronomy").trim();
   
   const pointsBlock = `\n\n✅ ${labels[0]}: ${points[0]}\n\n❓ ${labels[1]}: ${points[1]}\n\n${labels[2]}: ${points[2]}`;
-  const sourceLine = sourceUrl ? `\n\nSource: ${sourceOutlet} · ${sourceUrl}` : `\n\nSource: ${sourceOutlet}`;
-  const caption = `${item.headline}\n\n${item.dek}${pointsBlock}${sourceLine}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
+  const caption = `${item.headline}\n\n${item.dek}${pointsBlock}\n\n${sourceLine(sourceOutlet, sourceUrl)}\n\n${cta}${hashtags ? `\n\n${hashtags}` : ""}`;
   
   // Thread for X (optional, manually enabled)
   const thread = composeThread({ title: item.headline, dek: item.dek, url: link || `https://${displayUrl}`, limit: 280 });
@@ -247,7 +256,6 @@ export async function createCasefileCampaign(tenant, item, { name, template, for
   
   let exists = false;
   try {
-    const { loadCampaign } = await import("./config.mjs");
     loadCampaign(tenant.slug, campaignName);
     exists = true;
   } catch {

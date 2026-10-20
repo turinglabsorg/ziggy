@@ -44,6 +44,13 @@ Validation:
 - Each point ≤90 characters
 - Source outlet required
 - Headline and dek required
+- No repetition: the dek adds facts not in the headline (never restates it), and each point adds a
+  fact (no point repeats the headline, the dek or another point). The round lints the caption
+  (`lint.mjs` `campaignRepetition`: headline, dek and the three points, without their labels and
+  the source line; content-word overlap ≥ 0.6 between two of them, ≥ 0.8 against the headline)
+  and refuses a case file that repeats itself
+- Source line: `Source: <outlet> · <url>`, without the URL when the outlet already names it
+  (`PURSUE, war.gov/UFO` + `war.gov` → `Source: PURSUE, war.gov/UFO`)
 
 ### 3. Round Integration with Alternating Mode (NEW)
 

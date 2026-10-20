@@ -27,6 +27,8 @@ import { nextJingle } from "./music.mjs";
 import { POST_KINDS, publishCampaign } from "./publish.mjs";
 import { createClient } from "./postproxy.mjs";
 import { dropQueuedFacebook, fbAllowed, fbGuardConfig, lastSpamBlock, queuedInPause } from "./fbguard.mjs";
+import { campaignRepetition, stripPointLabels } from "./lint.mjs";
+import { campaignFromCasefile } from "./casefile.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
@@ -169,8 +171,9 @@ export function pointProblems(points) {
 
 /**
  * Points file → campaigns. A story is refused (never rendered) when it is not in the feed, is
- * already covered, has no photo, is past its deadline, or its points break the rules. Nothing is
- * written under `write: false`, not even the jingle rotation.
+ * already covered, has no photo, is past its deadline, its points break the rules, or its caption
+ * repeats itself (lint.mjs); a case file when its fields are missing or its caption repeats
+ * itself. Nothing is written under `write: false`, not even the jingle rotation.
  * 
  * Points file format:
  * {
@@ -210,6 +213,9 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
     if (!story.image) { refuse("no photo in the feed"); continue; }
     if (storyDeadline(cfg, story.date) <= now.getTime() + 10 * 60_000) { refuse("past its deadline"); continue; }
     const campaign = campaignFromStory(tenant, story, { points: pts.map((p) => p.trim()) });
+    // a caption that says the same thing twice does not go out
+    const repeat = campaignRepetition(campaign);
+    if (!repeat.ok) { refuse(repeat.reason); continue; }
     if (write) {
       const jingle = nextJingle(tenant.slug);
       if (jingle) campaign.audio.jingle = jingle;
@@ -220,7 +226,6 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
   
   // Process case files (if tenant has them enabled)
   if (tenant.casefile?.enabled && casefileItems.length > 0) {
-    const { campaignFromCasefile } = await import("./casefile.mjs");
     for (const item of casefileItems) {
       const refuse = (reason) => out.refused.push({ prefix: item.headline?.slice(0, 40) || "casefile", title: item.headline, reason });
       
@@ -228,9 +233,8 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
       if (!item.headline || !item.dek) { refuse("missing headline or dek"); continue; }
       if (!Array.isArray(item.points) || item.points.length !== 3) { refuse("case file requires exactly 3 points"); continue; }
       
-      // Strip any leading labels from points before validation
-      const stripLabel = (p) => String(p).trim().replace(/^(?:[✅❓•\-*]\s*)?(?:Confirmed|Not confirmed|Why it matters):\s*/i, "").trim();
-      const cleanedPoints = item.points.map(stripLabel);
+      // Strip any leading labels (stacked ones too) from points before validation
+      const cleanedPoints = item.points.map((p) => stripPointLabels(p, item.labels));
       
       if (cleanedPoints.some(p => !p || p.length > POINT_RULES.maxChars)) { 
         refuse("invalid points (empty or > 90 chars)"); 
@@ -242,6 +246,9 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
         // Pass cleaned points to casefile (it will strip again but that's safe)
         const itemWithCleanedPoints = { ...item, points: cleanedPoints };
         const campaign = campaignFromCasefile(tenant, itemWithCleanedPoints);
+        // the same lint as a story: headline, dek and the three points each add a fact
+        const repeat = campaignRepetition(campaign);
+        if (!repeat.ok) { refuse(repeat.reason); continue; }
         const name = `casefile-${(item.date || new Date().toISOString()).slice(0, 10)}-${slugify(item.headline).slice(0, 30)}`;
         if (write) {
           const jingle = nextJingle(tenant.slug);
