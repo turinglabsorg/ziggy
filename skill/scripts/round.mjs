@@ -133,7 +133,14 @@ async function feedStories(tenant, fetchImpl) {
   return fetchStories(wide, fetchImpl ? { fetchImpl } : {});
 }
 
-/** Stories not covered (by a live post or a skipped campaign) that can still go out, oldest first. */
+/**
+ * Stories not covered (by a live post or a skipped campaign) that can still go out, oldest first.
+ * Archive mode includes older stories as long as they haven't passed their deadline.
+ * For tenants with "next-day" freshness (like Ragusa), stories expire quickly (end of day after
+ * their date), so archive mode adds few or no stories compared to normal mode. For tenants with
+ * "archive" freshness (like Alienwatch), stories never expire, so archive mode includes the
+ * entire backlog.
+ */
 export async function planRound(tenant, { fetchImpl, now = new Date(), archive = false } = {}) {
   const cfg = roundConfig(tenant);
   const t0 = now.getTime();
@@ -187,8 +194,9 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
   const { skip = [], casefile: casefileItems = [], ...byPrefix } = points || {};
   if (!Array.isArray(skip)) throw new Error(`"skip" must be a list of slug prefixes`);
   if (!Array.isArray(casefileItems)) throw new Error(`"casefile" must be an array of case file items`);
+  const placeNames = cfg.placeNames || [];
   const stories = await feedStories(tenant, fetchImpl);
-  const covered = coveredStories(tenant.slug);
+  const covered = coveredStories(tenant.slug, placeNames);
   const out = { made: [], skipped: [], refused: [], casefiles: [] };
   
   // Process regular stories
@@ -196,7 +204,7 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, now = new
     const story = stories.find((s) => s.slug.startsWith(prefix));
     const refuse = (reason) => out.refused.push({ prefix, title: story?.title || null, reason });
     if (!story) { refuse("not in the feed"); continue; }
-    if (storyCovered(story, covered)) { refuse("already covered"); continue; }
+    if (storyCovered(story, covered, placeNames)) { refuse("already covered"); continue; }
     const name = campaignNameFor(tenant, story);
     if (pts === null) {
       const campaign = campaignFromStory(tenant, story);

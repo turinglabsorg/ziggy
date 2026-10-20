@@ -100,24 +100,65 @@ const IT_STOPWORDS = new Set([
 /**
  * Significant title words: slug tokens minus stopwords, short words (<=3 chars), numbers,
  * hex IDs, and the tenant's place names. This reduces false positives in fuzzy matching.
- * Place names come from tenant.json → daily.placeNames.
+ * Place names come from tenant.json → daily.placeNames. Multi-word names like "Santa Croce
+ * Camerina" are split into individual tokens, so each word is excluded separately.
  */
 export function titleTokens(title, placeNames = []) {
   const tokens = slugify(title).split("-");
-  const places = new Set(placeNames.map((p) => slugify(String(p))));
+  // Split multi-word place names into individual tokens
+  const placeTokens = new Set();
+  for (const name of placeNames) {
+    const nameParts = slugify(String(name)).split("-");
+    nameParts.forEach((part) => placeTokens.add(part));
+  }
   return new Set(tokens.filter((w) => 
     w.length > 3 && 
     !/^[0-9a-f]{6,}$/.test(w) && 
     !/^\d+$/.test(w) && 
     !IT_STOPWORDS.has(w) && 
-    !places.has(w)
+    !placeTokens.has(w)
   ));
+}
+
+/**
+ * Identify rare/distinctive tokens that signal the same event: amounts, unique names, etc.
+ * These are tokens that are likely to be specific to a single story.
+ */
+function isRareToken(token) {
+  // Amounts with units (900mila, 500mila, etc.) or currency as separate tokens
+  if (/^\d+(?:mila|milioni|mld|euro|dollari)$/.test(token)) return true;
+  if (token === "euro" || token === "dollari") return true; // Currency tokens
+  // Large numbers (3+ digits)
+  if (/^\d{3,}$/.test(token)) return true;
+  // Very long distinctive words (likely proper nouns or technical terms)
+  if (token.length >= 9 && !/^[0-9a-f]+$/.test(token)) return true;
+  return false;
+}
+
+/**
+ * Check if a set of tokens contains a compound rare pattern (e.g., "900mila" + "euro").
+ * These patterns are strong signals of the same event even if other tokens differ.
+ */
+function hasRareCompound(tokens) {
+  const arr = Array.from(tokens);
+  // Amount + currency pattern (e.g., "900mila euro", "500mila dollari")
+  for (let i = 0; i < arr.length - 1; i++) {
+    if (/^\d+mila$/.test(arr[i]) && (arr[i + 1] === "euro" || arr[i + 1] === "dollari")) {
+      return true;
+    }
+    if ((arr[i] === "euro" || arr[i] === "dollari") && /^\d+mila$/.test(arr[i + 1])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
  * Covered when the story IDs match (primary check), or when the stripped slug matches
  * (fallback for feeds without IDs), or when ≥60% of meaningful title words match and at
- * least 3 words are shared (fuzzy fallback to catch the same story renamed).
+ * least 3 words are shared (fuzzy fallback to catch the same story renamed), or when
+ * multiple rare/distinctive tokens match (near-duplicates like different angles on the
+ * same event, e.g., '900mila euro per il centro storico' in two different briefings).
  */
 export function storyCovered(story, covered, placeNames = []) {
   const storyId = storyIdFromSlug(story.slug);
@@ -134,9 +175,24 @@ export function storyCovered(story, covered, placeNames = []) {
     // Fallback 2: high fuzzy title match with meaningful tokens only
     if (!tokens.size || !c.tokens.size) continue;
     let hit = 0;
-    for (const w of tokens) if (c.tokens.has(w)) hit++;
+    const sharedTokens = [];
+    for (const w of tokens) {
+      if (c.tokens.has(w)) {
+        hit++;
+        sharedTokens.push(w);
+      }
+    }
     // Require ≥60% match AND at least 3 shared meaningful tokens
     if (hit >= 3 && hit / tokens.size >= 0.6) return true;
+    
+    // Fallback 3: near-duplicates detected by rare/distinctive token overlap
+    // Two or more rare tokens shared, OR a compound rare pattern (amount + currency),
+    // suggests the same event (e.g., "900mila euro centro storico")
+    const rareShared = sharedTokens.filter(isRareToken);
+    if (rareShared.length >= 2) return true;
+    
+    // Check for compound rare patterns in shared tokens
+    if (hasRareCompound(new Set(sharedTokens))) return true;
   }
   return false;
 }

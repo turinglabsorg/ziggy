@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
-import { coveredStories, dailyConfig, freeSlotTimes, livePosts, storyCovered, uncoveredStories } from "../scripts/daily.mjs";
+import { coveredStories, dailyConfig, freeSlotTimes, livePosts, storyCovered, titleTokens, uncoveredStories } from "../scripts/daily.mjs";
 import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
@@ -235,4 +235,52 @@ test("storyCovered: true duplicates must be covered", () => {
     true,
     "Same story with high token overlap should be covered"
   );
+});
+
+test("storyCovered: near-duplicates with rare tokens (amounts, distinctive words)", () => {
+  const placeNames = ["Ragusa", "Modica"];
+  
+  // Example 1: Same event, different angles - '900mila euro per il centro storico'
+  const covered1 = [
+    { slug: "900mila-euro-centro-storico-gurrieri-difende-12345678-87654321", storyId: "12345678", tokens: new Set(["900mila", "euro", "centro", "storico", "gurrieri", "difende"]) }
+  ];
+  // Different briefing about the same event: opposition contests the bonus
+  assert.equal(
+    storyCovered({ slug: "opposizione-contesta-bonus-900mila-euro-centro-storico-99999999-11111111", title: "Ragusa, l'opposizione contesta il bonus da 900mila euro per il centro storico" }, covered1, placeNames),
+    true,
+    "Near-duplicate with rare tokens (900mila, euro) should be detected"
+  );
+  
+  // Example 2: Amounts should match even with different context
+  const covered2 = [
+    { slug: "finanziamento-500mila-euro-biblioteca-12345678-87654321", storyId: "12345678", tokens: new Set(["finanziamento", "500mila", "euro", "biblioteca"]) }
+  ];
+  assert.equal(
+    storyCovered({ slug: "biblioteca-riceve-500mila-euro-regione-99999999-11111111", title: "La biblioteca riceve 500mila euro dalla Regione" }, covered2, placeNames),
+    true,
+    "Near-duplicate with amount tokens (500mila, euro) should be detected"
+  );
+  
+  // Example 3: Single rare token is not enough
+  const covered3 = [
+    { slug: "investimento-900mila-opere-pubbliche-12345678-87654321", storyId: "12345678", tokens: new Set(["investimento", "900mila", "opere", "pubbliche"]) }
+  ];
+  assert.equal(
+    storyCovered({ slug: "scuola-richiede-900mila-ristrutturazione-99999999-11111111", title: "La scuola richiede 900mila per la ristrutturazione" }, covered3, placeNames),
+    false,
+    "Single rare token (900mila) without other matches should not be enough"
+  );
+});
+
+test("titleTokens: multi-word place names are split into individual tokens", () => {
+  const placeNames = ["Santa Croce Camerina", "Monterosso Almo", "Ragusa"];
+  const tokens = titleTokens("Incidente a Santa Croce Camerina sulla via principale", placeNames);
+  // "santa", "croce", "camerina" should all be filtered out
+  assert.ok(!tokens.has("santa"));
+  assert.ok(!tokens.has("croce"));
+  assert.ok(!tokens.has("camerina"));
+  assert.ok(!tokens.has("ragusa"));
+  // "incidente", "principale" should remain (>3 chars, not stopwords/places)
+  assert.ok(tokens.has("incidente"));
+  assert.ok(tokens.has("principale"));
 });
