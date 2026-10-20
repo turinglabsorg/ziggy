@@ -109,7 +109,7 @@ export const localAt = (day, hm, tz) => {
   return Date.parse(`${day}T${time}${tz}`);
 };
 /** "16:00" today, "13/10 09:00" on another day — the operator reads local time. */
-function localLabel(ms, tz, now) {
+export function localLabel(ms, tz, now) {
   if (isIANATz(tz)) {
     const iso = new Date(ms).toLocaleString("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", 
                                                         hour: "2-digit", minute: "2-digit", hour12: false }).replace(", ", "T");
@@ -300,7 +300,7 @@ export function checkReel(slug, name) {
 }
 
 /** The kinds that can go out now: the profile behind each must be active on Postproxy. */
-async function activeKinds(tenant, cfg, client) {
+export async function activeKinds(tenant, cfg, client) {
   const pinned = new Set(tenant.postproxy?.profileIds || []);
   const profiles = await client.listProfiles();
   const kinds = [], down = [];

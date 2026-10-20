@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { assertSlug, configPath, listCampaigns, listTenants, loadCampaign, loadConfig, loadTenant, logPost, readPostLog, saveBrand, saveCampaign, saveConfig, saveTenant, tenantDir, ziggyHome, fontsDir, workDir } from "./scripts/config.mjs";
 import { downloadFonts, extractBrand, installedFonts } from "./scripts/brand.mjs";
 import { produceAssets } from "./scripts/assets.mjs";
-import { produce, resolveVariants, scaffold, check as hfCheck, listTemplates } from "./scripts/video.mjs";
+import { produce, readManifest, resolveVariants, scaffold, check as hfCheck, listTemplates } from "./scripts/video.mjs";
 import { KEY_ENV, keyPlan, keyStatus, pullKey, runUnderHush } from "./scripts/secrets.mjs";
 import { createClient, summarizePost, postPermalinks } from "./scripts/postproxy.mjs";
 import { POST_KINDS, awaitPosts, buildRequest, publishCampaign, publishDrafts } from "./scripts/publish.mjs";
@@ -32,6 +32,7 @@ import { notifyTelegram, planRound, roundConfig, runRound } from "./scripts/roun
 import { threadForCampaign } from "./scripts/thread.mjs";
 import { produceSlides, SLIDE_IDS } from "./scripts/slides.mjs";
 import { downloadPosters, eventsConfig, fetchWeekEvents, localDay, resolveWeek, runReportHook, selectEvents, teaserCampaign, weekCampaign, weekCampaignName } from "./scripts/events.mjs";
+import { publishWeek, weekPublishLines, weekPublishText } from "./scripts/eventspub.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const args = process.argv.slice(2);
@@ -50,7 +51,7 @@ const quiet = has("--quiet");
 const positional = () => {
   const out = [];
   for (let i = 1; i < args.length; i++) {
-    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once", "--plan", "--archive", "--notify", "--week", "--teaser", "--no-render"].includes(args[i])) i++; continue; }
+    if (args[i].startsWith("--")) { const v = args[i + 1]; if (v !== undefined && !v.startsWith("--") && !["--json", "--quiet", "--live", "--dry-run", "--force", "--render", "--no-hush", "--install", "--uninstall", "--status", "--feed-video", "--no-dms", "--probe", "--skip-check", "--watch", "--once", "--plan", "--archive", "--notify", "--week", "--teaser", "--no-render", "--publish", "--no-daily", "--no-events"].includes(args[i])) i++; continue; }
     out.push(args[i]);
   }
   return out;
@@ -90,12 +91,15 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
                                                     step 2: {"<prefix>": [3–4 points], "skip": [prefixes]} →
                                                     campaigns → renders → checks (audio, loudness, length) →
                                                     scheduled on the free times (tenant.json → daily: freshness, round)
-  ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] [--force] [--notify] [--json]
+  ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] [--force] [--publish] [--notify] [--json]
                                                     the week's events (tenant.json → events) → campaign eventi-<monday>
                                                     on the eventi-settimana template, posters downloaded, reel + post
-                                                    rendered; nothing is posted. Week = Monday–Sunday: Fri–Sun pick the
-                                                    next one, Mon–Thu the current one, --from any day of the wanted week.
-                                                    Fewer than events.minEvents → no render, exit 3 (--notify: ZIGGY_REPORT_HOOK)
+                                                    rendered; nothing is posted without --publish. Week = Monday–Sunday:
+                                                    Fri–Sun pick the next one, Mon–Thu the current one, --from any day of
+                                                    the wanted week. Fewer than events.minEvents → no render, exit 3.
+                                                    --publish: then live, now, on daily.only (Facebook through the Page
+                                                    guard; a platform already out is never posted again); --notify sends
+                                                    the summary (or the skip) through ZIGGY_REPORT_HOOK
   ziggy events <slug> --teaser [--dry-run] [--no-render] [--force]
                                                     the evergreen events teaser (campaign eventi-teaser): no dates, no titles
   ziggy copy <slug> <name> [--json]                show + validate the per-platform copy, including thread replies
@@ -134,8 +138,10 @@ Inbox & engagement
                                                     schedule autopilot (launchd on macOS, cron elsewhere)
 
 Server (the durable loop — one always-on process, or the Docker image)
-  ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800] [--every-report 14400]
-                                                    re-runs daily + report per tenant on a timer;
+  ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800 | --no-daily] [--every-report 14400] [--no-events]
+                                                    re-runs daily + report per tenant on a timer, and
+                                                    events --week --publish --notify weekly (tenant.json →
+                                                    events.schedule, once per ISO week, --no-events disables);
                                                     keys from POSTPROXY_API_KEY_<SLUG> (or hush locally);
                                                     GET /healthz, SIGTERM stops cleanly
 
@@ -371,10 +377,13 @@ async function main() {
     case "events": {
       const t = loadTenant(pos[0]);
       const cfg = eventsConfig(t);
+      const publish = has("--publish");
+      if (publish && !has("--week")) fail("--publish goes with --week only (the teaser is never published by this command)", 2);
+      if (publish) ensureKey(t.slug); // before anything is fetched or written: under hush the command runs again as a child
       const render = !has("--no-render") && !has("--dry-run");
       const quality = flag("--quality", "high");
       const renderCampaign = async (name) => {
-        if (!installedFonts(fontsDir(t.slug)).length) fail(`no fonts — run: ziggy brand fonts ${t.slug}`);
+        if (!installedFonts(fontsDir(t.slug)).length) throw new Error(`no fonts — run: ziggy brand fonts ${t.slug}`);
         const c = loadCampaign(t.slug, name);
         return produce({ tenant: t, campaign: c, variants: resolveVariants(c), quality, version: loadConfig().hyperframesVersion, log: say, skipCheck: has("--skip-check") });
       };
@@ -391,7 +400,7 @@ async function main() {
         return out({ name, dir, manifest }, `campaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : `\nrender: ziggy video ${t.slug} ${name}`}\nnothing was posted`);
       }
 
-      if (!has("--week")) fail("usage: ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] | --teaser", 2);
+      if (!has("--week")) fail("usage: ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] [--publish] [--notify] | --teaser", 2);
       const nowFlag = flag("--now");
       const now = nowFlag && nowFlag !== true ? new Date(nowFlag) : new Date();
       const fromFlag = flag("--from");
@@ -407,24 +416,53 @@ async function main() {
         ...(s.excluded.length ? ["esclusi:", ...s.excluded.map((e) => `  ${e.title}${e.town ? ` (${e.town})` : ""} — ${e.reason}`)] : []),
       ].join("\n");
       const data = { tenant: t.slug, week, campaign: name, skip: sel.skip, reason: sel.reason, chosen: sel.chosen, notPicked: sel.notPicked, excluded: sel.excluded, duplicates: sel.duplicates };
+      const notify = has("--notify") && !has("--dry-run");
+      const hook = async (text) => {
+        if (!notify) return false;
+        try { return await runReportHook(t.slug, text); } catch (e) { console.error(`ziggy: ${e.message}`); return false; }
+      };
       if (sel.skip) {
         // no reel this week: say so, and through the report hook when asked; exit 3 marks a skip
         const text = `⏭️ ${t.name} · ${sel.reason}`;
-        let notified = false;
-        if (has("--notify") && !has("--dry-run")) {
-          try { notified = await runReportHook(t.slug, text); } catch (e) { console.error(`ziggy: ${e.message}`); }
-        }
-        out({ ...data, notified }, `${text}${has("--notify") && !notified && !has("--dry-run") ? " (no ZIGGY_REPORT_HOOK: printed only)" : ""}\n${summary(sel)}`);
+        const notified = await hook(text);
+        out({ ...data, notified }, `${text}${notify && !notified ? " (no ZIGGY_REPORT_HOOK: printed only)" : ""}\n${summary(sel)}`);
         process.exitCode = 3;
         return;
       }
-      if (has("--dry-run")) return out(data, `${summary(sel)}\n(dry run: nothing written)`);
-      if (exists(name) && !has("--force")) fail(`campaign ${name} already exists for ${t.slug} — pass --force to overwrite`);
+      if (has("--dry-run")) {
+        if (!publish) return out(data, `${summary(sel)}\n(dry run: nothing written)`);
+        // the campaign as it is on disk, or as this run would write it: its posts decide the platforms
+        const campaign = exists(name) ? loadCampaign(t.slug, name) : { ...weekCampaign(t, cfg, week, sel.chosen.map((c) => ({ ...c, posterFile: null }))), name };
+        const res = await publishWeek(t, campaign, { now, dryRun: true });
+        const text = weekPublishText(t, week.label, res, { now });
+        return out({ ...data, publish: res, text }, `${summary(sel)}\npublish (dry run):\n${weekPublishLines(res).join("\n")}\n${text}\n(dry run: nothing written, nothing published)`);
+      }
+      // --publish re-runs reuse the week's campaign and its renders: the posts already out stay the only ones
+      const reuse = publish && exists(name) && !has("--force");
+      if (!reuse && exists(name) && !has("--force")) fail(`campaign ${name} already exists for ${t.slug} — pass --force to overwrite`);
       const dir = join(tenantDir(t.slug), "campaigns", name);
-      const cards = await downloadPosters(sel.chosen, dir, { log: say });
-      saveCampaign(t.slug, name, weekCampaign(t, cfg, week, cards));
-      const manifest = render ? await renderCampaign(name) : null;
-      return out({ ...data, dir, manifest }, `${summary(sel)}\ncampaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : `\nrender: ziggy video ${t.slug} ${name}`}\nnothing was posted`);
+      if (!publish) {
+        const cards = await downloadPosters(sel.chosen, dir, { log: say });
+        saveCampaign(t.slug, name, weekCampaign(t, cfg, week, cards));
+        const manifest = render ? await renderCampaign(name) : null;
+        return out({ ...data, dir, manifest }, `${summary(sel)}\ncampaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : `\nrender: ziggy video ${t.slug} ${name}`}\nnothing was posted`);
+      }
+      try {
+        if (reuse) say(`campaign ${name} already exists: reused (--force rebuilds it)`);
+        else saveCampaign(t.slug, name, weekCampaign(t, cfg, week, await downloadPosters(sel.chosen, dir, { log: say })));
+        const reel = readManifest(t.slug, name)?.outputs?.reel?.video;
+        const manifest = render && !(reuse && reel && existsSync(reel)) ? await renderCampaign(name) : readManifest(t.slug, name);
+        const res = await publishWeek(t, loadCampaign(t.slug, name), { now: nowFlag && nowFlag !== true ? now : new Date(), log: say });
+        const text = weekPublishText(t, week.label, res, { now });
+        const notified = await hook(text);
+        out({ ...data, dir, manifest, publish: res, text, notified }, `${summary(sel)}\ncampaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : ""}\npublish:\n${weekPublishLines(res).join("\n")}\n${text}`);
+        if (!res.ok) process.exitCode = 1;
+      } catch (error) {
+        // a render or Postproxy failure still reaches the owner when --notify
+        await hook(`✗ ${t.name} · Eventi della settimana ${week.label}: reel non pubblicato (${String(error.message).split("\n")[0]})`);
+        fail(error.message);
+      }
+      return;
     }
 
     /* ── key-needing commands ── */
@@ -567,13 +605,14 @@ async function main() {
     }
 
     case "serve": {
-      if (!pos.length) fail("usage: ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800 | --no-daily] [--every-report 14400]", 2);
+      if (!pos.length) fail("usage: ziggy serve <slug…> [--once] [--port 8080] [--every-daily 1800 | --no-daily] [--every-report 14400] [--no-events]", 2);
       const secs = (name, env, d) => { const v = flag(name); if (v !== undefined && v !== true) return Number(v); return process.env[env] ? Number(process.env[env]) : d; };
       const r = serve({
         slugs: pos,
         dailyEveryS: has("--no-daily") ? 0 : secs("--every-daily", "ZIGGY_DAILY_EVERY_S", SERVER_DEFAULTS.dailyEveryS),
         reportEveryS: secs("--every-report", "ZIGGY_REPORT_EVERY_S", SERVER_DEFAULTS.reportEveryS),
         port: secs("--port", "ZIGGY_SERVE_PORT", SERVER_DEFAULTS.port),
+        events: !has("--no-events"),
         once: has("--once"),
         log: (s) => console.log(s),
       });

@@ -520,7 +520,7 @@ export function weekCampaign(tenant, cfg, week, cards) {
       sources: c.sources, url: c.url,
     })),
     audio: { bed: "news", volume: 0.6, swellAt: t.duration - t.outro, beats: [[0.4, 1318.5, 1.2, 0.07], [t.intro, 659.3, 1.4, 0.05], [t.duration - t.outro + 0.2, 987.8, 1.2, 0.05]] },
-    // drafts only if someone runs `ziggy post` by hand: nothing here schedules or publishes
+    // posted only by `ziggy events --week --publish` (eventspub.mjs) or a `ziggy post` by hand
     posts: {
       instagram_reel: { body: caption, media: "reel", cover: true },
       facebook_reel: { body: caption, media: "reel" },

@@ -9,14 +9,16 @@ import {
   mergeEvents, normTitle, normalizeEvent, rangeLabel, resolveWeek, sameEvent, selectEvents, stripTownPrefix, teaserCampaign, untilLabel,
   venueOf, weekCampaign, weekdayOf, wordSpans,
 } from "../scripts/events.mjs";
+import { planWeekPublish, weekPublishText } from "../scripts/eventspub.mjs";
+import { createClient } from "../scripts/postproxy.mjs";
 import { resolveVariants, scaffold } from "../scripts/video.mjs";
-import { makeWorld, runCli } from "./helpers.mjs";
+import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
 after(world.cleanup);
 process.env.ZIGGY_HOME = world.home;
 process.env.ZIGGY_REPO = world.repo;
-const { loadTenant, fontsDir } = await import("../scripts/config.mjs");
+const { loadTenant, fontsDir, logPost, readPostLog } = await import("../scripts/config.mjs");
 
 const FIXTURE = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "events-2026-10-26.json"), "utf8")).data;
 const CFG = eventsConfig({ slug: "ragusa", events: { exclusiveEndSources: ["ccn-antica-ibla-api"] } });
@@ -445,4 +447,202 @@ test("cli: a tenant without an events block has no events command", async () => 
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /no events block/);
   assert.deepEqual(eventsConfig({ slug: "x", events: {} }).excludeCategories, EVENTS_DEFAULTS.excludeCategories);
+});
+
+/* ── --publish: live, now, on daily.only, Facebook through the Page guard ── */
+
+let pp, bins;
+const MON = "2026-10-26T06:00:00Z"; // Monday 07:00 in Rome, the first day after the DST change
+const BLOCK = { platform: "facebook", status: "failed", error: "You're temporarily blocked from this action", error_details: { platform_error_code: "368" } };
+before(async () => {
+  pp = await startMockPostproxy({ profiles: [
+    { id: "prof_ig", name: "Ragusa Buzz", platform: "instagram", status: "active", profile_group_id: "grp_1" },
+    { id: "prof_fb", name: "Ragusa Buzz Page", platform: "facebook", status: "active", profile_group_id: "grp_1" },
+  ] });
+  bins = join(world.root, "fakebin-events-publish");
+  mkdirSync(bins, { recursive: true });
+  const write = (name, body) => writeFileSync(join(bins, name), body, { mode: 0o755 });
+  write("hyperframes", `#!/usr/bin/env node
+const fs = require("node:fs"); const path = require("node:path");
+const [cmd, ...rest] = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(join(bins, "calls.log"))}, cmd + "\\n");
+if (cmd === "check") { console.log("ok"); process.exit(0); }
+if (cmd === "render") { const o = rest[rest.indexOf("-o") + 1]; fs.mkdirSync(path.dirname(o), { recursive: true }); fs.writeFileSync(o, "mp4"); process.exit(0); }
+if (cmd === "snapshot") { const o = rest[rest.indexOf("-o") + 1]; fs.mkdirSync(o, { recursive: true }); fs.writeFileSync(path.join(o, "frame-00-at-1s.png"), "png"); process.exit(0); }
+process.exit(1);
+`);
+  write("ffprobe", `#!/usr/bin/env node
+const a = process.argv.slice(2).join(" ");
+if (a.includes("format=duration")) console.log("18.4");
+else if (a.includes("stream=codec_name")) console.log(process.env.FAKE_AUDIO === "none" ? "" : "aac");
+`);
+  write("ffmpeg", `#!/usr/bin/env node
+console.error("[Parsed_volumedetect_0] mean_volume: -19.5 dB");
+`);
+});
+after(() => pp?.close());
+
+const pubTenant = (slug, facebook = { maxPerDay: 3, minGapMinutes: 240, pauseHours: 48 }) => eventsTenant(slug, {
+  postproxy: { profileGroupId: "grp_1", profileIds: ["prof_ig", "prof_fb"], facebookPageId: "1406" },
+  daily: { tz: "Europe/Rome", only: ["instagram_reel", "facebook_reel"], facebook },
+  events: { apiUrl: `${api.base}/v1/events`, url: "https://ragusa.buzz/eventi", exclusiveEndSources: ["ccn-antica-ibla-api"] },
+});
+const PUB_ENV = (extra = {}) => ({
+  ...world.env, ZIGGY_POSTPROXY_BASE_URL: pp.baseUrl, POSTPROXY_API_KEY: API_KEY, ZIGGY_REPORT_HOOK: "",
+  ZIGGY_HYPERFRAMES_BIN: join(bins, "hyperframes"), ZIGGY_FFPROBE_BIN: join(bins, "ffprobe"), ZIGGY_FFMPEG_BIN: join(bins, "ffmpeg"), ...extra,
+});
+const creates = () => pp.calls.filter((c) => c.method === "POST" && c.path === "/api/posts");
+const hookEnv = (file) => ({ ZIGGY_REPORT_HOOK: `printf '%s|%s' "$ZIGGY_REPORT_TENANT" "$ZIGGY_REPORT_TEXT" > ${file}` });
+const renders = () => (existsSync(join(bins, "calls.log")) ? readFileSync(join(bins, "calls.log"), "utf8").trim().split("\n").filter((c) => c === "render").length : 0);
+
+test("--publish: the week's reel goes out live now on Instagram and Facebook, logged like any post; --notify sends the summary", async () => {
+  pubTenant("evpub");
+  const hookFile = join(world.root, "evpub-hook.txt");
+  const before = creates().length;
+  const r = await runCli(["events", "evpub", "--week", "--publish", "--notify", "--now", MON, "--json"], PUB_ENV(hookEnv(hookFile)));
+  assert.equal(r.status, 0, r.stderr);
+  const d = JSON.parse(r.stdout);
+  assert.equal(d.campaign, "eventi-2026-10-26");
+  assert.deepEqual(d.publish.items.map((i) => [i.kind, i.status]), [["instagram_reel", "published"], ["facebook_reel", "published"]]);
+  const made = creates().slice(before);
+  assert.equal(made.length, 2, "one post per platform");
+  assert.deepEqual(made.map((c) => c.fields["profiles[]"]), [["prof_ig"], ["prof_fb"]]);
+  for (const c of made) {
+    assert.notEqual(c.fields["post[draft]"], "true", "live, not a draft");
+    assert.equal(c.fields["post[scheduled_at]"], undefined, "now, not scheduled");
+  }
+  const [ig, fb] = d.publish.items.map((i) => i.postId);
+  assert.equal(d.text, `🗓️ Ragusa Buzz · Eventi della settimana 26 ott – 1 nov: reel pubblicato su Instagram (id ${ig}), Facebook (id ${fb})`);
+  assert.equal(readFileSync(hookFile, "utf8"), `evpub|${d.text}`);
+  assert.equal(d.notified, true);
+  // posts.jsonl: live rows of the campaign, with the time they went out (what a round's Facebook guard counts)
+  const rows = readPostLog("evpub").filter((x) => x.campaign === "eventi-2026-10-26");
+  assert.deepEqual(rows.map((x) => [x.kind, x.platform, x.postId, x.live, x.scheduledAt]), [
+    ["instagram_reel", "instagram", ig, true, "2026-10-26T06:00:00.000Z"],
+    ["facebook_reel", "facebook", fb, true, "2026-10-26T06:00:00.000Z"],
+  ]);
+});
+
+test("--publish re-run: already published platforms are never posted again, the reel is not re-rendered", async () => {
+  const before = creates().length, rendered = renders();
+  const r = await runCli(["events", "evpub", "--week", "--publish", "--now", "2026-10-26T09:00:00Z"], PUB_ENV());
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(creates().length, before, "nothing posted");
+  assert.equal(renders(), rendered, "the existing render is reused");
+  assert.match(r.stdout, /campaign eventi-2026-10-26 already exists: reused/);
+  assert.match(r.stdout, /instagram_reel +already published \(post_\d+\)/);
+  assert.match(r.stdout, /facebook_reel +already published \(post_\d+\)/);
+  assert.match(r.stdout, /reel pubblicato su Instagram \(già pubblicato, id post_\d+\), Facebook \(già pubblicato, id post_\d+\)/);
+  // --force rebuilds the campaign and the render, still without a second post
+  const forced = await runCli(["events", "evpub", "--week", "--publish", "--force", "--now", "2026-10-26T09:00:00Z"], PUB_ENV());
+  assert.equal(forced.status, 0, forced.stderr);
+  assert.equal(creates().length, before);
+  assert.ok(renders() > rendered);
+});
+
+test("--publish after a Meta 368: Instagram goes out, Facebook is held with the pause; a later re-run publishes only Facebook", async () => {
+  pubTenant("evhold");
+  // a Facebook post that hit the 368 two hours earlier
+  logPost("evhold", { campaign: "story-x", kind: "facebook_reel", postId: "bad_fb", profileId: "prof_fb", platform: "facebook", status: "scheduled", live: true, scheduledAt: "2026-10-26T04:00:00.000Z" });
+  pp.state.posts.bad_fb = { id: "bad_fb", status: "processed", platforms: [BLOCK] };
+  const hookFile = join(world.root, "evhold-hook.txt");
+  const before = creates().length;
+  const r = await runCli(["events", "evhold", "--week", "--publish", "--notify", "--now", MON, "--json"], PUB_ENV(hookEnv(hookFile)));
+  assert.equal(r.status, 0, r.stderr);
+  const d = JSON.parse(r.stdout);
+  assert.deepEqual(d.publish.items.map((i) => [i.kind, i.status, i.reason || null]), [["instagram_reel", "published", null], ["facebook_reel", "held", "pause"]]);
+  assert.equal(d.publish.facebook.pausedUntil, "2026-10-28T04:00:00.000Z");
+  assert.deepEqual(creates().slice(before).map((c) => c.fields["profiles[]"]), [["prof_ig"]], "Instagram only");
+  assert.match(readFileSync(hookFile, "utf8"), /^evhold\|🗓️ Ragusa Buzz · Eventi della settimana 26 ott – 1 nov: reel pubblicato su Instagram \(id post_\d+\), Facebook \(in attesa: blocco anti-spam di Meta \(errore 368\), Facebook in pausa fino alle 28\/10 05:00\)$/);
+  assert.equal(readPostLog("evhold").filter((x) => x.campaign === "eventi-2026-10-26").length, 1);
+
+  // after the pause, the same command adds the Facebook post and leaves Instagram alone
+  const later = await runCli(["events", "evhold", "--week", "--publish", "--now", "2026-10-28T10:00:00Z", "--json"], PUB_ENV());
+  assert.equal(later.status, 0, later.stderr);
+  assert.deepEqual(JSON.parse(later.stdout).publish.items.map((i) => [i.kind, i.status]), [["instagram_reel", "already"], ["facebook_reel", "published"]]);
+  assert.deepEqual(creates().slice(before).map((c) => c.fields["profiles[]"]), [["prof_ig"], ["prof_fb"]]);
+});
+
+test("--publish: fewer than minEvents → no render, no post, exit 3, the skip line through the hook", async () => {
+  pubTenant("evfew");
+  api.set = "few";
+  try {
+    const hookFile = join(world.root, "evfew-hook.txt");
+    const before = creates().length, rendered = renders();
+    const r = await runCli(["events", "evfew", "--week", "--publish", "--notify", "--now", MON], PUB_ENV(hookEnv(hookFile)));
+    assert.equal(r.status, 3, r.stderr);
+    assert.equal(creates().length, before);
+    assert.equal(renders(), rendered);
+    assert.equal(existsSync(join(world.repo, "tenants", "evfew", "campaigns", "eventi-2026-10-26")), false);
+    assert.match(readFileSync(hookFile, "utf8"), /^evfew\|⏭️ Ragusa Buzz · solo 2 eventi validi per 26 ott – 1 nov/);
+  } finally {
+    api.set = "all";
+  }
+});
+
+test("--publish --dry-run: what would go out, nothing written, rendered or posted", async () => {
+  pubTenant("evdry");
+  const before = creates().length, rendered = renders();
+  const r = await runCli(["events", "evdry", "--week", "--publish", "--dry-run", "--notify", "--now", MON], PUB_ENV({ ZIGGY_REPORT_HOOK: "exit 9" }));
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /instagram_reel +would publish live now/);
+  assert.match(r.stdout, /facebook_reel +would publish live now/);
+  assert.match(r.stdout, /🗓️ Ragusa Buzz · Eventi della settimana 26 ott – 1 nov \(prova, niente pubblicato\): reel da pubblicare su Instagram, Facebook/);
+  assert.match(r.stdout, /nothing written, nothing published/);
+  assert.equal(creates().length, before);
+  assert.equal(renders(), rendered);
+  assert.equal(existsSync(join(world.repo, "tenants", "evdry", "campaigns", "eventi-2026-10-26")), false);
+  assert.deepEqual(readPostLog("evdry"), []);
+});
+
+test("--publish: a reel that fails the check (no audio) is not published; exit 1 and the owner hears of it", async () => {
+  pubTenant("evmute");
+  const hookFile = join(world.root, "evmute-hook.txt");
+  const before = creates().length;
+  const r = await runCli(["events", "evmute", "--week", "--publish", "--notify", "--now", MON], PUB_ENV({ FAKE_AUDIO: "none", ...hookEnv(hookFile) }));
+  assert.equal(r.status, 1);
+  assert.equal(creates().length, before);
+  assert.match(readFileSync(hookFile, "utf8"), /reel non pubblicato: Instagram \(errore: reel no audio\), Facebook \(errore: reel no audio\)$/);
+});
+
+test("--publish goes with --week only", async () => {
+  const r = await runCli(["events", "evpub", "--teaser", "--publish"], PUB_ENV());
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--publish goes with --week only/);
+});
+
+test("planWeekPublish: the Facebook guard counts posts that went out at once, the daily cap, the off switch", async () => {
+  const client = createClient({ baseUrl: pp.baseUrl, apiKey: API_KEY });
+  const campaign = { name: "eventi-2026-10-26", posts: { instagram_reel: { body: "x", media: "reel" }, facebook_reel: { body: "x", media: "reel" } } };
+  const tenant = (slug, facebook) => ({ slug, name: "Ragusa Buzz", postproxy: { profileIds: ["prof_ig", "prof_fb"] }, daily: { tz: "Europe/Rome", only: ["instagram_reel", "facebook_reel", "tiktok"], facebook } });
+  const fb = (slug, postId, at) => logPost(slug, { campaign: `story-${postId}`, kind: "facebook_reel", postId, platform: "facebook", status: "processed", live: true, scheduledAt: null, at });
+  const status = (p) => p.items.map((i) => [i.kind, i.status, i.reason || null]);
+
+  // a Facebook reel posted by hand an hour ago (no scheduledAt): too close
+  fb("evgap", "fb_hand", "2026-10-26T05:00:00.000Z");
+  const gap = await planWeekPublish(tenant("evgap", { minGapMinutes: 240 }), campaign, { client, now: new Date(MON) });
+  assert.deepEqual(status(gap), [["instagram_reel", "publish", null], ["facebook_reel", "held", "gap"]], "tiktok is not in the campaign");
+  // three already today in Rome (07:00, 11:30, 16:00): a fourth at 21:00 is over the cap
+  for (const [id, at] of [["c1", "2026-10-26T06:00:00Z"], ["c2", "2026-10-26T10:30:00Z"], ["c3", "2026-10-26T15:00:00Z"]]) fb("evcap", id, at);
+  const cap = await planWeekPublish(tenant("evcap", { maxPerDay: 3, minGapMinutes: 240 }), campaign, { client, now: new Date("2026-10-26T20:00:00Z") });
+  assert.deepEqual(status(cap), [["instagram_reel", "publish", null], ["facebook_reel", "held", "cap"]]);
+  const off = await planWeekPublish(tenant("evoff", { enabled: false }), campaign, { client, now: new Date(MON) });
+  assert.deepEqual(status(off), [["instagram_reel", "publish", null], ["facebook_reel", "held", "disabled"]]);
+  assert.match(weekPublishText({ name: "Ragusa Buzz", daily: { tz: "Europe/Rome" } }, "26 ott – 1 nov", { ...gap, dryRun: true }), /Facebook \(in attesa: un altro post Facebook a meno di 4 ore\)$/);
+  assert.match(weekPublishText({ name: "Ragusa Buzz", daily: { tz: "Europe/Rome" } }, "26 ott – 1 nov", { ...cap, dryRun: false }), /Facebook \(in attesa: già 3 post Facebook oggi \(max 3 al giorno\)\)$/);
+});
+
+test("planWeekPublish: a disconnected profile is reported, the other platform still goes", async () => {
+  const mock = await startMockPostproxy({ profiles: [
+    { id: "prof_ig", name: "Ragusa Buzz", platform: "instagram", status: "active", profile_group_id: "grp_1" },
+    { id: "prof_fb", name: "Ragusa Buzz Page", platform: "facebook", status: "disconnected", profile_group_id: "grp_1" },
+  ] });
+  try {
+    const client = createClient({ baseUrl: mock.baseUrl, apiKey: API_KEY });
+    const campaign = { name: "eventi-2026-10-26", posts: { instagram_reel: { body: "x", media: "reel" }, facebook_reel: { body: "x", media: "reel" } } };
+    const t = { slug: "evdown", name: "Ragusa Buzz", postproxy: { profileIds: ["prof_ig", "prof_fb"] }, daily: { tz: "Europe/Rome", only: ["instagram_reel", "facebook_reel"] } };
+    const p = await planWeekPublish(t, campaign, { client, now: new Date(MON) });
+    assert.deepEqual(p.items.map((i) => [i.kind, i.status, i.reason || null]), [["instagram_reel", "publish", null], ["facebook_reel", "down", "disconnected"]]);
+    assert.match(weekPublishText(t, "26 ott – 1 nov", { ...p, dryRun: false }), /Facebook \(non pubblicato: ricollega il profilo su Postproxy, stato disconnected\)$/);
+  } finally { await mock.close(); }
 });

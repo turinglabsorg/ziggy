@@ -25,7 +25,7 @@ When working from the repo without installing: `node ziggy/skill/index.js …`.
 | 4. Campaign | `ziggy campaign add <slug> <name>` → edit `campaign.json`, or `ziggy story <slug>` for the latest story of a publishing tenant | copy + per-platform posts + variants |
 | 5. Video | `ziggy video <slug> <name>` | HyperFrames projects, checked + rendered: reel 9:16, X 16:9, feed 4:5 + stills |
 | 5b. Carousel | `ziggy slides <slug> <name>` | three feed stills (cover, dek, close) for an Instagram carousel |
-| 5d. Events | `ziggy events <slug> --week [--from YYYY-MM-DD]` · `ziggy events <slug> --teaser` | the week's events reel (campaign `eventi-<monday>`, reel + post) or the evergreen events teaser; renders only, never posts |
+| 5d. Events | `ziggy events <slug> --week [--from YYYY-MM-DD] [--publish] [--notify]` · `ziggy events <slug> --teaser` | the week's events reel (campaign `eventi-<monday>`, reel + post) or the evergreen events teaser; `--publish` posts the week's reel live on `daily.only` (Facebook through the Page guard, never twice); `ziggy serve` runs it weekly from `events.schedule` |
 | 5c. Thread | `ziggy thread <slug> <name>` | X thread: cover image on the opening post, replies, the link in the last reply |
 | 6. Publish | `ziggy post <slug> <name>` (drafts) → `ziggy publish <slug> <ids>` or `ziggy post … --live` | Postproxy posts, permalinks in `ziggy status` |
 | 7. Listen | `ziggy inbox <slug>` · `ziggy stats <slug>` | new comments, DM threads, engagement |
@@ -43,8 +43,10 @@ Read the reference for the step you are on — `references/tenants.md`, `brand.m
    value. `ziggy keys status <slug>` tells you whether one is stored, by name.
 2. **Drafts first.** `ziggy post` creates drafts. Show the user the copy (`ziggy copy`) and the
    renders, get a yes, then `ziggy publish`. Use `--live` only when the user said to publish
-   directly in this conversation. The exception is `ziggy round` (below): it schedules live,
-   and a tenant opts into that with a `daily.round` block in its `tenant.json`.
+   directly in this conversation. The exceptions are `ziggy round` (below): it schedules live,
+   and a tenant opts into that with a `daily.round` block in its `tenant.json`; and the weekly
+   events reel, `ziggy events <slug> --week --publish`, which `ziggy serve` runs for a tenant
+   with `events.schedule`.
 3. **Edit definitions, not outputs.** Change `brand.json` / `campaign.json` / `playbook.md` in
    `tenants/<slug>/` and re-run the command. Generated HyperFrames projects under
    `~/.ziggy/tenants/<slug>/videos/` are overwritten on the next `ziggy video`.
@@ -288,13 +290,18 @@ ziggy thread alienwatch story-… --enable         # the thread; the cover image
 ziggy post alienwatch story-… --live --only instagram_reel --watch
 ```
 
-The week's events as a reel (tenant.json → `events`; nothing is posted):
+The week's events as a reel (tenant.json → `events`; nothing is posted without `--publish`):
 ```bash
 ziggy events ragusa --week --dry-run                    # the selection: chosen cards, the ones left out and why
 ziggy events ragusa --week                              # campaign eventi-<monday>, posters, reel + post renders
 ziggy events ragusa --week --from 2026-10-26            # a given week; exit 3 = fewer than events.minEvents, skipped
+ziggy events ragusa --week --publish --dry-run          # + what would go out where (Facebook guard included), nothing posted
+ziggy events ragusa --week --publish --notify           # render, publish live on daily.only, Italian summary via ZIGGY_REPORT_HOOK
 ziggy events ragusa --teaser                            # the evergreen teaser (no dates), campaign eventi-teaser
 ```
+`--publish` is idempotent: a platform with a live post of the week's campaign in posts.jsonl is
+never posted again, so re-running it later only adds what the Facebook guard held. In production
+`ziggy serve` runs it every Monday at 07:00 Rome (`events.schedule`); see `references/events.md`.
 
 Daily run on an existing tenant:
 ```bash
@@ -306,8 +313,10 @@ ziggy autopilot alienwatch --dry-run                   # what it would do
 ziggy queue alienwatch                                 # what it left for a human
 ```
 
-Always-on: `ziggy serve <slug…>` re-runs daily + report on timers (GET /healthz); the repo
-Dockerfile packages it (`docker run -v ~/.ziggy:/data -e POSTPROXY_API_KEY_<SLUG> ziggy serve ragusa`).
+Always-on: `ziggy serve <slug…>` re-runs daily + report on timers, and the weekly events job
+(`events --week --publish --notify`) for tenants with `events.schedule`, even with `--no-daily`
+(`--no-events` turns it off; GET /healthz shows its next run); the repo Dockerfile packages it
+(`docker run -v ~/.ziggy:/data -e POSTPROXY_API_KEY_<SLUG> ziggy serve ragusa`).
 For the inbox instead: `ziggy watch alienwatch --install --interval 900` after setting
 `autopilot.mode` to `auto` in `tenant.json` and reading `references/autopilot.md`.
 

@@ -19,8 +19,10 @@ services:
     build: .
     image: ziggy:latest
     restart: unless-stopped
-    # reports only: a Claude session picks the stories, writes the summaries and schedules
-    # (ziggy daily / ziggy post via docker exec); the container never publishes on its own
+    # reports, plus one deterministic job: the weekly events reel (tenant.json → events.schedule,
+    # Ragusa on Monday at 07:00 Rome: ziggy events --week --publish --notify; --no-events turns
+    # it off). Stories stay with a Claude session, which picks them, writes the summaries and
+    # schedules (ziggy round via docker exec); the container publishes no story on its own
     command: ["serve", "ragusa", "alienwatch", "--no-daily"]
     env_file:
       - path: .env.docker

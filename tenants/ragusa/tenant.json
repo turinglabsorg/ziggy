@@ -166,6 +166,11 @@
     ],
     "maxEvents": 6,
     "minEvents": 3,
+    "schedule": {
+      "weekday": "mon",
+      "time": "07:00",
+      "tz": "Europe/Rome"
+    },
     "template": "eventi-settimana",
     "teaserTemplate": "eventi-teaser",
     "hashtags": "#Ragusa #Sicilia #EventiRagusa #CosaFareARagusa",
