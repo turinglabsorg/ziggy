@@ -10,6 +10,7 @@ import { installedFonts } from "./brand.mjs";
 import { keyStatus } from "./secrets.mjs";
 import { readManifest, hyperframesArgv } from "./video.mjs";
 import { ffmpegBin } from "./assets.mjs";
+import { agentAvailable, storyAgent } from "./story.mjs";
 
 function probe(bin, args = ["--version"], { timeout = 60000 } = {}) {
   const r = spawnSync(bin, args, { encoding: "utf8", timeout });
@@ -56,6 +57,10 @@ export function runDoctor({ tenant: slug, probeHyperframes = true } = {}) {
     const key = keyStatus(slug);
     tadd("postproxy key", key.envPresent || key.hushStored === true, key.envPresent ? "POSTPROXY_API_KEY in env" : key.hushStored ? `hush:${key.secretName}` : key.hushError || `hush has no ${key.secretName}`, `ziggy keys pull ${slug} --send <bitwarden send url>`);
     tadd("autopilot", true, `${t.autopilot?.mode || "draft"}${t.autopilot?.agent === null ? " · no agent" : ""}`);
+    if (t.feed) {
+      const agent = storyAgent(t);
+      tadd("story agent", true, agent ? `${agent.command[0]} · available ${agentAvailable(agent).ok ? "yes" : "no"}` : "off");
+    }
     result.tenant = { slug, checks: tc };
     result.ok = result.ok && tc.every((c) => c.ok);
   }

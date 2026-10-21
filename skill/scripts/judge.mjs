@@ -12,7 +12,7 @@
  *   tenant.json → feed.judge.threshold: 0.8    a point at or above it repeats
  *   ZIGGY_JUDGE=0, ZIGGY_JUDGE_THRESHOLD=0.8   the same from the environment (tenant.json wins)
  */
-import { askSummaryAgent, clipAtSentence, POINT_SPEC, storyAgent } from "./story.mjs";
+import { askSummaryAgent, clipAtSentence, POINT_SPEC, shortReason, storyAgent } from "./story.mjs";
 
 /**
  * A point this similar (0–1) to the headline, the deck or an earlier point is a repeat. The eval's
@@ -205,20 +205,22 @@ export function judgeReason(verdict, threshold = judgeConfig(null).threshold) {
  * the highest similarity and `pass` = score < threshold, a new fact named, grounded, not generic
  * and not vague.
  * [] for no points; null when the judge is off, there is no agent, or the agent fails or answers
- * something unreadable — never a throw.
+ * something unreadable — never a throw. A failure is told to `onError` in one short line: the
+ * agent's error, or "unreadable reply".
  */
-export async function judgePoints(tenant, story, points, { agent = storyAgent(tenant), spawnImpl, threshold } = {}) {
+export async function judgePoints(tenant, story, points, { agent = storyAgent(tenant), spawnImpl, threshold, onError } = {}) {
   const cfg = judgeConfig(tenant);
   if (!cfg.enabled || !agent) return null;
   const list = (Array.isArray(points) ? points : []).map((p) => String(p ?? "").trim());
   if (!list.length) return [];
   const limit = threshold ?? cfg.threshold;
+  const fail = (reason) => { try { onError?.(shortReason(reason)); } catch { /* the caller's problem, not the judge's */ } return null; };
   let parsed;
   try {
     const prompt = buildJudgePrompt(tenant, { title: story?.title, dek: story?.dek, body: story?.body, points: list });
     parsed = parseJudge(await askSummaryAgent(agent, prompt, { spawnImpl }), list.length);
-  } catch { return null; }
-  if (!parsed) return null;
+  } catch (error) { return fail(error); }
+  if (!parsed) return fail("unreadable reply");
   return parsed.map((p, i) => {
     const { score, against } = strongest(p);
     const pass = score < limit && p.newFact !== "" && p.grounded !== false && !p.generic && p.vague !== true;

@@ -21,7 +21,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCampaign, rendersDir, saveCampaign } from "./config.mjs";
-import { campaignFromStory, campaignNameFor, fetchStories, fetchStoryBody, refinePoints, slugify } from "./story.mjs";
+import { agentAvailable, campaignFromStory, campaignNameFor, fetchStories, fetchStoryBody, refinePoints, slugify, storyAgent } from "./story.mjs";
+import { judgeConfig } from "./judge.mjs";
 import { coveredStories, dailyConfig, livePosts, storyCovered, storyIdFromSlug } from "./daily.mjs";
 import { nextJingle } from "./music.mjs";
 import { POST_KINDS, publishCampaign } from "./publish.mjs";
@@ -138,7 +139,7 @@ export function pointProblems(points) {
  * lexical filter alone. `made[]` says how many were kept (`points`, the reel), shown
  * (`captionPoints`, at most 3), `dropped`, whether a rewrite is among them (`rewritten`), the
  * `rounds` of checks and the `judge` (`status` on/off/failed, `threshold`, `calls`, `rewrites`,
- * `ms`). Nothing is written under `write: false`, not even the jingle rotation.
+ * `ms`, and `error` / `rewriteError` when an agent call failed). Nothing is written under `write: false`, not even the jingle rotation.
  * 
  * Points file format:
  * {
@@ -188,11 +189,15 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl
 
   // the points through the lexical filter and the judge, the failing ones replaced from the
   // article; a failure in there keeps the lexical filter alone, never a refusal
+  const agent = pending.length && judgeConfig(tenant).enabled ? storyAgent(tenant) : null;
+  const usable = agent ? agentAvailable(agent) : { ok: true };
+  if (!usable.ok) log(`round: ⚠ judge on but its agent is unavailable (${usable.reason}) — lexical filter only`);
   const refined = await mapLimit(pending, REFINE_CONCURRENCY, async ({ name, story, given }) => {
     let r;
     try { r = await refinePoints(tenant, story, given, { spawnImpl, fetchImpl }); }
     catch { r = await refinePoints(tenant, story, given, { agent: null }); }
-    log(`round: points ${name} — ${r.kept.length}/${given.length} kept, ${r.rounds} ${r.rounds === 1 ? "round" : "rounds"}, judge ${r.judge}`);
+    const why = `${r.judge === "failed" && r.judgeError ? `: ${r.judgeError}` : ""}${r.rewriteError ? `, rewrite failed: ${r.rewriteError}` : ""}`;
+    log(`round: points ${name} — ${r.kept.length}/${given.length} kept, ${r.rounds} ${r.rounds === 1 ? "round" : "rounds"}, judge ${r.judge}${why}`);
     return r;
   });
   pending.forEach(({ name, story }, i) => {
@@ -204,7 +209,7 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl
       saveCampaign(tenant.slug, name, campaign);
     }
     const { copy } = campaign;
-    const judge = { status: r.judge, threshold: r.threshold, calls: r.judgeCalls, rewrites: r.rewriteCalls, ms: r.ms };
+    const judge = { status: r.judge, threshold: r.threshold, calls: r.judgeCalls, rewrites: r.rewriteCalls, ms: r.ms, ...(r.judgeError ? { error: r.judgeError } : {}), ...(r.rewriteError ? { rewriteError: r.rewriteError } : {}) };
     out.made.push({ name, title: story.title, campaign, points: copy.points.length, captionPoints: copy.captionPoints.length, dropped: copy.droppedPoints.length, rewritten: r.rewritten, rounds: r.rounds, judge });
   });
   

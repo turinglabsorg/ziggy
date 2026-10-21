@@ -44,7 +44,12 @@ working **with** Ziggy.
   tenant it belongs to).
 - Story campaigns ask an agent for the reel slides before the campaign is written
   (`story.mjs`: `feed.agent` in tenant.json, same shape as `autopilot.agent`, default
-  `claude -p`; `null` disables). The agent prints 3–4 short slides, one story beat per line.
+  `claude -p`; `null` disables). A tenant command other than the default wins; otherwise
+  `ZIGGY_STORY_AGENT_CMD` (JSON array), then `config.json → storyAgent` (read on every call),
+  then the default. The container has no Claude Code: there `storyAgent` is `ssh … claude-json`
+  to the Mac Pro through a restricted key (`ops/story-agent/`). `agentAvailable` says whether
+  the command can start (doctor, and a round warning when the judge is on).
+  The agent prints 3–4 short slides, one story beat per line.
   The agent runs as an async child process (`spawnAgent`), so a round can ask for several stories
   at once. The prompt carries the article (`Article:`) when there is one, the CAN/CANNOT spec,
   and asks for facts the headline and deck do not hold: the list endpoint has no body, so
@@ -69,7 +74,8 @@ working **with** Ziggy.
     Threshold: `tenant.feed.judge.threshold`, else `ZIGGY_JUDGE_THRESHOLD`, else
     `DEFAULT_JUDGE_THRESHOLD` (set from the eval in `skill/eval`). `tenant.feed.judge: false` or
     `ZIGGY_JUDGE=0` turns it off. Any agent or parse failure returns null and the lexical check
-    decides alone — never a failed story or round.
+    decides alone — never a failed story or round; the reason (the agent's error or
+    `unreadable reply`) goes to `onError`, and the round logs `judge failed: <reason>`.
   - `refinePoints` runs both, up to 3 rounds: when a point fails, the summary agent replaces
     **only** the failing ones (`buildReplacePrompt`: the list with ✓/✗, why each failed — the
     score and what it repeats, or generic / vague / not in the article / no new fact — the
@@ -77,7 +83,8 @@ working **with** Ziggy.
     about; passing points stay word for word, in place), and the new list is
     checked again. What still fails after round 3 is dropped. No article: judged and dropped,
     never rewritten. No agent: lexical only, as before. 0–4 points is fine. It returns
-    `{ points, kept, dropped, replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, ms }`.
+    `{ points, kept, dropped, replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, ms }`,
+    plus `judgeError` / `rewriteError` when an agent call failed.
   This runs in `summarizeStory` (`ziggy story`, the daily loop) and in the round on the
   operator's points. The judge applies to **story points only**: case files (`casefile.mjs`)
   keep their fixed Confirmed / Not confirmed / Why it matters points and only the caption lint.
