@@ -38,6 +38,23 @@ test("free slots: strictly after `from`, in the tenant's fixed offset, skipping 
   assert.deepEqual(freeSlotTimes(["07:30"], "+02:00", { from: new Date("2026-10-06T19:00:00Z"), taken }), []);
 });
 
+test("free slots in an IANA zone follow DST: Rome goes +02:00 → +01:00 on 25 October 2026", () => {
+  // 21:00 on the 24th (+02:00) → the 25th's slots are already on winter time
+  assert.deepEqual(freeSlotTimes(["07:30", "13:00"], "Europe/Rome", { from: new Date("2026-10-24T19:00:00Z") }),
+    ["2026-10-25T06:30:00.000Z", "2026-10-25T12:00:00.000Z"]);
+  // the same slots the day before are still summer time
+  assert.deepEqual(freeSlotTimes(["07:30", "13:00"], "Europe/Rome", { from: new Date("2026-10-23T19:00:00Z") }),
+    ["2026-10-24T05:30:00.000Z", "2026-10-24T11:00:00.000Z"]);
+  // 00:30 on the 25-hour day: today's 07:30 and 23:30 both count, once each
+  assert.deepEqual(freeSlotTimes(["07:30", "23:30"], "Europe/Rome", { from: new Date("2026-10-24T22:30:00Z") }),
+    ["2026-10-25T06:30:00.000Z", "2026-10-25T22:30:00.000Z"]);
+  // 23:30 before the 23-hour day of 29 March: its 07:30 is on summer time, not skipped
+  assert.deepEqual(freeSlotTimes(["07:30"], "Europe/Rome", { from: new Date("2026-03-28T22:30:00Z") }), ["2026-03-29T05:30:00.000Z"]);
+  const taken = new Set([Date.parse("2026-10-25T06:30:00.000Z")]);
+  assert.deepEqual(freeSlotTimes(["07:30", "13:00"], "Europe/Rome", { from: new Date("2026-10-24T19:00:00Z"), taken }), ["2026-10-25T12:00:00.000Z"]);
+  assert.deepEqual(freeSlotTimes(["07:30"], "Z", { from: new Date("2026-10-24T19:00:00Z") }), ["2026-10-25T07:30:00.000Z"]);
+});
+
 let mock, feedServer, feedPort, items;
 before(async () => {
   mock = await startMockPostproxy();

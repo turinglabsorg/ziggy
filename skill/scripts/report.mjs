@@ -6,6 +6,7 @@
 import { pullStats, pullInbox } from "./inbox.mjs";
 import { createClient } from "./postproxy.mjs";
 import { readCreatedPosts } from "./config.mjs";
+import { localClock } from "./tz.mjs";
 
 /**
  * The report as data + text. `statuses` comes from the tenant's post log refreshed against
@@ -29,11 +30,8 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
   const slots = queued.filter((p, i) => queued.findIndex((q) => q.scheduledAt === p.scheduledAt && q.campaign === p.campaign) === i);
   const tz = tenant.daily?.tz || "Z";
   const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, "").replace(/-+$/, "").replace(/-/g, " ");
-  const localTime = (iso) => {
-    if (tz === "Z") return iso.slice(11, 16);
-    const offsetMs = Date.parse("2000-01-01T00:00:00Z") - Date.parse(`2000-01-01T00:00:00${tz}`);
-    return new Date(Date.parse(iso) + offsetMs).toISOString().slice(11, 16);
-  };
+  // "+02:00" or an IANA name ("Europe/Rome"): the offset of each instant, so DST moves the clock
+  const localTime = (iso) => localClock(iso, tz);
   const now = new Date();
   lines.push(`📊 ${tenant.brand?.name || tenant.name} — ${localTime(now.toISOString())}${tz === "Z" ? " UTC" : ""}`);
 
@@ -44,7 +42,7 @@ export async function buildReport({ tenant, client = createClient(), inboxNewOnl
   const recentFails = (statuses.failed || []).filter((f) => !f.when || Date.parse(f.when) >= now.getTime() - 48 * 3600_000);
   if (recentFails.length) {
     lines.push(`⚠️ ${recentFails.length} post falliti nelle ultime 48h`);
-    for (const f of recentFails.slice(-3)) lines.push(`   ✗ ${f.when ? localTime(f.when) : "?"} ${f.platform} — ${short(f.campaign || f.id)}: ${String(f.error).slice(0, 80)}`);
+    for (const f of recentFails.slice(-3)) lines.push(`   ✗ ${localTime(f.when)} ${f.platform} — ${short(f.campaign || f.id)}: ${String(f.error).slice(0, 80)}`);
   }
 
   if (published.length) {
