@@ -176,6 +176,38 @@ test("judgePoints: off, no agent, a failing agent or an unreadable reply → nul
   assert.equal(await judgePoints(RAGUSA, story, FACTS, { spawnImpl: () => { throw new Error("boom"); } }), null);
 });
 
+test("judgePoints: a failure is told to onError in one short line, and still returns null", async () => {
+  const story = { ...MODICA, body: BODY };
+  const why = async (spawnImpl, opts = {}) => {
+    const seen = [];
+    assert.equal(await judgePoints(RAGUSA, story, FACTS, { spawnImpl, onError: (m) => seen.push(m), ...opts }), null);
+    return seen;
+  };
+  const enoent = () => ({ error: Object.assign(new Error("spawn fake-agent ENOENT"), { code: "ENOENT" }) });
+  assert.deepEqual(await why(enoent), ["summary agent command not found: fake-agent"]);
+  assert.deepEqual(await why(() => ({ status: 0, stdout: "Mi dispiace, non posso.", stderr: "" })), ["unreadable reply"]);
+  assert.deepEqual(await why(() => ({ error: Object.assign(new Error("agent timed out after 120000 ms"), { code: "ETIMEDOUT" }) })), ["agent timed out after 120000 ms"]);
+  const [exited] = await why(() => ({ status: 255, stdout: "", stderr: `ssh: connect to host host.docker.internal\nport 22: Connection refused ${"x".repeat(500)}` }));
+  assert.match(exited, /^summary agent exited 255: ssh: connect to host host\.docker\.internal port 22: Connection refused x+$/);
+  assert.equal(exited.length, 300);
+  // a throwing onError never makes the judge throw; off or no agent is not a failure
+  assert.equal(await judgePoints(RAGUSA, story, FACTS, { spawnImpl: enoent, onError: () => { throw new Error("caller"); } }), null);
+  assert.deepEqual(await why(() => assert.fail("off"), { agent: null }), []);
+});
+
+test("refinePoints: the first judge and rewrite failures are kept as judgeError and rewriteError", async () => {
+  const enoent = { error: Object.assign(new Error("spawn fake-agent ENOENT"), { code: "ENOENT" }) };
+  const echo = MODICA.title; // a lexical failure, so a rewrite is asked too
+  const down = fakeStoryAgent({ judge: () => enoent, replace: enoent });
+  const r = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, [echo, ...PARAPHRASES.slice(0, 2)], { spawnImpl: down.spawnImpl });
+  assert.deepEqual([r.judge, r.judgeError, r.rewriteError], ["failed", "summary agent command not found: fake-agent", "summary agent command not found: fake-agent"]);
+  const nonsense = fakeStoryAgent({ judge: () => "no JSON here", replace: () => assert.fail("every point passes the lexical filter") });
+  const n = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, PARAPHRASES, { spawnImpl: nonsense.spawnImpl });
+  assert.deepEqual([n.judge, n.judgeError, n.rewriteError], ["failed", "unreadable reply", undefined]);
+  const fine = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, FACTS, { spawnImpl: fakeStoryAgent().spawnImpl });
+  assert.deepEqual([fine.judge, "judgeError" in fine, "rewriteError" in fine], ["on", false, false]);
+});
+
 test("refinePoints: every point passes in round 1 → one judge call, no rewrite", async () => {
   const agent = fakeStoryAgent({ replace: () => assert.fail("nothing to replace") });
   const r = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, FACTS, { spawnImpl: agent.spawnImpl });

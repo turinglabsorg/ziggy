@@ -703,6 +703,27 @@ test("the operator's points through the lexical filter and the judge: the failin
   assert.match(empty.text, /— library room 9a8b7c6d · nessun punto \(4 scartati\)$/m);
 });
 
+test("a judge that cannot run: the round warns once, logs why on the points line and in the judge object", async () => {
+  const { campaignsFromPoints } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  const tenant = { ...loadTenant("acme"), feed: { ...loadTenant("acme").feed, url: "https://news.example/feed/v1/briefings?lang=en&limit=20", agent: { command: ["fake-agent-not-installed", "-i", "/data/ssh/key"] } } };
+  const fetchImpl = async (url) => new Response(JSON.stringify(new URL(url).pathname === "/feed/v1/briefings" ? { data: LIBRARY } : { data: { bodyHtml: "<p>The council paid 40,000 euros from the 2026 budget.</p>" } }), { status: 200 });
+  const enoent = { error: Object.assign(new Error("spawn fake-agent-not-installed ENOENT"), { code: "ENOENT" }) };
+  const lines = [];
+  const out = await campaignsFromPoints(tenant, { "library-room": [ECHO[0], ...FACTS] }, { fetchImpl, spawnImpl: fakeStoryAgent({ judge: () => enoent, replace: enoent }).spawnImpl, now: new Date(NOW), write: false, log: (l) => lines.push(l) });
+  const why = "summary agent command not found: fake-agent-not-installed";
+  assert.deepEqual(lines.filter((l) => l.includes("⚠")), ["round: ⚠ judge on but its agent is unavailable (fake-agent-not-installed not found on PATH) — lexical filter only"]);
+  assert.ok(lines.every((l) => !l.includes("/data/ssh/key")), "only the bin is logged");
+  assert.ok(lines.includes(`round: points ${out.made[0].name} — 3/4 kept, 1 round, judge failed: ${why}, rewrite failed: ${why}`), lines.join("\n"));
+  assert.deepEqual([out.made[0].judge.status, out.made[0].judge.error, out.made[0].judge.rewriteError, out.made[0].points], ["failed", why, why, 3]);
+  // judge off: no warning, nothing about the agent
+  lines.length = 0;
+  process.env.ZIGGY_JUDGE = "0";
+  try { await campaignsFromPoints(tenant, { "library-room": [ECHO[0], ...FACTS] }, { fetchImpl, spawnImpl: fakeStoryAgent({ replace: FACTS.join("\n") }).spawnImpl, now: new Date(NOW), write: false, log: (l) => lines.push(l) }); }
+  finally { delete process.env.ZIGGY_JUDGE; }
+  assert.deepEqual(lines.filter((l) => l.includes("⚠") || l.includes("failed")), []);
+});
+
 test("a round judges the stories' points three at a time, and keeps the points file's order", async () => {
   const { campaignsFromPoints } = await import("../scripts/round.mjs");
   const { loadTenant } = await import("../scripts/config.mjs");

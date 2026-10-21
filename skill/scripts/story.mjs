@@ -18,8 +18,9 @@
  * about is left for the human to fill in the generated campaign.json.
  */
 import { spawn } from "node:child_process";
-import { join } from "node:path";
-import { loadCampaign, saveCampaign, tenantDir } from "./config.mjs";
+import { accessSync, constants as fsConstants, statSync } from "node:fs";
+import { delimiter, join } from "node:path";
+import { loadCampaign, loadConfig, saveCampaign, tenantDir } from "./config.mjs";
 import { judgeConfig, judgePoints, judgeReason } from "./judge.mjs";
 import { cleanPoint, pointsReport, storyCaption } from "./lint.mjs";
 import { nextJingle } from "./music.mjs";
@@ -179,10 +180,50 @@ export async function fetchStoryBody(tenant, story, { fetchImpl = fetch, maxChar
 
 export const DEFAULT_STORY_AGENT = { command: ["claude", "-p", "--output-format", "json"], timeoutMs: 120000 };
 
-export function storyAgent(tenant) {
-  const a = tenant.feed?.agent;
+const isCommand = (c) => Array.isArray(c) && c.length > 0 && c.every((s) => typeof s === "string" && s !== "");
+const positiveMs = (v) => (v !== undefined && v !== null && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : DEFAULT_STORY_AGENT.timeoutMs);
+const isDefaultCommand = (c) => isCommand(c) && c.join("\0") === DEFAULT_STORY_AGENT.command.join("\0");
+
+/** ZIGGY_STORY_AGENT_CMD (a JSON array of strings) and ZIGGY_STORY_AGENT_TIMEOUT_MS; null when unset or invalid. */
+function envStoryAgent(env) {
+  let command;
+  try { command = JSON.parse(env.ZIGGY_STORY_AGENT_CMD ?? ""); } catch { return null; }
+  return isCommand(command) ? { command, timeoutMs: positiveMs(env.ZIGGY_STORY_AGENT_TIMEOUT_MS) } : null;
+}
+
+/** config.json → storyAgent `{ command, timeoutMs, enabled }`, read on every call; null when absent, off or invalid. */
+function configStoryAgent(config) {
+  let s;
+  try { s = (config ?? loadConfig()).storyAgent; } catch { return null; }
+  if (!s || typeof s !== "object" || s.enabled === false || !isCommand(s.command)) return null;
+  return { command: [...s.command], timeoutMs: positiveMs(s.timeoutMs) };
+}
+
+/**
+ * The story's summary agent. tenant.json → feed.agent: null/false disables, a command of its own
+ * wins; otherwise ZIGGY_STORY_AGENT_CMD, then config.json → storyAgent (the Mac Pro over SSH in
+ * the container, ops/story-agent), then the tenant's object (or nothing) over the default.
+ */
+export function storyAgent(tenant, { env = process.env, config } = {}) {
+  const a = tenant?.feed?.agent;
   if (a === null || a === false) return null;
-  return { ...DEFAULT_STORY_AGENT, ...(a || {}) };
+  if (a && isCommand(a.command) && !isDefaultCommand(a.command)) return { ...DEFAULT_STORY_AGENT, ...a };
+  return envStoryAgent(env) || configStoryAgent(config) || { ...DEFAULT_STORY_AGENT, ...(a || {}) };
+}
+
+/** Whether the agent's command can start: an executable path, or a name found on PATH. Only the bin is named. */
+export function agentAvailable(agent, { env = process.env } = {}) {
+  const bin = agent?.command?.[0];
+  if (!bin) return { ok: false, reason: "no command" };
+  const runnable = (p) => { try { accessSync(p, fsConstants.X_OK); return statSync(p).isFile(); } catch { return false; } };
+  if (bin.includes("/")) return runnable(bin) ? { ok: true, path: bin } : { ok: false, reason: `${bin} not found or not executable` };
+  const path = String(env.PATH || "").split(delimiter).filter(Boolean).map((d) => join(d, bin)).find(runnable);
+  return path ? { ok: true, path } : { ok: false, reason: `${bin} not found on PATH` };
+}
+
+/** An error as one short line for a log: whitespace collapsed, at most 300 characters. */
+export function shortReason(error) {
+  return String(error?.message ?? error ?? "").replace(/\s+/g, " ").trim().slice(0, 300) || "unknown error";
 }
 
 /**
@@ -461,7 +502,8 @@ function mergeReplacements(verdicts, lines) {
  * replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, threshold, ms }`: `points` and
  * `kept` are the final list, `dropped` the points left out (`{ point, reason }`, reason lexical
  * or "semantic 0.83 vs dek" / "generic" / "vague" / "ungrounded" / "no new fact"), `replaced` the ones a
- * rewrite swapped out, `judge` "on" | "off" | "failed".
+ * rewrite swapped out, `judge` "on" | "off" | "failed". `judgeError` / `rewriteError`: the first
+ * reason a judge or a rewrite call failed, when one did.
  */
 export async function refinePoints(tenant, story, points, { agent = storyAgent(tenant), spawnImpl, fetchImpl, maxRounds = REFINE_ROUNDS, threshold } = {}) {
   const started = Date.now();
@@ -477,7 +519,7 @@ export async function refinePoints(tenant, story, points, { agent = storyAgent(t
     let judged = null;
     if (out.judge === "on" && lexical.some((r) => !r)) {
       out.judgeCalls++;
-      judged = await judgePoints(tenant, full, list, { agent, spawnImpl, threshold: out.threshold });
+      judged = await judgePoints(tenant, full, list, { agent, spawnImpl, threshold: out.threshold, onError: (m) => { out.judgeError ??= m; } });
       if (!judged) out.judge = "failed";
     }
     return list.map((point, i) => {
@@ -496,7 +538,7 @@ export async function refinePoints(tenant, story, points, { agent = storyAgent(t
     try {
       out.rewriteCalls++;
       lines = parseSummaryLines(await askSummaryAgent(agent, buildReplacePrompt(tenant, full, verdicts), { spawnImpl }));
-    } catch { break; }
+    } catch (error) { out.rewriteError ??= shortReason(error); break; }
     const merged = mergeReplacements(verdicts, lines);
     removed.push(...merged.removed);
     replaced.push(...merged.replaced);

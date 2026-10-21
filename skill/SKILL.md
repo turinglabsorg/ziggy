@@ -332,7 +332,9 @@ Reading the result:
   and, when more than one, how many rounds of checks it took (`rounds`): a second round means the
   agent replaced some of yours (`rewritten` when a replacement is among the kept points).
   `judge` in `--json` says whether the meaning check ran (`status` on, off or failed), at which
-  `threshold`, and its `calls`, `rewrites` and `ms`. `nessun punto` usually means the points only
+  `threshold`, and its `calls`, `rewrites` and `ms`; when it failed, `error` says why (and the log
+  line `judge failed: <reason>`, e.g. `summary agent command not found: claude` — see
+  `ops/story-agent/README.md`). `nessun punto` usually means the points only
   retold title and dek: write them from the body.
 - `✗ … no audio` / `render failed` means the reel did not go out. Fix the cause and run the same
   points file again: covered stories are refused, never posted twice.
