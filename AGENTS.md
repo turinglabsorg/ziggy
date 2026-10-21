@@ -18,7 +18,9 @@ working **with** Ziggy.
   and never put **campaigns** here either: `tenants/*/campaigns/` is gitignored, the pipeline
   writes them on disk but story content is not code and must not be pushed.
 - `skill/test/` — `node:test`. Every external dependency is faked: mock Postproxy on localhost
-  (`helpers.mjs`), fake `hush`, fake agent, fake HyperFrames CLI via `ZIGGY_HYPERFRAMES_BIN`.
+  (`helpers.mjs`), fake `hush`, fake agent (`fakeStoryAgent` answers the summary, judge and
+  replace prompts apart), fake HyperFrames CLI via `ZIGGY_HYPERFRAMES_BIN`.
+- `skill/eval/` — the point judge's eval set and runner, with the real agent: never in `npm test`.
 
 ## Rules
 
@@ -43,24 +45,78 @@ working **with** Ziggy.
 - Story campaigns ask an agent for the reel slides before the campaign is written
   (`story.mjs`: `feed.agent` in tenant.json, same shape as `autopilot.agent`, default
   `claude -p`; `null` disables). The agent prints 3–4 short slides, one story beat per line.
-  The prompt carries the article (`Article:`) when there is one, and asks for facts the headline
-  and deck do not hold: the list endpoint has no body, so `fetchStoryBody` reads the per-story
+  The agent runs as an async child process (`spawnAgent`), so a round can ask for several stories
+  at once. The prompt carries the article (`Article:`) when there is one, the CAN/CANNOT spec,
+  and asks for facts the headline and deck do not hold: the list endpoint has no body, so
+  `fetchStoryBody` reads the per-story
   endpoint (`storyDetailUrl`: `feed.detailUrl` with `{slug}`, else the list URL's path +
   `/<slug>`, keeping only `lang`; `data.bodyHtml` → plain text, 2,500 characters, 10 s timeout,
   `""` on any failure).
-- The reel slides and the caption bullets are **one filtered list** (`story.mjs` `storyPoints`,
-  i.e. `lint.mjs` `pointsReport` against headline, dek and the caption tail): a point that repeats
-  the headline, the dek or an earlier point is a repetition on a slide too, so it is dropped from
+- The reel slides and the caption bullets are **one filtered list**: a point that repeats the
+  headline, the dek or an earlier point is a repetition on a slide too, so it is dropped from
   both (`copy.droppedPoints`, each with its reason). The reel keeps up to 4 (`copy.points`), the
-  caption the first 3 (`copy.captionPoints`). When fewer than 2 survive, `rewriteThinPoints` asks
-  the summary agent **once** for new ones from the article (`buildRewritePrompt`: headline, deck,
-  article and the rejected points with why), filters them the same way, and keeps the list with
-  more survivors (the first on a tie). No agent, no article or a failing agent keeps the first
-  list; 0 or 1 points is fine. This runs in `summarizeStory` (`ziggy story`, the daily loop) and
-  in the round on the operator's points. The dek is never split into slides (that is the dek
-  told twice): with no points the reel is the title slide and the close. Reel length comes from
-  the kept count (~5s title, 4.4s per point, 4s close — points must stay readable), never under
-  13 s: 0 points is title 5 s + close 8 s, 1 point 13 s, 2 points 18 s.
+  caption the first 3 (`copy.captionPoints`). Two checks, and a point fails when either rejects
+  it:
+  - **lexical** (`story.mjs` `storyPoints`, i.e. `lint.mjs` `pointsReport` against headline, dek
+    and the caption tail): shared content words. It misses paraphrases.
+  - **semantic** (`judge.mjs` `judgePoints`): the story's summary agent (`storyAgent`, the same
+    command, no other key) gets the headline, the deck, the article and the points in one call,
+    and returns JSON per point: similarity to the headline, the deck and each earlier point
+    (meaning, 0–1), the new fact in ≤12 words, `grounded`, `generic`, `vague` (the slide alone
+    does not say who or what it is about, or it hints at facts without stating them; a reply
+    without it reads as `false`). A point passes when its highest similarity is under the
+    threshold, it names a new fact, is grounded, not generic and not vague.
+    Threshold: `tenant.feed.judge.threshold`, else `ZIGGY_JUDGE_THRESHOLD`, else
+    `DEFAULT_JUDGE_THRESHOLD` (set from the eval in `skill/eval`). `tenant.feed.judge: false` or
+    `ZIGGY_JUDGE=0` turns it off. Any agent or parse failure returns null and the lexical check
+    decides alone — never a failed story or round.
+  - `refinePoints` runs both, up to 3 rounds: when a point fails, the summary agent replaces
+    **only** the failing ones (`buildReplacePrompt`: the list with ✓/✗, why each failed — the
+    score and what it repeats, or generic / vague / not in the article / no new fact — the
+    CAN/CANNOT spec and the article, and the ask that every new point names who or what it is
+    about; passing points stay word for word, in place), and the new list is
+    checked again. What still fails after round 3 is dropped. No article: judged and dropped,
+    never rewritten. No agent: lexical only, as before. 0–4 points is fine. It returns
+    `{ points, kept, dropped, replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, ms }`.
+  This runs in `summarizeStory` (`ziggy story`, the daily loop) and in the round on the
+  operator's points. The judge applies to **story points only**: case files (`casefile.mjs`)
+  keep their fixed Confirmed / Not confirmed / Why it matters points and only the caption lint.
+  The dek is never split into slides (that is the dek told twice): with no points the reel is the
+  title slide and the close. Reel length comes from the kept count (~5s title, 4.4s per point, 4s
+  close — points must stay readable), never under 13 s: 0 points is title 5 s + close 8 s, 1
+  point 13 s, 2 points 18 s.
+- **What a point can and cannot say** (`story.mjs` `POINT_SPEC`, Italian and English, in the
+  summary, replace and judge prompts; the same text in `skill/SKILL.md`,
+  `docs/round-prompt-points.it.md` and `docs/punti-cosa-possono-dire.it.md` — change it in all
+  five places). `docs/punti-cosa-possono-dire.it.md` is the standalone Italian spec for editors
+  and operators: the spec, the reader's test, the lexical filter and the judge with their
+  thresholds and switches, the loop, the eval results and before/after examples.
+  - CAN — each point carries at least one, always taken from the article: a number, an amount or
+    a quantity; a name (person, organisation, place) that is not in the headline or the deck; a
+    date, a time or a deadline; a consequence; a next step (what happens next); a short
+    attributed quote or position ("according to…", "…", X said); a concrete detail (the cause,
+    the method, where exactly).
+  - CANNOT: the headline, the deck or another point in other words (synonyms, reordered, the same
+    fact worded more or less specifically); generic commentary or evaluation ("an important
+    case", "it remains to be seen"); statements about the sources ("the sources do not say…",
+    "no details were given") — they add no fact; facts that are not in the article (no outside
+    knowledge, no inference); questions, emoji, hashtags, calls to action. Keep the source's
+    hedges.
+  - ON ITS OWN: each point makes sense read on its slide. It names who or what it is about ("the
+    chair of the inquiry committee", not "the chair"; no "the appointment", "the measure", "the
+    same party" without what they refer to), and it is specific: no vague lists of generic nouns
+    standing in for facts. The Italian example is the queue's slide of 21 October 2026: "Nomina
+    del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi." (president
+    of what? which opinion?).
+  - The test: does a reader who already read the headline and the deck learn something new and
+    specific from this point? If not, it is a repeat.
+- `skill/eval/` holds the judge's eval set (`points-eval.json`, labelled by meaning: `new`, and
+  the rejects `repeat`, `generic`, `vague`) and `run-points-eval.mjs`, which runs it with the
+  real agent (not part of `npm test`) and writes `results/<date>.{json,md}` (`<date>-v2`, … when
+  that date already has results: an earlier run is never overwritten); `before-after.mjs` runs three of its stories through the real
+  `refinePoints` and writes `results/<date>-before-after.{json,md}`. Rerun the eval after
+  changing the judge prompt, the spec or the agent, and set `DEFAULT_JUDGE_THRESHOLD` to the
+  threshold it recommends.
 - Story campaigns are localized per tenant: `tenant.social` holds the caption CTA (placeholders
   `{url}` = the full story link, `{site}` = the display domain) and the hashtags,
   `feed.sections` renames feed sections (e.g. English → Italian), and the
@@ -79,7 +135,8 @@ working **with** Ziggy.
   names, dates, what happens next — the summarizer and the round's points read the story body):
   `lint.mjs` `pointsReport` drops a point whose content words (and numbers) are all in the
   headline, dek or an earlier point, one that overlaps the headline ≥ 0.8 or the dek, a dek
-  sentence or an earlier point ≥ 0.6, and one that would make the caption fail the lint. The
+  sentence or an earlier point ≥ 0.6, and one that would make the caption fail the lint; the
+  semantic judge (`judge.mjs`, above) drops the paraphrases it misses. The
   caption shows the first 3 of the points the reel keeps (the same list, above). 0–1 points is
   fine; with none there is no points paragraph and the caption is headline, dek, sources, CTA,
   hashtags as before. The X thread is unchanged. Every caption is linted before it is scheduled
@@ -174,12 +231,14 @@ working **with** Ziggy.
   - `--points <file|->` takes `{prefix: [3–4 points], "skip": [prefixes]}`. Points are checked
     (3–4, each at most 90 characters). Stories with no photo, past their deadline, already covered
     or not in the feed are refused before any render. A point that repeats is not a refusal: it
-    is dropped from the reel and the caption (`storyPoints`). With fewer than 2 left the tenant's
-    summary agent (`storyAgent`) rewrites them once from the article (`rewriteThinPoints`, body
-    fetched then; skipped without an agent or an article, and a failing agent never fails the
-    round). Each result carries `points` (reel), `captionPoints` (at most 3), `dropped` and
-    `rewritten`; the summary line reads `· 3 punti (1 scartato)`, `· 3 punti riscritti`, or
-    `· nessun punto (4 scartati)`.
+    is dropped from the reel and the caption. The operator's points go through `refinePoints`
+    (lexical filter + semantic judge, failing points replaced from the article by the tenant's
+    summary agent, up to 3 rounds; body fetched then), three stories at a time; no agent or a
+    failing judge leaves the lexical filter alone, and nothing in there fails the round. Each
+    result carries `points` (reel), `captionPoints` (at most 3), `dropped`, `rewritten` (a
+    replacement is among the kept points), `rounds` and `judge` (`status` on/off/failed,
+    `threshold`, `calls`, `rewrites`, `ms`); the summary line reads `· 3 punti (1 scartato)`,
+    `· 4 punti (2 giri)`, `· 3 punti (1 scartato, 3 giri)` or `· nessun punto (4 scartati)`.
   - Each campaign gets the next jingle. Reels render in child CLI processes, four at a time, with
     no key in their environment.
   - `checkReel` checks every reel with ffprobe/ffmpeg: rendered, an audio track, mean volume

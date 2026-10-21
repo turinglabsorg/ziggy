@@ -3,11 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
-import { campaignFromStory, campaignNameFor, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, buildRewritePrompt, parseSummaryLines, summarizeStory, storyDetailUrl, storyPoints, htmlToText, fetchStoryBody } from "../scripts/story.mjs";
+import { campaignFromStory, campaignNameFor, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, buildReplacePrompt, parseSummaryLines, summarizeStory, storyDetailUrl, storyPoints, htmlToText, fetchStoryBody, POINT_SPEC } from "../scripts/story.mjs";
 import { campaignRepetition, captionPoints, captionRepetition, pointsReport, storyCaption, stripPointLabels } from "../scripts/lint.mjs";
 import { composeThread } from "../scripts/thread.mjs";
 import { endCard, resolveVariants, scaffold, sourceCount } from "../scripts/video.mjs";
-import { makeWorld } from "./helpers.mjs";
+import { fakeStoryAgent, judgeReply, makeWorld } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
 after(world.cleanup);
@@ -386,13 +386,35 @@ test("fetchStoryBody: a request that fails outright is tried once more; an HTTP 
   assert.equal(calls, 1);
 });
 
-test("the summary prompt: with the article, its facts that headline and deck do not say; without, the same as before", () => {
+test("what a point can and cannot say: one text per language, in the summary prompt", () => {
+  for (const [lang, must] of Object.entries({
+    en: [/CAN say/, /a number, an amount or a quantity/, /a name \(person, organisation, place\) that is not in the headline or the deck/, /a date, a time or a deadline/, /a consequence/, /a next step: what happens next/, /a short attributed quote or position/, /a concrete detail: the cause, the method, where exactly/,
+      /CANNOT say/, /the headline, the deck or another point in other words \(synonyms, reordered, the same fact worded more or less specifically\)/, /"it remains to be seen"/, /"the sources do not say…", "no details were given"\): they add no fact/, /no outside knowledge, no inference/, /questions, emoji, hashtags, calls to action/, /Keep the source's hedges/,
+      /Each point makes sense on its own, read on its slide/, /it names who or what it is about: "the chair of the inquiry committee", not "the chair"; no "the appointment", "the measure", "the same party" without what they refer to/,
+      /it is specific: no vague lists of generic nouns standing in for facts/,
+      /The test: does a reader who already read the headline and the deck learn something new and specific from this point\? If not, it is a repeat\./],
+    it: [/PUÒ dire/, /un numero, una cifra o una quantità/, /un nome \(persona, ente, luogo\) che non è nel titolo né nel sommario/, /una data, un orario o una scadenza/, /una conseguenza/, /un prossimo passo: cosa succede dopo/, /una breve citazione o posizione attribuita/, /un dettaglio concreto: la causa, il modo, dove esattamente/,
+      /NON PUÒ dire/, /il titolo, il sommario o un altro punto con altre parole/, /"resta da vedere"/, /"le fonti non dicono…", "non ci sono dettagli"\): non aggiungono fatti/, /niente conoscenze esterne, niente deduzioni/, /domande, emoji, hashtag, inviti all'azione/, /Mantieni le cautele della fonte/,
+      /Ogni punto si capisce da solo, letto sulla sua slide/, /dice di chi o di cosa parla: "il presidente della commissione d'inchiesta", non "il presidente"; niente "la nomina", "l'atto", "lo stesso partito" senza il loro riferimento/,
+      /è preciso: niente elenchi di parole generiche al posto dei fatti\. Da scartare: "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi\." \(presidente di cosa\? quale parere\?\)/,
+      /La prova: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e preciso\? Se no, è una ripetizione\./],
+  })) {
+    for (const re of must) assert.match(POINT_SPEC[lang], re, `${lang}: ${re}`);
+    const p = buildSummaryPrompt({ language: lang }, { title: "T", dek: "D", body: "B" });
+    assert.ok(p.includes(`\n\n${POINT_SPEC[lang]}\n\n`), `${lang}: the spec in the summary prompt`);
+  }
+});
+
+test("the summary prompt: with the article, its facts that headline and deck do not say; without, from headline and deck", () => {
   const story = normalizeStory(ITEM, FEED);
   const en = { slug: "acme", language: "en", feed: FEED };
   const it = { slug: "acme", language: "it", feed: FEED };
   assert.equal(buildSummaryPrompt(en, story), [
     "Summarise this story as 3-4 slides for a vertical reel. Each slide adds a new fact (what happened, who, when/where, what it means): the first does not repeat the headline, none repeats another.",
     "Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.",
+    "",
+    POINT_SPEC.en,
+    "",
     "Print ONLY the slides, one per line, nothing else.",
     "",
     `Headline: ${story.title}`,
@@ -421,16 +443,20 @@ test("summarizeStory reads the article from the detail endpoint when the story d
   const tenant = { slug: "acme", name: "Acme", site: "https://acme.example/", language: "en", feed: { ...FEED, agent: { command: ["fake-agent"] } } };
   const story = normalizeStory(ITEM, FEED);
   const slides = ["Geneva astronomers ran 10,000 simulated orbits.", "A stable zone sits 1.2 AU from the larger star.", "ESPRESSO starts a follow-up search in 2027."];
-  const prompts = [], urls = [];
-  const spawnImpl = (bin, args, { input }) => { prompts.push(input); return { status: 0, stdout: slides.join("\n"), stderr: "" }; };
+  const urls = [];
+  const { spawnImpl, prompts } = fakeStoryAgent({ summary: slides.join("\n") });
   const fetchImpl = async (url) => { urls.push(String(url)); return new Response(JSON.stringify({ data: { bodyHtml: "<p>Geneva ran 10,000 orbits.</p>" } }), { status: 200 }); };
   assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl, fetchImpl }), slides);
   assert.deepEqual(urls, [`https://acme.example/feed/v1/briefings/${ITEM.slug}?lang=en`]);
-  assert.match(prompts[0], /\nArticle: Geneva ran 10,000 orbits\.$/);
+  assert.match(prompts.summary[0], /\nArticle: Geneva ran 10,000 orbits\.$/);
+  // the judge reads the same article and the slides, once: every slide passes, no rewrite
+  assert.equal(prompts.judge.length, 1);
+  assert.ok(prompts.judge[0].endsWith(`\nArticle: Geneva ran 10,000 orbits.\nPoints:\n${slides.map((s, i) => `${i}. ${s}`).join("\n")}`), prompts.judge[0]);
+  assert.equal(prompts.replace.length, 0);
   // a story that already carries its body (a round's plan) is not fetched again
   await summarizeStory(tenant, { ...story, body: "Known body." }, { spawnImpl, fetchImpl });
   assert.equal(urls.length, 1);
-  assert.match(prompts[1], /\nArticle: Known body\.$/);
+  assert.match(prompts.summary[1], /\nArticle: Known body\.$/);
   // the campaign: every slide on the reel, the new facts in the caption
   const c = campaignFromStory(tenant, story, { points: slides });
   assert.deepEqual(c.copy.points, slides);
@@ -441,72 +467,81 @@ test("summarizeStory reads the article from the detail endpoint when the story d
 test("createStoryCampaign (the daily loop's path) hands its fetchImpl to the summary: the article reaches the agent", async () => {
   const tenant = { ...loadTenant("acme"), feed: { ...FEED, agent: { command: ["fake-agent"] } } };
   const slides = ["Geneva astronomers ran 10,000 simulated orbits.", "A stable zone sits 1.2 AU from the larger star.", "ESPRESSO starts a follow-up search in 2027."];
-  let prompt = "";
-  const spawnImpl = (bin, args, { input }) => { prompt = input; return { status: 0, stdout: slides.join("\n"), stderr: "" }; };
+  const { spawnImpl, prompts } = fakeStoryAgent({ summary: slides.join("\n") });
+  let fetched = 0;
   const fetchImpl = async (url) => {
+    fetched++;
     assert.equal(String(url), `https://acme.example/feed/v1/briefings/${ITEM.slug}?lang=en`);
     return new Response(JSON.stringify({ data: { bodyHtml: "<p>Geneva ran 10,000 orbits.</p>" } }), { status: 200 });
   };
   const made = await createStoryCampaign(tenant, { story: normalizeStory(ITEM, FEED), fetchImpl, spawnImpl, write: false, force: true });
-  assert.match(prompt, /\nArticle: Geneva ran 10,000 orbits\.$/);
+  assert.match(prompts.summary[0], /\nArticle: Geneva ran 10,000 orbits\.$/);
+  assert.match(prompts.judge[0], /\nArticle: Geneva ran 10,000 orbits\.\nPoints:\n/);
+  assert.equal(fetched, 1, "the summary and the judge share one fetch");
   assert.deepEqual(made.campaign.copy.points, slides);
   assert.deepEqual(made.campaign.copy.captionPoints, slides);
   assert.deepEqual(campaignRepetition(made.campaign), { ok: true, pairs: [] });
 });
 
-test("summarizeStory: fewer than 2 points survive → one rewrite from the article, told what was rejected; the list that keeps more wins", async () => {
+test("summarizeStory: a paraphrase the lexical filter lets through fails the judge, and the agent replaces only it from the article", async () => {
   const tenant = { ...loadTenant("acme"), language: "en", feed: { ...FEED, agent: { command: ["fake-agent"] } } };
   const story = normalizeStory(ITEM, FEED);
-  const echo = ["Modelling suggests 70 Ophiuchi could host an Earth-sized planet.", "A modelled orbit could sustain an Earth-sized world."];
+  // few shared words with the headline, the same information: only the judge sees it
+  const paraphrase = "Simulations show the star pair might support a planet like ours.";
   const slides = ["Geneva astronomers ran 10,000 simulated orbits.", "A stable zone sits 1.2 AU from the larger star.", "ESPRESSO starts a follow-up search in 2027."];
-  const body = "Geneva astronomers ran 10,000 simulated orbits. ESPRESSO starts a follow-up search in 2027.";
+  assert.deepEqual(storyPoints(tenant, story, [paraphrase]).kept, [paraphrase], "the lexical filter keeps it");
+  const body = "Geneva astronomers ran 10,000 simulated orbits. A stable zone sits 1.2 AU from the larger star. ESPRESSO starts a follow-up search in 2027.";
   const fetchImpl = async () => new Response(JSON.stringify({ data: { bodyHtml: `<p>${body}</p>` } }), { status: 200 });
-  const agent = (...replies) => {
-    const prompts = [];
-    const spawnImpl = (bin, args, { input }) => { prompts.push(input); const r = replies[prompts.length - 1]; return typeof r === "string" ? { status: 0, stdout: r, stderr: "" } : r; };
-    return { prompts, spawnImpl };
-  };
-  // the first summary retells headline and deck but for one slide: one rewrite, which wins
-  const first = [...echo, slides[0]].join("\n");
-  const a = agent(first, slides.join("\n"));
-  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: a.spawnImpl, fetchImpl }), slides);
-  assert.equal(a.prompts.length, 2);
-  assert.match(a.prompts[0], /^Summarise this story/);
-  assert.equal(a.prompts[1], [
-    "These slides for a vertical reel repeat the headline or the deck and were rejected:",
-    `- ${echo[0]} (says nothing the headline and deck do not)`,
-    `- ${echo[1]} (says nothing the headline and deck do not)`,
+  const judge = { [paraphrase]: { vsTitle: 0.9, vsDek: 0.7, newFact: "" } };
+
+  const a = fakeStoryAgent({ summary: [paraphrase, slides[0], slides[1]].join("\n"), judge, replace: [slides[2], slides[0], slides[1]].join("\n") });
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: a.spawnImpl, fetchImpl }), [slides[2], slides[0], slides[1]]);
+  assert.deepEqual([a.prompts.summary.length, a.prompts.judge.length, a.prompts.replace.length], [1, 2, 1], "summary, judge, replace, judge again");
+  assert.equal(a.prompts.replace[0], [
+    "These are the points of a news story for the slides of a vertical reel and its caption, in order. The ones marked ✗ were rejected, the ones marked ✓ are good:",
+    `1. ✗ ${paraphrase} — repeats the headline (0.90)`,
+    `2. ✓ ${slides[0]}`,
+    `3. ✓ ${slides[1]}`,
     "",
-    "Rewrite them: 3-4 new slides with facts from the article that the headline and deck do not say: numbers, names, dates, what happens next. Do not repeat the rejected slides, the headline or the deck; no slide repeats another.",
-    "Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.",
-    `Only facts from the article: invent nothing, and keep the source's hedges ("allegedly", "according to"). If the article holds no other fact, write fewer slides.`,
-    "Print ONLY the slides, one per line, nothing else.",
+    "Replace ONLY the ✗ points: for each, pick a different fact from the article that the headline, the deck and the other points do not hold, or rewrite it so it adds a new fact. Each new point names who or what it is about, with the name from the article (\"the chair of the inquiry committee\", not \"the chair\"), and states the fact instead of listing generic nouns. Keep the ✓ points word for word, in their place. If the article holds no other fact, leave the point out rather than invent one.",
+    "Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per point.",
+    "",
+    POINT_SPEC.en,
+    "",
+    "Print ONLY the full list of points, in order, one per line, without the ✓ and ✗ marks, nothing else.",
     "",
     `Headline: ${ITEM.title}`,
     `Deck: ${ITEM.dek}`,
     `Article: ${body}`,
   ].join("\n"));
-  // the rewrite keeps no more than the first: the first stays
-  const b = agent(first, echo.join("\n"));
-  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: b.spawnImpl, fetchImpl }), [...echo, slides[0]]);
-  assert.equal(b.prompts.length, 2);
-  // a rewrite that fails: the first stays, no throw
-  const c = agent(first, { status: 1, stdout: "", stderr: "rate limited" });
-  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: c.spawnImpl, fetchImpl }), [...echo, slides[0]]);
-  // two that survive: no second ask
-  const d = agent([slides[0], slides[1], echo[0]].join("\n"));
-  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: d.spawnImpl, fetchImpl }), [slides[0], slides[1], echo[0]]);
-  assert.equal(d.prompts.length, 1);
-  // the daily loop's path: the rewritten slides on the reel and in the caption
-  const e = agent(first, slides.join("\n"));
-  const made = await createStoryCampaign(tenant, { story, fetchImpl, spawnImpl: e.spawnImpl, write: false, force: true });
-  assert.deepEqual([made.campaign.copy.points, made.campaign.copy.captionPoints, made.campaign.copy.droppedPoints], [slides, slides, []]);
-  assert.equal(made.campaign.duration, 22);
+  assert.match(a.prompts.judge[1], new RegExp(`\\nPoints:\\n0\\. ${slides[2]}\\n1\\. ${slides[0]}\\n2\\. ${slides[1]}$`), "the new list judged whole");
+
+  // the daily loop's path: a point that still fails after three rounds is on neither the reel nor
+  // the caption, and copy.droppedPoints says why
+  const again = ["Simulations say the two stars might support a planet like ours.", "Simulations hint the star pair could hold a world like ours."];
+  const echoes = (points) => Object.fromEntries(points.filter((p) => p.startsWith("Simulations")).map((p) => [p, judge[paraphrase]]));
+  const b = fakeStoryAgent({ summary: [paraphrase, slides[0]].join("\n"), judge: (points) => judgeReply(points, echoes(points)), replace: again.map((p) => `${p}\n${slides[0]}`) });
+  const made = await createStoryCampaign(tenant, { story, fetchImpl, spawnImpl: b.spawnImpl, write: false, force: true });
+  assert.deepEqual([b.prompts.judge.length, b.prompts.replace.length], [3, 2]);
+  assert.deepEqual([made.campaign.copy.points, made.campaign.copy.captionPoints], [[slides[0]], [slides[0]]]);
+  assert.deepEqual(made.campaign.copy.droppedPoints, [{ point: again[1], reason: "semantic 0.90 vs title" }]);
+  assert.equal(made.campaign.duration, 13);
+
+  // the judge fails: the lexical filter alone, as before the judge
+  const c = fakeStoryAgent({ summary: [paraphrase, ...slides].join("\n"), judge: () => ({ status: 1, stdout: "", stderr: "rate limited" }) });
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: c.spawnImpl, fetchImpl }), [paraphrase, ...slides]);
+  assert.deepEqual([c.prompts.judge.length, c.prompts.replace.length], [1, 0]);
+
   // Italian
-  const it = buildRewritePrompt({ language: "it" }, { title: "T", dek: "D", body: "B" }, [{ point: "Uno.", reason: "title" }, { point: "Due.", reason: "point" }]);
-  assert.match(it, /^Queste slide per un reel verticale ripetono titolo o sommario \(Headline, Deck\) e sono state scartate:\n- Uno\. \(ripete il titolo\)\n- Due\. \(ripete un'altra slide\)\n/);
-  assert.match(it, /Riscrivile: 3-4 slide nuove con i fatti dell'articolo/);
-  assert.match(it, /non inventare nulla/);
+  const it = buildReplacePrompt({ language: "it" }, { title: "T", dek: "D", body: "B" }, [
+    { point: "Uno.", pass: false, reason: "title" }, { point: "Due.", pass: true, reason: null },
+    { point: "Tre.", pass: false, reason: "semantic 0.85 vs point 2" }, { point: "Quattro.", pass: false, reason: "generic" },
+  ]);
+  assert.match(it, /^Questi sono i punti di una notizia per le slide di un reel verticale e la sua didascalia, in ordine\. Quelli con ✗ sono stati scartati, quelli con ✓ vanno bene:\n1\. ✗ Uno\. — ripete il titolo\n2\. ✓ Due\.\n3\. ✗ Tre\. — ripete il punto 2 \(0\.85\)\n4\. ✗ Quattro\. — generico: un commento o una frase sulle fonti, nessun fatto\n/);
+  assert.match(it, /Sostituisci SOLO i punti ✗/);
+  assert.match(it, /Ogni punto nuovo dice di chi o di cosa parla/);
+  assert.match(it, /Lascia i punti ✓ identici, parola per parola, al loro posto/);
+  assert.ok(it.includes(POINT_SPEC.it));
   assert.ok(it.endsWith("Headline: T\nDeck: D\nArticle: B"), it);
 });
 
@@ -606,23 +641,24 @@ test("the AI summary pre-script: prompt, line parsing, agent run and fallback", 
   assert.deepEqual(parseSummaryLines("\n- " + slides.join("\n* ") + "\n\n"), slides);
   assert.deepEqual(parseSummaryLines(JSON.stringify({ result: "1. " + slides.join("\n2) ") + "\n" })), slides);
   // a fake agent whose stdout we control
-  const spawnImpl = (bin, args, opts) => {
-    assert.equal(bin, "fake-agent");
-    assert.match(opts.input, /Riassumi/);
-    return { status: 0, stdout: JSON.stringify({ result: slides.join("\n") }), stderr: "" };
-  };
+  const bins = [];
+  const agent = fakeStoryAgent({ summary: JSON.stringify({ result: slides.join("\n") }) });
+  const spawnImpl = (bin, args, opts) => { bins.push(bin); return agent.spawnImpl(bin, args, opts); };
   // the detail endpoint has no article for it: the summary goes on from headline and deck
   const noBody = async () => new Response("not found", { status: 404 });
   const got = await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED), { spawnImpl, fetchImpl: noBody });
   assert.deepEqual(got, slides);
+  assert.deepEqual(bins, ["fake-agent", "fake-agent"], "the summary and the judge: the same command");
+  assert.match(agent.prompts.summary[0], /^Riassumi/);
+  assert.match(agent.prompts.judge[0], /^Controlli i punti/);
+  assert.match(agent.prompts.judge[0], /\nArticle: \(nessun articolo: grounded è true, salvo che il punto contraddica titolo o sommario\)\n/);
   // no agent configured → null (the campaign has no points: title and close), nothing fetched
   const never = async () => assert.fail("no agent, no body fetch");
   assert.equal(await summarizeStory({ ...tenant, feed: { ...FEED, agent: null } }, normalizeStory(ITEM, FEED), { fetchImpl: never }), null);
-  // one usable line and no article to rewrite it from: the one line stays (a reel with one slide)
-  let asked = 0;
-  assert.deepEqual(await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED),
-    { spawnImpl: () => { asked++; return { status: 0, stdout: slides[0], stderr: "" }; }, fetchImpl: noBody }), [slides[0]]);
-  assert.equal(asked, 1, "no article, no rewrite");
+  // a line the judge fails and no article to replace it from: judged and dropped, never rewritten
+  const thin = fakeStoryAgent({ summary: slides.slice(0, 2).join("\n"), judge: { [slides[1]]: { generic: true, newFact: "" } }, replace: () => assert.fail("no article, no rewrite") });
+  assert.deepEqual(await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED), { spawnImpl: thin.spawnImpl, fetchImpl: noBody }), [slides[0]]);
+  assert.deepEqual([thin.prompts.summary.length, thin.prompts.judge.length, thin.prompts.replace.length], [1, 1, 0]);
   // and a campaign built with the summary points uses them on the reel slides
   const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED), { points: slides });
   assert.deepEqual(c.copy.points, slides);

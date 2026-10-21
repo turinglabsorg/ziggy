@@ -21,7 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCampaign, rendersDir, saveCampaign } from "./config.mjs";
-import { campaignFromStory, campaignNameFor, fetchStories, fetchStoryBody, MIN_POINTS, rewriteThinPoints, slugify } from "./story.mjs";
+import { campaignFromStory, campaignNameFor, fetchStories, fetchStoryBody, refinePoints, slugify } from "./story.mjs";
 import { coveredStories, dailyConfig, livePosts, storyCovered, storyIdFromSlug } from "./daily.mjs";
 import { nextJingle } from "./music.mjs";
 import { POST_KINDS, publishCampaign } from "./publish.mjs";
@@ -45,6 +45,8 @@ const SCHEDULE_DAYS = 7;
 /** The plan's story body: enough article for 3–4 points, short enough for a plan of 20 stories. */
 const BODY_CHARS = 1200;
 const BODY_CONCURRENCY = 4;
+/** Stories whose points the judge checks at once: each is one agent process at a time. */
+const REFINE_CONCURRENCY = 3;
 
 export function roundConfig(tenant) {
   const d = dailyConfig(tenant);
@@ -128,13 +130,15 @@ export function pointProblems(points) {
  * Points file → campaigns. A story is refused (never rendered) when it is not in the feed, is
  * already covered, has no photo, is past its deadline, its points break the rules, or its caption
  * repeats itself (lint.mjs); a case file when its fields are missing or its caption repeats
- * itself. The points (checked against POINT_RULES as written) go through the same filter as a
- * summary's (story.mjs storyPoints): one that repeats the title, the dek or an earlier point is
- * dropped from the reel and the caption, never a reason to refuse the story. When fewer than
- * MIN_POINTS survive, the tenant's summary agent rewrites them once from the article
- * (rewriteThinPoints; no agent or a failing one keeps the operator's). `made[]` says how many
- * were kept (`points`, the reel), shown (`captionPoints`, at most 3), `dropped`, and whether they
- * were `rewritten`. Nothing is written under `write: false`, not even the jingle rotation.
+ * itself. The points (checked against POINT_RULES as written) go through the same checks as a
+ * summary's (story.mjs refinePoints: the lexical filter and the semantic judge, the failing ones
+ * replaced from the article by the summary agent, up to 3 rounds, REFINE_CONCURRENCY stories at
+ * a time): one that repeats the title, the dek or an earlier point is dropped from the reel and
+ * the caption, never a reason to refuse the story. No agent, or a judge that fails, leaves the
+ * lexical filter alone. `made[]` says how many were kept (`points`, the reel), shown
+ * (`captionPoints`, at most 3), `dropped`, whether a rewrite is among them (`rewritten`), the
+ * `rounds` of checks and the `judge` (`status` on/off/failed, `threshold`, `calls`, `rewrites`,
+ * `ms`). Nothing is written under `write: false`, not even the jingle rotation.
  * 
  * Points file format:
  * {
@@ -146,7 +150,7 @@ export function pointProblems(points) {
  *   ]
  * }
  */
-export async function campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl, now = new Date(), write = true } = {}) {
+export async function campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl, now = new Date(), write = true, log = () => {} } = {}) {
   const cfg = roundConfig(tenant);
   const { skip = [], casefile: casefileItems = [], ...byPrefix } = points || {};
   if (!Array.isArray(skip)) throw new Error(`"skip" must be a list of slug prefixes`);
@@ -154,7 +158,8 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl
   const stories = await feedStories(tenant, fetchImpl);
   const covered = coveredStories(tenant.slug);
   const out = { made: [], skipped: [], refused: [], casefiles: [] };
-  
+  const pending = [];
+
   // Process regular stories
   for (const [prefix, pts] of [...Object.entries(byPrefix), ...skip.map((p) => [p, null])]) {
     const story = stories.find((s) => s.slug.startsWith(prefix));
@@ -173,24 +178,35 @@ export async function campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl
     if (problems.length) { refuse(problems.join("; ")); continue; }
     if (!story.image) { refuse("no photo in the feed"); continue; }
     if (storyDeadline(cfg, story.date) <= now.getTime() + 10 * 60_000) { refuse("past its deadline"); continue; }
-    let campaign = campaignFromStory(tenant, story, { points: pts.map((p) => p.trim()) });
+    const given = pts.map((p) => p.trim());
     // a caption that says the same thing twice does not go out (the filtered points never add a
     // repeat: only title and dek can, so this holds for a rewrite too)
-    const repeat = campaignRepetition(campaign);
+    const repeat = campaignRepetition(campaignFromStory(tenant, story, { points: given }));
     if (!repeat.ok) { refuse(repeat.reason); continue; }
-    let rewritten = false;
-    if (campaign.copy.points.length < MIN_POINTS) {
-      const r = await rewriteThinPoints(tenant, story, pts.map((p) => p.trim()), { spawnImpl, fetchImpl });
-      if (r.rewritten) { campaign = campaignFromStory(tenant, story, { points: r.points }); rewritten = true; }
-    }
+    pending.push({ name, story, given });
+  }
+
+  // the points through the lexical filter and the judge, the failing ones replaced from the
+  // article; a failure in there keeps the lexical filter alone, never a refusal
+  const refined = await mapLimit(pending, REFINE_CONCURRENCY, async ({ name, story, given }) => {
+    let r;
+    try { r = await refinePoints(tenant, story, given, { spawnImpl, fetchImpl }); }
+    catch { r = await refinePoints(tenant, story, given, { agent: null }); }
+    log(`round: points ${name} — ${r.kept.length}/${given.length} kept, ${r.rounds} ${r.rounds === 1 ? "round" : "rounds"}, judge ${r.judge}`);
+    return r;
+  });
+  pending.forEach(({ name, story }, i) => {
+    const r = refined[i];
+    const campaign = campaignFromStory(tenant, story, { points: r.points, dropped: r.dropped });
     if (write) {
       const jingle = nextJingle(tenant.slug);
       if (jingle) campaign.audio.jingle = jingle;
       saveCampaign(tenant.slug, name, campaign);
     }
     const { copy } = campaign;
-    out.made.push({ name, title: story.title, campaign, points: copy.points.length, captionPoints: copy.captionPoints.length, dropped: copy.droppedPoints.length, rewritten });
-  }
+    const judge = { status: r.judge, threshold: r.threshold, calls: r.judgeCalls, rewrites: r.rewriteCalls, ms: r.ms };
+    out.made.push({ name, title: story.title, campaign, points: copy.points.length, captionPoints: copy.captionPoints.length, dropped: copy.droppedPoints.length, rewritten: r.rewritten, rounds: r.rounds, judge });
+  });
   
   // Process case files (if tenant has them enabled)
   if (tenant.casefile?.enabled && casefileItems.length > 0) {
@@ -407,8 +423,11 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
 }
 
 const short = (name) => String(name || "").replace(/^story-\d{4}-\d{2}-\d{2}-/, "").replace(/-/g, " ");
-/** "3 punti (1 scartato)", "nessun punto (4 scartati)", "3 punti riscritti": the reel's points. */
-const pointsNote = ({ points: n, dropped: d, rewritten }) => `${n ? `${n} ${n === 1 ? "punto" : "punti"}` : "nessun punto"}${rewritten ? (n === 1 ? " riscritto" : " riscritti") : ""}${d ? ` (${d} ${d === 1 ? "scartato" : "scartati"})` : ""}`;
+/** "3 punti (1 scartato)", "nessun punto (4 scartati)", "4 punti (2 giri)": the reel's points, and the rounds of checks when more than one. */
+const pointsNote = ({ points: n, dropped: d, rounds }) => {
+  const notes = [d ? `${d} ${d === 1 ? "scartato" : "scartati"}` : null, rounds > 1 ? `${rounds} giri` : null].filter(Boolean);
+  return `${n ? `${n} ${n === 1 ? "punto" : "punti"}` : "nessun punto"}${notes.length ? ` (${notes.join(", ")})` : ""}`;
+};
 const fbPost = (p) => `Facebook ${p.postId}${p.campaign ? ` (${short(p.campaign)})` : ""}`;
 
 /**
@@ -417,7 +436,7 @@ const fbPost = (p) => `Facebook ${p.postId}${p.campaign ? ` (${short(p.campaign)
  */
 export async function runRound(tenant, points, { fetchImpl, spawnImpl, client = createClient(), now = new Date(), dryRun = false, concurrency = 4, log = () => {} } = {}) {
   const cfg = roundConfig(tenant);
-  const created = await campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl, now, write: !dryRun });
+  const created = await campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl, now, write: !dryRun, log });
   const totalMade = created.made.length + (created.casefiles?.length || 0);
   log(`round: ${totalMade} to publish (${created.made.length} stories, ${created.casefiles?.length || 0} case files), ${created.skipped.length} skipped, ${created.refused.length} refused`);
   for (const r of created.refused) log(`round: ✗ ${r.prefix} — ${r.reason}`);
@@ -447,9 +466,9 @@ export async function runRound(tenant, points, { fetchImpl, spawnImpl, client = 
   const down = interleaved.length ? scheduled.down : [];
   const fb = scheduled.facebook;
 
-  // how many of a story's points survived the filter (reel; the caption shows up to 3 of them),
-  // how many repeated title, dek or each other, and whether the agent rewrote them
-  const storyPoints = new Map(created.made.map((m) => [m.name, { points: m.points, captionPoints: m.captionPoints, dropped: m.dropped, rewritten: m.rewritten }]));
+  // how many of a story's points survived the checks (reel; the caption shows up to 3 of them),
+  // how many repeated title, dek or each other, whether a rewrite is among them, in how many rounds
+  const storyPoints = new Map(created.made.map((m) => [m.name, { points: m.points, captionPoints: m.captionPoints, dropped: m.dropped, rewritten: m.rewritten, rounds: m.rounds, judge: m.judge }]));
   const results = scheduled.results.map((r) => (storyPoints.has(r.name) ? { ...r, ...storyPoints.get(r.name) } : r));
   const ok = results.filter((r) => !r.error).sort((a, b) => a.at.localeCompare(b.at));
   const problems = [

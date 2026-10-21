@@ -232,16 +232,70 @@ How to write the points. These rules are fixed, so do not improvise.
   happened (who, where, when), then the details, then what comes next.
 - **Each point adds a fact the title, the dek and the points before it do not hold**: a number,
   a name, a date, a consequence or the next step, taken from the body. Point 1 never repeats the
-  title.
+  title. What a point can and cannot say (the same text the summarizer and the judge get):
+
+  > **CAN** — each point carries at least one of these, always taken from the article: a number,
+  > an amount or a quantity; a name (person, organisation, place) that is not in the headline or
+  > the deck; a date, a time or a deadline; a consequence; a next step (what happens next); a
+  > short attributed quote or position ("according to…", "…", X said); a concrete detail (the
+  > cause, the method, where exactly).
+  >
+  > **CANNOT** — the headline, the deck or another point in other words (synonyms, reordered, the
+  > same fact worded more or less specifically); generic commentary or evaluation ("an important
+  > case", "it remains to be seen"); statements about the sources ("the sources do not say…", "no
+  > details were given"): they add no fact; facts that are not in the article (no outside
+  > knowledge, no inference); questions, emoji, hashtags, calls to action. Keep the source's
+  > hedges.
+  >
+  > **ON ITS OWN** — each point makes sense read on its slide: it names who or what it is about
+  > ("the chair of the inquiry committee", not "the chair"; no "the appointment", "the measure",
+  > "the same party" without what they refer to), and it is specific: no vague lists of generic
+  > nouns standing in for facts. To reject: "Appointment of the chair stalled amid
+  > incompatibilities, resignations and an opinion awaited for months." (chair of what? which
+  > opinion?). Better: "The inquiry committee still has no chair: it is waiting on an opinion
+  > from the town clerk."
+  >
+  > **The test**: does a reader who already read the headline and the deck learn something new
+  > and specific from this point? If not, it is a repeat.
+
+  In Italian, for an Italian tenant:
+
+  > **PUÒ** — ogni punto porta almeno una di queste cose, sempre presa dall'articolo: un numero,
+  > una cifra o una quantità; un nome (persona, ente, luogo) che non è nel titolo né nel
+  > sommario; una data, un orario o una scadenza; una conseguenza; un prossimo passo (cosa
+  > succede dopo); una breve citazione o posizione attribuita ("secondo…", «…»); un dettaglio
+  > concreto (la causa, il modo, dove esattamente).
+  >
+  > **NON PUÒ** — il titolo, il sommario o un altro punto con altre parole (sinonimi, ordine
+  > diverso, lo stesso fatto detto in modo più o meno preciso); commenti o giudizi generici ("una
+  > vicenda importante", "resta da vedere"); frasi sulle fonti ("le fonti non dicono…", "non ci
+  > sono dettagli"): non aggiungono fatti; fatti che non sono nell'articolo (niente conoscenze
+  > esterne, niente deduzioni); domande, emoji, hashtag, inviti all'azione. Mantieni le cautele
+  > della fonte.
+  >
+  > **DA SOLO** — ogni punto si capisce letto sulla sua slide: dice di chi o di cosa parla ("il
+  > presidente della commissione d'inchiesta", non "il presidente"; niente "la nomina", "l'atto",
+  > "lo stesso partito" senza il loro riferimento), ed è preciso: niente elenchi di parole
+  > generiche al posto dei fatti. Da scartare: "Nomina del presidente ferma tra incompatibilità,
+  > dimissioni e un parere atteso da mesi." (presidente di cosa? quale parere?). Meglio:
+  > "Commissione d'inchiesta senza presidente: si attende un parere della Segreteria generale."
+  >
+  > **La prova**: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e
+  > preciso? Se no, è una ripetizione.
 - **The reel slides and the caption share the points.** A point that repeats the title, the dek
   or an earlier point is dropped from both; the story is not refused for it. The reel shows up to
   4 of the points that are left, one per slide; the caption shows the first 3, as "•" lines under
   the dek.
-- **Fewer than 2 left: Ziggy asks the tenant's summary agent once** to rewrite them with new
-  facts from the article, telling it which points were dropped and why. It keeps the list with
-  more points left (yours on a tie). With no agent, no article or a failed call, it keeps what
-  is left of yours. 0 or 1 points is fine: the reel is the title, that one slide if any, and the
-  close. The dek is never split into slides.
+- **Ziggy checks every point twice**: by shared words, and by meaning — the tenant's summary
+  agent judges each point against the title, the dek, the article and the points before it, so
+  a paraphrase with different words is caught too, and so is a point that does not say who or
+  what it is about on its own slide (`vague`). A point that fails is **replaced**: the agent
+  rewrites only the failing ones with another fact from the article (yours that pass stay word
+  for word, in place), and the new list is checked again, up to 3 rounds. What still fails after
+  that is dropped. With no article nothing is rewritten (the new facts can only come from it);
+  with no agent, or a judge that fails, only the word check runs. 0 or 1 points is fine: the reel
+  is the title, that one slide if any, and the close. The dek is never split into slides. Points
+  that follow the rules above pass in one round: write them that way and the round is faster.
 - **Only what the title, dek and body say.** Copy numbers, names and places as written. Use no
   other source and no background of your own. With an empty `body`, write from title and dek.
 - **No adjectives of judgement, comments, questions, emojis, hashtags or calls to action.**
@@ -271,11 +325,15 @@ Reading the result:
 - Each scheduled story takes the next free `daily.round.times` slot, nearest deadline first, at
   least `gapMinutes` away from anything already queued, on every platform in `daily.only` whose
   Postproxy profile is active.
-- `🕒 13:00 — <story> · 3 punti (1 scartato)` says how many of the story's points are left on the
-  reel (`points` in `--json`; `captionPoints`, at most 3, went into the caption) and how many were
-  dropped for repeating title, dek or another point (`dropped`). `riscritti` (`rewritten`) means
-  the summary agent replaced yours. `nessun punto` usually means the points only retold title and
-  dek: write them from the body.
+- `🕒 13:00 — <story> · 3 punti (1 scartato, 2 giri)` says how many of the story's points are
+  left on the reel (`points` in `--json`; `captionPoints`, at most 3, went into the caption), how
+  many were dropped for repeating title, dek or another point, for adding no fact or for being
+  vague (`dropped`),
+  and, when more than one, how many rounds of checks it took (`rounds`): a second round means the
+  agent replaced some of yours (`rewritten` when a replacement is among the kept points).
+  `judge` in `--json` says whether the meaning check ran (`status` on, off or failed), at which
+  `threshold`, and its `calls`, `rewrites` and `ms`. `nessun punto` usually means the points only
+  retold title and dek: write them from the body.
 - `✗ … no audio` / `render failed` means the reel did not go out. Fix the cause and run the same
   points file again: covered stories are refused, never posted twice.
 - `⚠️ non pubblicati su …` means a profile is disconnected on Postproxy. Tell the user, who has to

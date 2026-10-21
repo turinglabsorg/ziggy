@@ -199,6 +199,43 @@ console.log(JSON.stringify({ type: "result", result: "Sure. " + JSON.stringify(b
   return [process.execPath, file];
 }
 
+const JUDGE_PROMPT_RE = /^(?:You check the points|Controlli i punti)/;
+const REPLACE_PROMPT_RE = /^(?:These are the points|Questi sono i punti)/;
+
+/** The points a judge prompt lists, in order. */
+export const judgedPoints = (prompt) => (String(prompt).split("\nPoints:\n")[1] ?? "").split("\n").filter(Boolean).map((l) => l.replace(/^\d+\.\s/, ""));
+
+/**
+ * A judge reply as `claude --output-format json` prints it: every point a grounded new fact at
+ * 0.1, unless `table` (point text → fields) says otherwise.
+ */
+export function judgeReply(points, table = {}) {
+  const verdicts = points.map((p, i) => ({ i, vsTitle: 0.1, vsDek: 0.1, vsPoints: Array(i).fill(0.1), newFact: "a new fact", grounded: true, generic: false, vague: false, ...(table[p] || {}) }));
+  return JSON.stringify({ type: "result", result: JSON.stringify({ points: verdicts }) });
+}
+
+/**
+ * A fake story agent for `spawnImpl`: the summary, the judge and the replacement prompts each
+ * get their reply, and every prompt is recorded (`prompts.all`, and by kind). `judge` is a table
+ * (judgeReply) or a function `(points, n) => reply`; `summary` and `replace` are replies used in
+ * turn, the last one repeating. A reply is stdout (a string), a spawn result (an object) or a
+ * function of the prompt returning either.
+ */
+export function fakeStoryAgent({ summary = [], judge = {}, replace = [] } = {}) {
+  const prompts = { all: [], summary: [], judge: [], replace: [] };
+  const turn = (replies, n) => (Array.isArray(replies) ? replies[Math.min(n, replies.length - 1)] : replies);
+  const asResult = (r) => (typeof r === "string" ? { status: 0, stdout: r, stderr: "" } : r ?? { status: 0, stdout: "", stderr: "" });
+  const spawnImpl = (bin, args, { input }) => {
+    const kind = JUDGE_PROMPT_RE.test(input) ? "judge" : REPLACE_PROMPT_RE.test(input) ? "replace" : "summary";
+    prompts.all.push(input);
+    const n = prompts[kind].push(input) - 1;
+    if (kind === "judge") return asResult(typeof judge === "function" ? judge(judgedPoints(input), n) : judgeReply(judgedPoints(input), judge));
+    const r = turn(kind === "summary" ? summary : replace, n);
+    return asResult(typeof r === "function" ? r(input) : r);
+  };
+  return { spawnImpl, prompts };
+}
+
 /**
  * Run the CLI without blocking the event loop. The mock Postproxy lives in the test process, so a
  * `spawnSync` here would deadlock: the child waits for a response the parent can't send.

@@ -1,0 +1,3225 @@
+{
+  "date": "2026-10-21",
+  "run": "2026-10-21-v2",
+  "model": "claude-opus-5-5",
+  "agent": [
+    "claude",
+    "-p",
+    "--output-format",
+    "json"
+  ],
+  "judge": {
+    "set": {
+      "file": "skill/eval/points-eval.json",
+      "stories": 30,
+      "cases": 120,
+      "counts": {
+        "stories": 30,
+        "cases": 120,
+        "new": 54,
+        "repeat": 54,
+        "generic": 11,
+        "vague": 1,
+        "human": 6,
+        "curated": 114
+      }
+    },
+    "recommended": {
+      "threshold": 0.8,
+      "rule": "best combined F1 with recall ≥ 0.9"
+    },
+    "byThreshold": [
+      {
+        "threshold": 0.4,
+        "judge": {
+          "tp": 66,
+          "fp": 18,
+          "fn": 0,
+          "tn": 36,
+          "precision": 0.786,
+          "recall": 1,
+          "f1": 0.88,
+          "accuracy": 0.85
+        },
+        "lexical": {
+          "tp": 12,
+          "fp": 1,
+          "fn": 54,
+          "tn": 53,
+          "precision": 0.923,
+          "recall": 0.182,
+          "f1": 0.304,
+          "accuracy": 0.542
+        },
+        "combined": {
+          "tp": 66,
+          "fp": 18,
+          "fn": 0,
+          "tn": 36,
+          "precision": 0.786,
+          "recall": 1,
+          "f1": 0.88,
+          "accuracy": 0.85
+        }
+      },
+      {
+        "threshold": 0.5,
+        "judge": {
+          "tp": 66,
+          "fp": 8,
+          "fn": 0,
+          "tn": 46,
+          "precision": 0.892,
+          "recall": 1,
+          "f1": 0.943,
+          "accuracy": 0.933
+        },
+        "lexical": {
+          "tp": 12,
+          "fp": 1,
+          "fn": 54,
+          "tn": 53,
+          "precision": 0.923,
+          "recall": 0.182,
+          "f1": 0.304,
+          "accuracy": 0.542
+        },
+        "combined": {
+          "tp": 66,
+          "fp": 8,
+          "fn": 0,
+          "tn": 46,
+          "precision": 0.892,
+          "recall": 1,
+          "f1": 0.943,
+          "accuracy": 0.933
+        }
+      },
+      {
+        "threshold": 0.6,
+        "judge": {
+          "tp": 66,
+          "fp": 8,
+          "fn": 0,
+          "tn": 46,
+          "precision": 0.892,
+          "recall": 1,
+          "f1": 0.943,
+          "accuracy": 0.933
+        },
+        "lexical": {
+          "tp": 12,
+          "fp": 1,
+          "fn": 54,
+          "tn": 53,
+          "precision": 0.923,
+          "recall": 0.182,
+          "f1": 0.304,
+          "accuracy": 0.542
+        },
+        "combined": {
+          "tp": 66,
+          "fp": 8,
+          "fn": 0,
+          "tn": 46,
+          "precision": 0.892,
+          "recall": 1,
+          "f1": 0.943,
+          "accuracy": 0.933
+        }
+      },
+      {
+        "threshold": 0.7,
+        "judge": {
+          "tp": 66,
+          "fp": 7,
+          "fn": 0,
+          "tn": 47,
+          "precision": 0.904,
+          "recall": 1,
+          "f1": 0.95,
+          "accuracy": 0.942
+        },
+        "lexical": {
+          "tp": 12,
+          "fp": 1,
+          "fn": 54,
+          "tn": 53,
+          "precision": 0.923,
+          "recall": 0.182,
+          "f1": 0.304,
+          "accuracy": 0.542
+        },
+        "combined": {
+          "tp": 66,
+          "fp": 7,
+          "fn": 0,
+          "tn": 47,
+          "precision": 0.904,
+          "recall": 1,
+          "f1": 0.95,
+          "accuracy": 0.942
+        }
+      },
+      {
+        "threshold": 0.8,
+        "judge": {
+          "tp": 66,
+          "fp": 5,
+          "fn": 0,
+          "tn": 49,
+          "precision": 0.93,
+          "recall": 1,
+          "f1": 0.964,
+          "accuracy": 0.958
+        },
+        "lexical": {
+          "tp": 12,
+          "fp": 1,
+          "fn": 54,
+          "tn": 53,
+          "precision": 0.923,
+          "recall": 0.182,
+          "f1": 0.304,
+          "accuracy": 0.542
+        },
+        "combined": {
+          "tp": 66,
+          "fp": 6,
+          "fn": 0,
+          "tn": 48,
+          "precision": 0.917,
+          "recall": 1,
+          "f1": 0.957,
+          "accuracy": 0.95
+        }
+      }
+    ],
+    "perLanguage": {
+      "ragusa": {
+        "tp": 52,
+        "fp": 5,
+        "fn": 0,
+        "tn": 39,
+        "precision": 0.912,
+        "recall": 1,
+        "f1": 0.954,
+        "accuracy": 0.948
+      },
+      "alienwatch": {
+        "tp": 14,
+        "fp": 1,
+        "fn": 0,
+        "tn": 9,
+        "precision": 0.933,
+        "recall": 1,
+        "f1": 0.966,
+        "accuracy": 0.958
+      }
+    },
+    "perLabel": {
+      "new": {
+        "cases": 54,
+        "rejectedLexical": 1,
+        "rejectedJudge": 5,
+        "rejectedCombined": 6,
+        "flaggedVague": 4
+      },
+      "repeat": {
+        "cases": 54,
+        "rejectedLexical": 12,
+        "rejectedJudge": 54,
+        "rejectedCombined": 54,
+        "flaggedVague": 10
+      },
+      "generic": {
+        "cases": 11,
+        "rejectedLexical": 0,
+        "rejectedJudge": 11,
+        "rejectedCombined": 11,
+        "flaggedVague": 1
+      },
+      "vague": {
+        "cases": 1,
+        "rejectedLexical": 0,
+        "rejectedJudge": 1,
+        "rejectedCombined": 1,
+        "flaggedVague": 1
+      }
+    },
+    "human": [
+      {
+        "story": "ragusa-modica-corte-human",
+        "text": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+        "label": "repeat",
+        "lexical": null,
+        "score": 1,
+        "against": "dek",
+        "newFact": "",
+        "grounded": true,
+        "generic": false,
+        "vague": false,
+        "rejected": true,
+        "reason": "semantic 1.00 vs dek",
+        "correct": true
+      },
+      {
+        "story": "ragusa-modica-corte-human",
+        "text": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+        "label": "repeat",
+        "lexical": null,
+        "score": 0.95,
+        "against": "dek",
+        "newFact": "",
+        "grounded": true,
+        "generic": false,
+        "vague": false,
+        "rejected": true,
+        "reason": "semantic 0.95 vs dek",
+        "correct": true
+      },
+      {
+        "story": "ragusa-modica-corte-human",
+        "text": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+        "label": "repeat",
+        "lexical": null,
+        "score": 1,
+        "against": "dek",
+        "newFact": "",
+        "grounded": true,
+        "generic": false,
+        "vague": true,
+        "rejected": true,
+        "reason": "semantic 1.00 vs dek",
+        "correct": true
+      },
+      {
+        "story": "ragusa-modica-corte-human",
+        "text": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+        "label": "repeat",
+        "lexical": null,
+        "score": 1,
+        "against": "dek",
+        "newFact": "",
+        "grounded": true,
+        "generic": false,
+        "vague": true,
+        "rejected": true,
+        "reason": "semantic 1.00 vs dek",
+        "correct": true
+      },
+      {
+        "story": "ragusa-pozzallo-corso-capitani-human",
+        "text": "A ciascuno sono andate una targa ricordo e una piccola vela della Società Marinara.",
+        "label": "repeat",
+        "lexical": null,
+        "score": 0.8,
+        "against": "title",
+        "newFact": "vela con il logo della Società Marinara a ogni premiato",
+        "grounded": true,
+        "generic": false,
+        "vague": true,
+        "rejected": true,
+        "reason": "semantic 0.80 vs title",
+        "correct": true
+      },
+      {
+        "story": "ragusa-modica-corte-vague-human",
+        "text": "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi.",
+        "label": "vague",
+        "lexical": null,
+        "score": 0.5,
+        "against": "title",
+        "newFact": "presidente della commissione mai nominato tra incompatibilità e dimissioni",
+        "grounded": true,
+        "generic": false,
+        "vague": true,
+        "rejected": true,
+        "reason": "vague",
+        "correct": true
+      }
+    ],
+    "falsePositives": [
+      {
+        "story": "ragusa-modica-corte-article",
+        "text": "Il disavanzo indicato nella scheda è di 117,6 milioni di euro.",
+        "label": "new",
+        "lexical": null,
+        "score": 0.15,
+        "against": "dek",
+        "newFact": "disavanzo di 117,6 milioni di euro",
+        "grounded": true,
+        "generic": false,
+        "vague": true
+      },
+      {
+        "story": "ragusa-pozzallo-enel",
+        "text": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+        "label": "new",
+        "lexical": "dek",
+        "score": 0.7,
+        "against": "dek",
+        "newFact": "stop scattato il 19 ottobre",
+        "grounded": true,
+        "generic": false,
+        "vague": false
+      },
+      {
+        "story": "ragusa-seme-baps",
+        "text": "L'Hub mette a disposizione oltre 3.000 metri quadrati per l'innovazione.",
+        "label": "new",
+        "lexical": null,
+        "score": 0.2,
+        "against": "dek",
+        "newFact": "oltre 3.000 metri quadrati dedicati all'innovazione",
+        "grounded": true,
+        "generic": false,
+        "vague": true
+      },
+      {
+        "story": "ragusa-seme-baps",
+        "text": "L'ad di BAPS, Saverio Continella, parla di «nuove opportunità imprenditoriali».",
+        "label": "new",
+        "lexical": null,
+        "score": 0.1,
+        "against": "title",
+        "newFact": "Saverio Continella, amministratore delegato di BAPS",
+        "grounded": true,
+        "generic": true,
+        "vague": false
+      },
+      {
+        "story": "ragusa-bonus-centro-storico",
+        "text": "Per i tre esponenti quei fondi potevano pagare videosorveglianza e più controlli.",
+        "label": "new",
+        "lexical": null,
+        "score": 0.15,
+        "against": "dek",
+        "newFact": "fondi utilizzabili per videosorveglianza e più controlli",
+        "grounded": true,
+        "generic": false,
+        "vague": true
+      },
+      {
+        "story": "alienwatch-betts-area51",
+        "text": "The source allegedly put the phones in a microwave to block transmissions.",
+        "label": "new",
+        "lexical": null,
+        "score": 0.1,
+        "against": "title",
+        "newFact": "phones put in a microwave to block transmissions",
+        "grounded": true,
+        "generic": false,
+        "vague": true
+      }
+    ],
+    "falseNegatives": [],
+    "lexicalCatches": 12,
+    "judgeOnlyCatches": 54,
+    "failedStories": [],
+    "time": {
+      "wallMs": 270064,
+      "calls": 30,
+      "failedCalls": 0,
+      "avgCallMs": 26176,
+      "costUsd": 4.662
+    },
+    "cases": [
+      {
+        "story": "ragusa-modica-corte-human",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+        "label": "repeat",
+        "labelSource": "human",
+        "why": "the dek's first clause in other words (lexical overlap 0.57)",
+        "lexical": null,
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.5,
+          "vsDek": 1,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-human",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+        "label": "repeat",
+        "labelSource": "human",
+        "why": "the dek: the Pd asks for the inquiry commission to be set up",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.5,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-human",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+        "label": "repeat",
+        "labelSource": "human",
+        "why": "the dek: the Pd asks for the rebalanced budget",
+        "lexical": null,
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0,
+          "vsDek": 1,
+          "vsPoints": [
+            0,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-human",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+        "label": "repeat",
+        "labelSource": "human",
+        "why": "the dek: the Ragusa prosecutors charge the former mayor",
+        "lexical": null,
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0,
+          "vsDek": 1,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-corso-capitani-human",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "L'incontro del 19 ottobre 2026 è stato voluto dalla Società Marinara di Pozzallo.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "the date (19 October 2026) and who organised it (the Società Marinara), in neither title nor dek",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "dek",
+          "newFact": "evento del 19 ottobre 2026 voluto dalla Società Marinara",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.3,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-corso-capitani-human",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Premiati Carmelo Gambuzza, Rosario La Pira e PierPaolo Scala, di MSC Crociere.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "the names of the three people honoured: the dek only says three seafaring professionals",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "title",
+          "newFact": "premiati Gambuzza, Rosario La Pira e Scala di MSC Crociere",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.3,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-corso-capitani-human",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "A ciascuno sono andate una targa ricordo e una piccola vela della Società Marinara.",
+        "label": "repeat",
+        "labelSource": "human",
+        "why": "the title in other words: «tre targhe e una piccola vela»; the Società Marinara is already point 1",
+        "lexical": null,
+        "judge": {
+          "score": 0.8,
+          "against": "title",
+          "newFact": "vela con il logo della Società Marinara a ogni premiato",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.8,
+          "vsDek": 0.3,
+          "vsPoints": [
+            0.1,
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-corso-capitani-human",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Attilio Sigona ha ricostruito la nascita del Nautico con le lettere di Giorgio La Pira.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "who told the school's origins (Attilio Sigona) and how (Giorgio La Pira's letters): the dek only says the origins were recalled",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "Attilio Sigona racconta le origini con le lettere di La Pira",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-vague-human",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Disavanzo di 117,6 milioni e fornitori pagati con ritardi fino a oltre 570 giorni.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "two numbers from the Corte dei conti file: the 117.6 million deficit and supplier payments over 570 days late",
+        "lexical": null,
+        "judge": {
+          "score": 0.15,
+          "against": "dek",
+          "newFact": "disavanzo di 117,6 milioni, pagamenti ai fornitori in ritardo oltre 570 giorni",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.15,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-vague-human",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Sette versioni del piano di riequilibrio e un'istruttoria ministeriale di 1.155 giorni.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "numbers: seven versions of the rebalancing plan, a 1,155-day ministry review",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "dek",
+          "newFact": "sette versioni del piano di riequilibrio, istruttoria ministeriale di 1.155 giorni",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-vague-human",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Rinvio a giudizio chiesto per Abbate e altri quattro, anche per i buoni libro 2019-2022.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "the dek's charges against the former mayor, plus his name, the four co-defendants and the 2019-2022 textbook vouchers",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "rinvio a giudizio chiesto per Abbate e altri quattro, buoni libro 2019-2022",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.05,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-vague-human",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi.",
+        "label": "vague",
+        "labelSource": "human",
+        "why": "not self-contained: president of what? (the inquiry committee); a list of generic nouns (incompatibilities, resignations, an opinion) where the facts should be",
+        "lexical": null,
+        "judge": {
+          "score": 0.5,
+          "against": "title",
+          "newFact": "presidente della commissione mai nominato tra incompatibilità e dimissioni",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.5,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-ottaviano-published",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "A Siracusa è in corso il processo per l'omicidio di Giuseppe Ottaviano, ucciso a Scicli nel maggio 2024",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title and dek: Siracusa, the trial, Ottaviano, Scicli, May 2024",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.6,
+          "vsDek": 0.95,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-ottaviano-published",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Nove ore di udienza: in aula i carabinieri hanno raccontato come è stata condotta l'indagine",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title (nine hours) and dek (the carabinieri set out the investigation)",
+        "lexical": null,
+        "judge": {
+          "score": 0.7,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.5,
+          "vsDek": 0.7,
+          "vsPoints": [
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "ragusa-ottaviano-published",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Le difese degli imputati contestano il riconoscimento degli accusati nei video delle telecamere",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title's second half",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.95,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0.1,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-ottaviano-published",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Ora i legali chiedono una perizia antropometrica sulle immagini: sarà decisiva per il processo",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's last clause, plus an evaluation (\"decisiva\") the dek does not make",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0.1,
+            0.4
+          ]
+        }
+      },
+      {
+        "story": "ragusa-confcooperative-published",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Confcooperative Ragusa punta sull'unione tra produttori per rilanciare la filiera del latte ibleo",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title in other words: aggregazione → unione tra produttori, lattiero-casearia → latte",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.95,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-confcooperative-published",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "L'annuncio è arrivato alla 51ª edizione della FAM, la fiera agricola del territorio",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: the 51st FAM",
+        "lexical": null,
+        "judge": {
+          "score": 0.85,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.85,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-confcooperative-published",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Il 30 novembre è in programma un appuntamento precongressuale per discuterne insieme",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: the pre-congress meeting on 30 November",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0.1,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-confcooperative-published",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Quattro direttrici guideranno il piano per valorizzare il latte prodotto negli Iblei",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: four lines to add value to Iblei milk",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.3,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.4,
+            0,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-bus-comiso-published",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Da Comiso e Pedalino gli studenti partono all'alba: autobus pieni e corse troppo poche.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title (full buses, too few runs, Comiso and Pedalino); \"all'alba\" is colour, not a fact",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-bus-comiso-published",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "L'ingresso a scuola è anticipato alle 8, ma i mezzi non seguono i nuovi orari.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: school starts at 8, the runs do not fit",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "ragusa-bus-comiso-published",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Sei bus verso Ragusa, appena due verso Vittoria: molti ragazzi restano a terra.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's numbers; \"restano a terra\" is an inference the dek does not make",
+        "lexical": null,
+        "judge": {
+          "score": 0.85,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.4,
+          "vsDek": 0.85,
+          "vsPoints": [
+            0.4,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "ragusa-bus-comiso-published",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Le famiglie scrivono al Prefetto: chiedono corse allineate con le lezioni.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title (letter to the Prefect) and dek (timetables aligned with lessons)",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.6,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.6,
+          "vsDek": 0.6,
+          "vsPoints": [
+            0.1,
+            0.4,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-sanita-pozzallo-published",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Il direttore dell'Asp di Ragusa incontra il sindaco di Pozzallo sulla sanità locale.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title (meeting at the town hall) and dek (the ASP director meets the mayor)",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.7,
+          "vsDek": 0.95,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-sanita-pozzallo-published",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Al centro i turni scoperti di guardia medica e l'attesa per la Casa della Comunità.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title (uncovered shifts) and dek (guardia medica, Casa della Comunità)",
+        "lexical": null,
+        "judge": {
+          "score": 0.7,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.4,
+          "vsDek": 0.7,
+          "vsPoints": [
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "ragusa-sanita-pozzallo-published",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Intanto va avanti il cantiere del nuovo PTA, il Presidio Territoriale Avanzato della città.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title's PTA building site; spelling out the acronym adds no fact",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 0.85,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-sanita-pozzallo-published",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "I lavori potrebbero finire entro l'estate 2027: più servizi sanitari per i residenti.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's summer 2027, plus a generic benefit",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.3,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0,
+            0,
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "ragusa-penitenziaria-published",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "FdI annuncia rinforzi per la Polizia Penitenziaria nelle carceri del Sud-Est siciliano.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title, word for word",
+        "lexical": "no new words",
+        "judge": {
+          "score": 1,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 1,
+          "vsDek": 0.6,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-penitenziaria-published",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "I deputati Sallemi e Cannata parlano di 201 nuovi agenti in arrivo in Sicilia.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: Sallemi and Cannata, 201 officers",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.4,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.4
+          ]
+        }
+      },
+      {
+        "story": "ragusa-penitenziaria-published",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Di questi, 50 dovrebbero essere assegnati tra Ragusa, Siracusa e il Calatino.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: 50 for Ragusa, Siracusa and Calatino",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.5,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.4,
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "ragusa-penitenziaria-published",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Le testate riportano la ripartizione, ma dal ministero non arriva conferma ufficiale.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's own caveat: no ministry confirmation",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0.2,
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-osaka-published",
+        "tenant": "alienwatch",
+        "i": 0,
+        "text": "Osaka University researchers built a new sensor that reads single amino acid molecules.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title: an Osaka team's sensor reading single molecules",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 0.7,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "alienwatch-osaka-published",
+        "tenant": "alienwatch",
+        "i": 1,
+        "text": "A gold-wire nanogap plus an AI pipeline tells left- and right-handed forms apart.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek in other words: L- and D- forms → left- and right-handed",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.6,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-osaka-published",
+        "tenant": "alienwatch",
+        "i": 2,
+        "text": "Tested on meteorite and desert soil samples, it hit over 80 per cent accuracy.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: over 80 per cent, meteorite and desert soil",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-osaka-published",
+        "tenant": "alienwatch",
+        "i": 3,
+        "text": "This could help spot signs of life in space rocks and barren places on Earth.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "an evaluation of why it matters, no fact from the story",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "dek",
+          "newFact": "possible use detecting signs of life",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.3,
+          "vsPoints": [
+            0.1,
+            0.1,
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-isaacman-published",
+        "tenant": "alienwatch",
+        "i": 0,
+        "text": "NASA chief Jared Isaacman spoke to NewsNation about unexplained aerial phenomena.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title and dek: Isaacman, NASA administrator, NewsNation",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.7,
+          "vsDek": 0.9,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "alienwatch-isaacman-published",
+        "tenant": "alienwatch",
+        "i": 1,
+        "text": "He said his instinct points to natural causes or advanced human technology.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: natural phenomena or advanced technology",
+        "lexical": "dek",
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 1,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-isaacman-published",
+        "tenant": "alienwatch",
+        "i": 2,
+        "text": "Still, he said NASA should be involved if the objects ever prove extraterrestrial.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's first clause",
+        "lexical": "dek",
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.6,
+          "vsDek": 1,
+          "vsPoints": [
+            0.1,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-isaacman-published",
+        "tenant": "alienwatch",
+        "i": 3,
+        "text": "For now, he is keeping NASA's role in UAP research open.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title's \"Keeps NASA Role Open\"",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 0.7,
+          "vsPoints": [
+            0.2,
+            0,
+            0.8
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-article",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Il disavanzo indicato nella scheda è di 117,6 milioni di euro.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number from the article",
+        "lexical": null,
+        "judge": {
+          "score": 0.15,
+          "against": "dek",
+          "newFact": "disavanzo di 117,6 milioni di euro",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.15,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-article",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Il piano di riequilibrio ha avuto sette versioni, con un'istruttoria di 1.155 giorni.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "two numbers from the article",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "dek",
+          "newFact": "sette versioni del piano, istruttoria di 1.155 giorni",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.05,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0.05
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-article",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "La Corte dei conti dedica a Modica una scheda nella relazione sul dissesto.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's first clause, slightly more specific wording of the same fact",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.6,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.3,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-corte-article",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "La Procura chiede il rinvio a giudizio dell'ex sindaco Abbate e di altri quattro.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: shares the dek's subject (Procura, ex sindaco) but adds the name, the request and four co-defendants",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "rinvio a giudizio per Ignazio Abbate e altri quattro",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0,
+            0.05
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-15-milioni",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Dai fondi Fua arrivano 10 milioni e 427 mila euro per cinque interventi.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "the Fua share and the number of works",
+        "lexical": null,
+        "judge": {
+          "score": 0.25,
+          "against": "title",
+          "newFact": "10 milioni e 427 mila euro dai fondi Fua, cinque interventi",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.25,
+          "vsDek": 0.15,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-modica-15-milioni",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "La tranche del Ministero dell'Interno attende un passaggio contabile del Comune.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard paraphrase of the dek: Viminale → Ministero dell'Interno, variazione di bilancio → passaggio contabile",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-15-milioni",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Tra le opere c'è la prima pista ciclopedonale, tra Marina di Modica e Maganuco.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a named work and places",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "prima pista ciclopedonale tra Marina di Modica e Maganuco",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0,
+          "vsPoints": [
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-modica-15-milioni",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "A Modica Alta è previsto il parcheggio di San Giovanni con un'area di interscambio.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a named work and place",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "parcheggio di San Giovanni a Modica Alta con area di interscambio",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0,
+          "vsPoints": [
+            0.1,
+            0,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-enel",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: restates the dek's same-day detail but adds the date",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.7,
+          "against": "dek",
+          "newFact": "stop scattato il 19 ottobre",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.5,
+          "vsDek": 0.7,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-enel",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Dall'Enel, al momento, non risulta alcuna replica.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the other party's response (none) — a fact about the story, not about the sources",
+        "lexical": null,
+        "judge": {
+          "score": 0,
+          "against": "title",
+          "newFact": "nessuna replica dell'Enel finora",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-enel",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Il sindaco ha fermato tutte le ditte che lavorano per conto dell'Enel in città.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's first clause in other words",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.8,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.7,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-pozzallo-enel",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Una scelta che riguarda la sicurezza di tutti gli automobilisti pozzallesi.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "generic commentary",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "",
+          "grounded": false,
+          "generic": true,
+          "vague": true,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0.2,
+            0,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "ragusa-chirurgo-danno-erariale",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Gli accertamenti li ha condotti la Guardia di finanza di Catania.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name (who investigated)",
+        "lexical": null,
+        "judge": {
+          "score": 0.15,
+          "against": "dek",
+          "newFact": "accertamenti della Guardia di finanza di Catania",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.15,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-chirurgo-danno-erariale",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "I compensi in nero sono stati ricostruiti anche con oltre 130 pazienti ascoltati.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number and the method",
+        "lexical": null,
+        "judge": {
+          "score": 0.15,
+          "against": "dek",
+          "newFact": "compensi in nero ricostruiti con oltre 130 pazienti ascoltati",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.15,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-chirurgo-danno-erariale",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Il medico avrebbe lavorato nel privato senza permesso, persino mentre era di turno.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard paraphrase of the dek: unauthorised private work, also during hospital shifts",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-chirurgo-danno-erariale",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Per ora non è indicata alcuna data di udienza.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "a statement that a detail is missing: no fact",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-acate-fotovoltaico",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Il primo allarme è scattato alle 23.21, il secondo all'1.02.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "times",
+        "lexical": null,
+        "judge": {
+          "score": 0.35,
+          "against": "dek",
+          "newFact": "primo allarme alle 23.21, secondo all'1.02",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.35,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-acate-fotovoltaico",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Sul posto le guardie dell'Istituto di Vigilanza La Sicurezza di Vittoria.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "dek",
+          "newFact": "intervenute le guardie della Vigilanza La Sicurezza di Vittoria",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.05,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0.05
+          ]
+        }
+      },
+      {
+        "story": "ragusa-acate-fotovoltaico",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Nella stessa notte l'impianto è stato violato due volte e nessuno è stato trovato.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title and dek: two intrusions in one night, nobody found",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.75,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.5,
+            0.05
+          ]
+        }
+      },
+      {
+        "story": "ragusa-acate-fotovoltaico",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Le fonti non chiariscono se i ladri cercassero il rame.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "a statement about the sources",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0,
+            0,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-studenti-piazza",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Al liceo Fermi una plafoniera a LED si è staccata e ha colpito un ragazzo a un braccio.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a concrete detail: where and what happened (the dek only says \"plafoniere cadute\")",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "lampada LED caduta al Fermi, ragazzo colpito a un braccio",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-studenti-piazza",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Al Galileo-Ferraris è stato visto un topo vivo tra i banchi.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a concrete detail",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "topo vivo avvistato tra i banchi del Galileo-Ferraris",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-studenti-piazza",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Studenti di cinque istituti ragusani in piazza il 16 ottobre per lo sciopero.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title and dek: five schools, the square, 16 October",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.8,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-studenti-piazza",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Una protesta che fa riflettere sul futuro della scuola pubblica.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "generic commentary",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "",
+          "grounded": false,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0,
+            0,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "ragusa-marina-marza-ustioni",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Per il trasferimento del ferito è intervenuto l'elisoccorso.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "the method: air ambulance",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "dek",
+          "newFact": "trasferimento del ferito con l'elisoccorso",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.3,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-marina-marza-ustioni",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "L'uomo avrebbe respirato anche del fumo.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard: the title already says \"fumo inalato\"",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.95,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-marina-marza-ustioni",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Il giornalista Carmelo Riccotti La Rocca segnala la carenza di medici del 118.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name and an attributed position",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "title",
+          "newFact": "Carmelo Riccotti La Rocca segnala la carenza di medici del 118",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-marina-marza-ustioni",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Le fonti non riportano il nome del ferito.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "a statement about the sources",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-mare-senza-frontiere",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Rispetto al 2023 gli utenti sono cresciuti del 50,19%.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "utenti cresciuti del 50,19% rispetto al 2023",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-mare-senza-frontiere",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Il 94,44% degli intervistati consiglierebbe il servizio.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number",
+        "lexical": null,
+        "judge": {
+          "score": 0,
+          "against": "title",
+          "newFact": "il 94,44% degli intervistati consiglierebbe il servizio",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-mare-senza-frontiere",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Quest'anno il progetto ha accolto 392 persone con 1.888 interventi.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard: the dek's numbers with other words (lexical overlap under 0.6)",
+        "lexical": null,
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.5,
+          "vsDek": 1,
+          "vsPoints": [
+            0.2,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-mare-senza-frontiere",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Il servizio ora copre sette giorni su sette, fine settimana compresi.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a concrete detail",
+        "lexical": null,
+        "judge": {
+          "score": 0,
+          "against": "title",
+          "newFact": "servizio esteso a sette giorni su sette, weekend compresi",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-seme-baps",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "L'Hub mette a disposizione oltre 3.000 metri quadrati per l'innovazione.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "dek",
+          "newFact": "oltre 3.000 metri quadrati dedicati all'innovazione",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0,
+          "vsDek": 0.2,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-seme-baps",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "L'ad di BAPS, Saverio Continella, parla di «nuove opportunità imprenditoriali».",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name and an attributed quote",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "Saverio Continella, amministratore delegato di BAPS",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-seme-baps",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "BAPS cerca 12 team da incubare e 9 Pmi da accelerare con un milione di euro.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.95,
+          "vsDek": 0.3,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-seme-baps",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Il bando rientra in «Open Innovation Sicilia», nel PR FESR 2021-2027.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name: the programme",
+        "lexical": null,
+        "judge": {
+          "score": 0.05,
+          "against": "dek",
+          "newFact": "finanziato dal bando Open Innovation Sicilia, PR FESR 2021-2027",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0.05,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-omicidio-russo",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "In primo grado Alex Ventura è stato condannato a 26 anni.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the dek's name, a new number",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "condannato in primo grado a 26 anni",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.15,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-omicidio-russo",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a date and the next step",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "udienza il 10 dicembre con la requisitoria del Procuratore generale",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-omicidio-russo",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Per chi indaga, tutto nascerebbe da una sigaretta negata due anni prima.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's motive in other words",
+        "lexical": "dek",
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-omicidio-russo",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "La difesa vuole un nuovo esperto che valuti la salute mentale dell'imputato.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard paraphrase: the dek's new psychiatric assessment, the title's capacity to understand",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.4,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-bonus-centro-storico",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "L'assessore Giovanni Gurrieri ricorda che la sicurezza non spetta al Comune.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name and an attributed position",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "Gurrieri: sicurezza pubblica non è competenza diretta del Comune",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-bonus-centro-storico",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Per i tre esponenti quei fondi potevano pagare videosorveglianza e più controlli.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "an attributed position the dek does not hold",
+        "lexical": null,
+        "judge": {
+          "score": 0.15,
+          "against": "dek",
+          "newFact": "fondi utilizzabili per videosorveglianza e più controlli",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.15,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-bonus-centro-storico",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Secondo l'opposizione il bonus andrà a circa venti persone, alcune già residenti.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard paraphrase of the dek: una ventina di beneficiari → circa venti persone",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.25,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0,
+            0.05
+          ]
+        }
+      },
+      {
+        "story": "ragusa-bonus-centro-storico",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Resta da vedere se la misura riuscirà davvero a ripopolare il centro.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "generic: \"resta da vedere\"",
+        "lexical": null,
+        "judge": {
+          "score": 0.25,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.25,
+          "vsDek": 0.25,
+          "vsPoints": [
+            0.05,
+            0.1,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "ragusa-legambiente-serre",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Legambiente aveva proposto il contributo regionale già sei anni fa.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a time detail",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "contributo regionale proposto da Legambiente sei anni fa",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-legambiente-serre",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "L'associazione chiede al Libero Consorzio di Ragusa un accordo di programma.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the dek's request, plus who it is addressed to (a name not in title or dek)",
+        "lexical": null,
+        "judge": {
+          "score": 0.7,
+          "against": "dek",
+          "newFact": "richiesta rivolta al Libero Consorzio comunale di Ragusa",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.7,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-legambiente-serre",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Per Legambiente lo stanziamento è «lodevole ma non sufficiente».",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard: an attributed quote whose content is the title (\"non basta\")",
+        "lexical": null,
+        "judge": {
+          "score": 0.85,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.85,
+          "vsDek": 0.5,
+          "vsPoints": [
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-legambiente-serre",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Secondo Legambiente il precedente accordo di programma non ha dato risultati.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "an attributed position",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "point 2",
+          "newFact": "il precedente accordo di programma non ha dato risultati",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0,
+            0.3,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-incendio-santa-rosalia",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "L'allarme è scattato intorno alle 20:30.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a time",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "dek",
+          "newFact": "allarme scattato intorno alle 20:30",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.3,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-incendio-santa-rosalia",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Le operazioni di spegnimento sono durate circa tre ore e mezza.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a duration",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "spegnimento durato circa tre ore e mezza",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-incendio-santa-rosalia",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Il 30 agosto un rogo di vaste dimensioni nella stessa area aveva richiesto un Canadair.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a date and a detail",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "rogo del 30 agosto nella stessa area, servì un Canadair",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-incendio-santa-rosalia",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Non si sa ancora quanta vegetazione sia bruciata.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard paraphrase of the title: the area is not yet quantified",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.95,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-collisione-modica-ragusa",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "L'auto, una Kia, avrebbe superato la linea di mezzeria.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name and the cause, hedged",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "la Kia avrebbe superato la linea di mezzeria",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-collisione-modica-ragusa",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "La rimozione dei mezzi è durata circa tre ore.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a duration",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "rimozione dei mezzi durata circa tre ore",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-collisione-modica-ragusa",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Sull'autobus viaggiavano studenti e pendolari diretti a Enna.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-collisione-modica-ragusa",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Una mattinata da dimenticare per chi viaggiava tra Modica e Ragusa.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "generic commentary",
+        "lexical": null,
+        "judge": {
+          "score": 0.5,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.5,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-violenza-genere-fondi",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "Le domande vanno inviate via Pec al dipartimento regionale della Famiglia.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "the method",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "domande solo via Pec a dipartimento.famiglia@certmail.regione.sicilia.it",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-violenza-genere-fondi",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Per l'assessore Nuccia Albano la prevenzione richiede «un impegno condiviso».",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name and an attributed quote",
+        "lexical": null,
+        "judge": {
+          "score": 0,
+          "against": "title",
+          "newFact": "l'assessore Nuccia Albano: la prevenzione richiede impegno condiviso",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-violenza-genere-fondi",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Ai distretti socio-sanitari vanno 258.350 euro contro la violenza di genere.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the title",
+        "lexical": "no new words",
+        "judge": {
+          "score": 0.95,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.95,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-violenza-genere-fondi",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Le fonti non dicono se i distretti iblei parteciperanno.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "a statement about the sources",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.2,
+          "vsPoints": [
+            0.1,
+            0,
+            0.2
+          ]
+        }
+      },
+      {
+        "story": "ragusa-assenza-concordato",
+        "tenant": "ragusa",
+        "i": 0,
+        "text": "La domanda di concordato è arrivata al Tribunale di Ragusa il 5 maggio 2026.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a date",
+        "lexical": null,
+        "judge": {
+          "score": 0.35,
+          "against": "dek",
+          "newFact": "domanda di concordato presentata il 5 maggio 2026",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.35,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "ragusa-assenza-concordato",
+        "tenant": "ragusa",
+        "i": 1,
+        "text": "Il concordato taglia il debito di circa l'88 per cento.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "hard: a new number with the same information as the title (495mila → 57mila)",
+        "lexical": null,
+        "judge": {
+          "score": 0.85,
+          "against": "title",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.85,
+          "vsDek": 0.5,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "ragusa-assenza-concordato",
+        "tenant": "ragusa",
+        "i": 2,
+        "text": "Assenza guida il gruppo di Fratelli d'Italia all'Ars.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: capogruppo FdI all'Ars",
+        "lexical": null,
+        "judge": {
+          "score": 1,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 1,
+          "vsPoints": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "story": "ragusa-assenza-concordato",
+        "tenant": "ragusa",
+        "i": 3,
+        "text": "Assenza: «Non ho salvato la casa sulla spiaggia di Montalbano».",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "an attributed quote",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "«Non ho salvato la casa sulla spiaggia di Montalbano»",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0.05,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-trump-newsmax",
+        "tenant": "alienwatch",
+        "i": 0,
+        "text": "Trump gave the interview to Rob Finnerty at the White House on 15 October.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the dek's host, plus a date and a place",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "interview held at the White House on 15 October",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "alienwatch-trump-newsmax",
+        "tenant": "alienwatch",
+        "i": 1,
+        "text": "He said he had spoken to five or six Air Force pilots.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "spoke to five or six Air Force pilots",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-trump-newsmax",
+        "tenant": "alienwatch",
+        "i": 2,
+        "text": "The president is weighing disclosure but has set no date for it.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title and dek in other words",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-trump-newsmax",
+        "tenant": "alienwatch",
+        "i": 3,
+        "text": "GreWi says the F-22 is not the world's fastest combat jet.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name and an attributed position",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "point 2",
+          "newFact": "GreWi disputes that the F-22 is the fastest combat jet",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.05,
+          "vsDek": 0.05,
+          "vsPoints": [
+            0,
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-stratton-memoir",
+        "tenant": "alienwatch",
+        "i": 0,
+        "text": "The book is published by William Morrow.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a name",
+        "lexical": null,
+        "judge": {
+          "score": 0.2,
+          "against": "title",
+          "newFact": "published by William Morrow",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.2,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "alienwatch-stratton-memoir",
+        "tenant": "alienwatch",
+        "i": 1,
+        "text": "The task force he led ran from August 2020 to November 2021.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the title's task force, plus dates",
+        "lexical": null,
+        "judge": {
+          "score": 0.3,
+          "against": "title",
+          "newFact": "task force operated August 2020 to November 2021",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-stratton-memoir",
+        "tenant": "alienwatch",
+        "i": 2,
+        "text": "His book claims the US secretly recovered craft of non-human origin.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek: secret recovery programmes",
+        "lexical": null,
+        "judge": {
+          "score": 0.9,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.7,
+          "vsDek": 0.9,
+          "vsPoints": [
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-stratton-memoir",
+        "tenant": "alienwatch",
+        "i": 3,
+        "text": "It remains to be seen whether his claims will stand up.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "generic: \"it remains to be seen\"",
+        "lexical": null,
+        "judge": {
+          "score": 0.6,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.3,
+          "vsDek": 0.6,
+          "vsPoints": [
+            0,
+            0,
+            0.3
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-duke-demons",
+        "tenant": "alienwatch",
+        "i": 0,
+        "text": "Duke cites 2 Corinthians 11:14, on Satan posing as an angel of light.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the dek's \"angels of light\", plus the verse",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "dek",
+          "newFact": "cites 2 Corinthians 11:14",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.2,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "alienwatch-duke-demons",
+        "tenant": "alienwatch",
+        "i": 1,
+        "text": "At 36, Duke was the youngest person to walk on the moon.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number and a detail",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "youngest person on the moon, at 36",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-duke-demons",
+        "tenant": "alienwatch",
+        "i": 2,
+        "text": "The former astronaut believes UFOs are demons in disguise.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "title and dek",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.9,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0.3,
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-duke-demons",
+        "tenant": "alienwatch",
+        "i": 3,
+        "text": "Father Lee Taylor, who leads three churches in North Wales, disagrees.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "hard: the dek's North Wales priest, plus his name",
+        "lexical": null,
+        "judge": {
+          "score": 0.6,
+          "against": "dek",
+          "newFact": "priest is Father Lee Taylor, who leads three churches",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0,
+          "vsDek": 0.6,
+          "vsPoints": [
+            0,
+            0,
+            0.1
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-betts-area51",
+        "tenant": "alienwatch",
+        "i": 0,
+        "text": "Four bottles of wine had been brought to the hotel room, Betts says.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a number and a detail",
+        "lexical": null,
+        "judge": {
+          "score": 0.4,
+          "against": "title",
+          "newFact": "four bottles of wine brought to the hotel room",
+          "grounded": true,
+          "generic": false,
+          "vague": false,
+          "vsTitle": 0.4,
+          "vsDek": 0.4,
+          "vsPoints": []
+        }
+      },
+      {
+        "story": "alienwatch-betts-area51",
+        "tenant": "alienwatch",
+        "i": 1,
+        "text": "No casualty record or named witness has surfaced to back the account.",
+        "label": "repeat",
+        "labelSource": "curated",
+        "why": "the dek's second sentence",
+        "lexical": null,
+        "judge": {
+          "score": 0.95,
+          "against": "dek",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.95,
+          "vsPoints": [
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-betts-area51",
+        "tenant": "alienwatch",
+        "i": 2,
+        "text": "The source allegedly put the phones in a microwave to block transmissions.",
+        "label": "new",
+        "labelSource": "curated",
+        "why": "a concrete detail, hedged",
+        "lexical": null,
+        "judge": {
+          "score": 0.1,
+          "against": "title",
+          "newFact": "phones put in a microwave to block transmissions",
+          "grounded": true,
+          "generic": false,
+          "vague": true,
+          "vsTitle": 0.1,
+          "vsDek": 0.1,
+          "vsPoints": [
+            0.1,
+            0
+          ]
+        }
+      },
+      {
+        "story": "alienwatch-betts-area51",
+        "tenant": "alienwatch",
+        "i": 3,
+        "text": "The sources give no date for the alleged firefight.",
+        "label": "generic",
+        "labelSource": "curated",
+        "why": "a statement about the sources",
+        "lexical": null,
+        "judge": {
+          "score": 0.5,
+          "against": "point 2",
+          "newFact": "",
+          "grounded": true,
+          "generic": true,
+          "vague": false,
+          "vsTitle": 0.1,
+          "vsDek": 0.4,
+          "vsPoints": [
+            0,
+            0.5,
+            0
+          ]
+        }
+      }
+    ]
+  },
+  "loop": null,
+  "calls": {
+    "total": 30,
+    "costUsd": 4.662
+  }
+}

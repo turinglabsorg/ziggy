@@ -17,10 +17,11 @@
  * Field paths are dotted (`sector.name`, `data.0.title`). Everything the mapping does not know
  * about is left for the human to fill in the generated campaign.json.
  */
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { loadCampaign, saveCampaign, tenantDir } from "./config.mjs";
-import { pointsReport, storyCaption } from "./lint.mjs";
+import { judgeConfig, judgePoints, judgeReason } from "./judge.mjs";
+import { cleanPoint, pointsReport, storyCaption } from "./lint.mjs";
 import { nextJingle } from "./music.mjs";
 import { composeThread } from "./thread.mjs";
 import { SLIDE_IDS } from "./slides.mjs";
@@ -185,6 +186,58 @@ export function storyAgent(tenant) {
 }
 
 /**
+ * What a point can and cannot say: one text per language, in every prompt that writes or judges
+ * points (the summary, the replacement, judge.mjs) and in SKILL.md, AGENTS.md,
+ * docs/round-prompt-points.it.md and docs/punti-cosa-possono-dire.it.md.
+ */
+export const POINT_SPEC = {
+  it: [
+    "Cosa PUÒ dire un punto. Ogni punto porta almeno una di queste cose, sempre presa dall'articolo:",
+    "- un numero, una cifra o una quantità;",
+    "- un nome (persona, ente, luogo) che non è nel titolo né nel sommario;",
+    "- una data, un orario o una scadenza;",
+    "- una conseguenza;",
+    "- un prossimo passo: cosa succede dopo;",
+    "- una breve citazione o posizione attribuita (\"secondo…\", «…»);",
+    "- un dettaglio concreto: la causa, il modo, dove esattamente.",
+    "Cosa NON PUÒ dire:",
+    "- il titolo, il sommario o un altro punto con altre parole (sinonimi, ordine diverso, lo stesso fatto detto in modo più o meno preciso);",
+    "- commenti o giudizi generici (\"una vicenda importante\", \"resta da vedere\");",
+    "- frasi sulle fonti (\"le fonti non dicono…\", \"non ci sono dettagli\"): non aggiungono fatti;",
+    "- fatti che non sono nell'articolo: niente conoscenze esterne, niente deduzioni;",
+    "- domande, emoji, hashtag, inviti all'azione.",
+    "Ogni punto si capisce da solo, letto sulla sua slide:",
+    "- dice di chi o di cosa parla: \"il presidente della commissione d'inchiesta\", non \"il presidente\"; niente \"la nomina\", \"l'atto\", \"lo stesso partito\" senza il loro riferimento;",
+    "- è preciso: niente elenchi di parole generiche al posto dei fatti. Da scartare: \"Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi.\" (presidente di cosa? quale parere?). Meglio: \"Commissione d'inchiesta senza presidente: si attende un parere della Segreteria generale.\"",
+    "Mantieni le cautele della fonte (\"avrebbe\", \"secondo\").",
+    "La prova: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e preciso? Se no, è una ripetizione.",
+  ].join("\n"),
+  en: [
+    "What a point CAN say. Each point carries at least one of these, always taken from the article:",
+    "- a number, an amount or a quantity;",
+    "- a name (person, organisation, place) that is not in the headline or the deck;",
+    "- a date, a time or a deadline;",
+    "- a consequence;",
+    "- a next step: what happens next;",
+    "- a short attributed quote or position (\"according to…\", \"…\", X said);",
+    "- a concrete detail: the cause, the method, where exactly.",
+    "What a point CANNOT say:",
+    "- the headline, the deck or another point in other words (synonyms, reordered, the same fact worded more or less specifically);",
+    "- generic commentary or evaluation (\"an important case\", \"it remains to be seen\");",
+    "- statements about the sources (\"the sources do not say…\", \"no details were given\"): they add no fact;",
+    "- facts that are not in the article: no outside knowledge, no inference;",
+    "- questions, emoji, hashtags, calls to action.",
+    "Each point makes sense on its own, read on its slide:",
+    "- it names who or what it is about: \"the chair of the inquiry committee\", not \"the chair\"; no \"the appointment\", \"the measure\", \"the same party\" without what they refer to;",
+    "- it is specific: no vague lists of generic nouns standing in for facts. To reject: \"Appointment of the chair stalled amid incompatibilities, resignations and an opinion awaited for months.\" (chair of what? which opinion?). Better: \"The inquiry committee still has no chair: it is waiting on an opinion from the town clerk.\"",
+    "Keep the source's hedges (\"allegedly\", \"according to\").",
+    "The test: does a reader who already read the headline and the deck learn something new and specific from this point? If not, it is a repeat.",
+  ].join("\n"),
+};
+
+export const pointSpec = (tenant) => POINT_SPEC[(tenant?.language || "en") === "it" ? "it" : "en"];
+
+/**
  * The prompt handed to the agent. With the article (`story.body`) the slides take their facts
  * from it, preferring what the headline and deck do not say. Pure, so tests can pin it.
  */
@@ -207,6 +260,9 @@ export function buildSummaryPrompt(tenant, story) {
       ? `Regole: frasi brevi (max 90 caratteri l'una), italiano semplice, niente emoji, niente numerazione, una frase per slide.`
       : `Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.`,
     ...(body ? [caution] : []),
+    ``,
+    pointSpec(tenant),
+    ``,
     `Print ONLY the slides, one per line, nothing else.`,
     ``,
     `Headline: ${story.title}`,
@@ -226,10 +282,34 @@ export function parseSummaryLines(text) {
     .slice(0, 4);
 }
 
-/** Run the agent command with the prompt on stdin; return its stdout. */
-export function askSummaryAgent(agent, prompt, { spawnImpl = spawnSync } = {}) {
+/**
+ * spawnSync's result shape without blocking the event loop: a round asks the agent for several
+ * stories at once. `{ status, stdout, stderr }`, or `{ error }` when the command cannot start or
+ * runs past `timeout`.
+ */
+export function spawnAgent(bin, args, { input = "", timeout, env, maxBuffer = 8 * 1024 * 1024 } = {}) {
+  return new Promise((resolve) => {
+    let stdout = "", stderr = "", done = false, timer = null;
+    const finish = (r) => { if (done) return; done = true; clearTimeout(timer); resolve({ stdout, stderr, status: null, ...r }); };
+    let child;
+    try { child = spawn(bin, args, { env, stdio: ["pipe", "pipe", "pipe"] }); } catch (error) { return finish({ error }); }
+    if (timeout) timer = setTimeout(() => { child.kill("SIGKILL"); finish({ error: Object.assign(new Error(`agent timed out after ${timeout} ms`), { code: "ETIMEDOUT" }) }); }, timeout);
+    child.stdout.setEncoding("utf8").on("data", (d) => { stdout += d; if (stdout.length > maxBuffer) child.kill("SIGKILL"); });
+    child.stderr.setEncoding("utf8").on("data", (d) => { stderr += d; });
+    child.on("error", (error) => finish({ error }));
+    child.on("close", (status) => finish({ status }));
+    child.stdin.on("error", () => { /* the agent exited before reading its prompt: its status says why */ });
+    child.stdin.end(input);
+  });
+}
+
+/**
+ * Run the agent command with the prompt on stdin; resolve its stdout. `spawnImpl` takes
+ * spawnSync's arguments and returns its result shape (or a promise of it).
+ */
+export async function askSummaryAgent(agent, prompt, { spawnImpl = spawnAgent } = {}) {
   const [bin, ...args] = agent.command;
-  const r = spawnImpl(bin, args, { input: prompt, encoding: "utf8", timeout: agent.timeoutMs, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, ZIGGY_SUMMARY: "1" } });
+  const r = await spawnImpl(bin, args, { input: prompt, encoding: "utf8", timeout: agent.timeoutMs, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, ZIGGY_SUMMARY: "1" } });
   if (r.error) throw new Error(r.error.code === "ENOENT" ? `summary agent command not found: ${bin}` : r.error.message);
   if (r.status !== 0) throw new Error(`summary agent exited ${r.status}: ${(r.stderr || "").trim().slice(0, 400)}`);
   return String(r.stdout || "");
@@ -238,13 +318,15 @@ export function askSummaryAgent(agent, prompt, { spawnImpl = spawnSync } = {}) {
 /* ── Points: one filtered list for the reel and the caption ────────────────
  * The reel slides and the caption bullets are the same points: a point that
  * retells the headline, the dek or an earlier point is a repetition on a slide
- * as much as in the caption, so lint.mjs pointsReport drops it from both. */
+ * as much as in the caption, so it is dropped from both. Two checks: lint.mjs
+ * pointsReport (shared words) and judge.mjs (meaning, by the summary agent), and
+ * refinePoints has the failing ones replaced from the article, up to 3 rounds. */
 
 /** At most this many points survive on the reel; the caption shows the first CAPTION_POINTS. */
 export const REEL_POINTS = 4;
 export const CAPTION_POINTS = 3;
-/** Fewer points than this left after the filter: the agent is asked once for new ones. */
-export const MIN_POINTS = 2;
+/** Rounds of judge → replace → judge again before a failing point is dropped. */
+export const REFINE_ROUNDS = 3;
 
 /** The caption after the points: the sources line, the CTA with the story link, the hashtags. */
 export function captionTail(tenant, story) {
@@ -278,34 +360,56 @@ export function storyPoints(tenant, story, points) {
 }
 
 const REJECTED_WHY = {
-  en: { "no new words": "says nothing the headline and deck do not", title: "repeats the headline", dek: "repeats the deck", point: "repeats another slide", lint: "repeats the caption", max: "one too many" },
-  it: { "no new words": "non dice nulla che titolo e sommario non dicano", title: "ripete il titolo", dek: "ripete il sommario", point: "ripete un'altra slide", lint: "ripete la didascalia", max: "una di troppo" },
+  en: {
+    "no new words": "says nothing the headline and deck do not", title: "repeats the headline", dek: "repeats the deck", point: "repeats another point", lint: "repeats the caption", max: "one too many",
+    generic: "generic: a comment or a line about the sources, no fact", ungrounded: "not in the article", "no new fact": "adds no new fact",
+    vague: "vague: on its slide it does not say who or what it is about, or it hints at facts without stating them",
+    vs: { title: "the headline", dek: "the deck", point: "point" },
+  },
+  it: {
+    "no new words": "non dice nulla che titolo e sommario non dicano", title: "ripete il titolo", dek: "ripete il sommario", point: "ripete un altro punto", lint: "ripete la didascalia", max: "uno di troppo",
+    generic: "generico: un commento o una frase sulle fonti, nessun fatto", ungrounded: "non è nell'articolo", "no new fact": "non aggiunge un fatto nuovo",
+    vague: "vago: sulla sua slide non dice di chi o di cosa parla, o accenna a dei fatti senza dirli",
+    vs: { title: "il titolo", dek: "il sommario", point: "il punto" },
+  },
 };
 
+/** Why a point failed, for the agent: "repeats the deck (0.85)", "not in the article", … */
+export function rejectedWhy(reason, lang = "en") {
+  const why = REJECTED_WHY[lang === "it" ? "it" : "en"];
+  const m = /^semantic ([\d.]+) vs (title|dek|point (\d+))$/.exec(String(reason));
+  if (!m) return why[reason] || reason;
+  const what = m[3] ? `${why.vs.point} ${m[3]}` : why.vs[m[2]];
+  return `${lang === "it" ? "ripete" : "repeats"} ${what} (${m[1]})`;
+}
+
 /**
- * The second ask, when the first points did not survive the filter: the rejected ones with why,
- * and new slides with facts from the article that the headline and deck do not hold. Pure.
+ * The replacement ask: the points in order, the good ones (✓) to keep word for word, the failing
+ * ones (✗) with why, to be replaced by a different fact from the article. `verdicts` are
+ * `{ point, pass, reason }`. Pure.
  */
-export function buildRewritePrompt(tenant, story, rejected = []) {
-  const it = (tenant.language || "en") === "it";
-  const why = REJECTED_WHY[it ? "it" : "en"];
-  const list = rejected.map((r) => `- ${r.point} (${why[r.reason] || r.reason})`);
+export function buildReplacePrompt(tenant, story, verdicts = []) {
+  const lang = (tenant.language || "en") === "it" ? "it" : "en";
+  const it = lang === "it";
+  const list = verdicts.map((v, i) => `${i + 1}. ${v.pass ? "✓" : "✗"} ${v.point}${v.pass ? "" : ` — ${rejectedWhy(v.reason, lang)}`}`);
   return [
     it
-      ? `Queste slide per un reel verticale ripetono titolo o sommario (Headline, Deck) e sono state scartate:`
-      : `These slides for a vertical reel repeat the headline or the deck and were rejected:`,
-    ...(list.length ? list : [it ? "- (nessuna slide utilizzabile)" : "- (no usable slide)"]),
+      ? `Questi sono i punti di una notizia per le slide di un reel verticale e la sua didascalia, in ordine. Quelli con ✗ sono stati scartati, quelli con ✓ vanno bene:`
+      : `These are the points of a news story for the slides of a vertical reel and its caption, in order. The ones marked ✗ were rejected, the ones marked ✓ are good:`,
+    ...list,
     ``,
     it
-      ? `Riscrivile: 3-4 slide nuove con i fatti dell'articolo che titolo e sommario non dicono: numeri, nomi, date, cosa succede dopo. Non ripetere le slide scartate, il titolo o il sommario; nessuna slide ripete un'altra.`
-      : `Rewrite them: 3-4 new slides with facts from the article that the headline and deck do not say: numbers, names, dates, what happens next. Do not repeat the rejected slides, the headline or the deck; no slide repeats another.`,
+      ? `Sostituisci SOLO i punti ✗: per ognuno scegli un altro fatto dell'articolo che titolo, sommario (Headline, Deck) e gli altri punti non dicono, oppure riscrivilo in modo che aggiunga un fatto nuovo. Ogni punto nuovo dice di chi o di cosa parla, con il nome preso dall'articolo ("il presidente della commissione d'inchiesta", non "il presidente"), e dice il fatto invece di elencare parole generiche. Lascia i punti ✓ identici, parola per parola, al loro posto. Se l'articolo non ha un altro fatto, togli il punto invece di inventarlo.`
+      : `Replace ONLY the ✗ points: for each, pick a different fact from the article that the headline, the deck and the other points do not hold, or rewrite it so it adds a new fact. Each new point names who or what it is about, with the name from the article ("the chair of the inquiry committee", not "the chair"), and states the fact instead of listing generic nouns. Keep the ✓ points word for word, in their place. If the article holds no other fact, leave the point out rather than invent one.`,
     it
-      ? `Regole: frasi brevi (max 90 caratteri l'una), italiano semplice, niente emoji, niente numerazione, una frase per slide.`
-      : `Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.`,
+      ? `Regole: frasi brevi (max 90 caratteri l'una), italiano semplice, niente emoji, niente numerazione, una frase per punto.`
+      : `Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per point.`,
+    ``,
+    POINT_SPEC[lang],
+    ``,
     it
-      ? `Solo fatti dell'articolo: non inventare nulla e mantieni le cautele della fonte ("avrebbe", "secondo"). Se l'articolo non ha altri fatti, scrivi meno slide.`
-      : `Only facts from the article: invent nothing, and keep the source's hedges ("allegedly", "according to"). If the article holds no other fact, write fewer slides.`,
-    `Print ONLY the slides, one per line, nothing else.`,
+      ? `Stampa SOLO la lista completa dei punti, in ordine, uno per riga, senza ✓ e ✗, nient'altro.`
+      : `Print ONLY the full list of points, in order, one per line, without the ✓ and ✗ marks, nothing else.`,
     ``,
     `Headline: ${story.title}`,
     `Deck: ${story.dek}`,
@@ -313,40 +417,119 @@ export function buildRewritePrompt(tenant, story, rejected = []) {
   ].join("\n");
 }
 
+/** Each point of `list` (already clean) with its lexical reason, null when pointsReport keeps it. */
+export function lexicalReasons(tenant, story, list) {
+  const { kept, dropped } = storyPoints(tenant, story, list);
+  let k = 0, d = 0;
+  return list.map((point) => (kept[k] === point ? (k++, null) : dropped[d++]?.reason ?? "lint"));
+}
+
+const sameText = (a, b) => String(a).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim() === String(b).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
 /**
- * `points` through the filter, and when fewer than MIN_POINTS survive, one rewrite by the agent
- * from the article (`story.body`, fetched when the story does not carry it), told which points
- * were rejected and why. The rewrite is filtered the same way, and the list that keeps more
- * points wins (the first on a tie). No agent, no article, or an agent that fails: the first list
- * stays — 0 or 1 points is a story with fewer slides, never a failure.
- * `{ points, kept, dropped, rewritten }`: `points` as given or as rewritten, before the filter.
+ * The agent's reply to buildReplacePrompt into the next list: the passing points stay, in place;
+ * each failing one takes the next replacement, or leaves (`removed`) when the agent wrote none or
+ * gave it back unchanged. A reply as long as the list is read by position; otherwise every line
+ * that is not a passing point is a replacement.
  */
-export async function rewriteThinPoints(tenant, story, points, { agent = storyAgent(tenant), spawnImpl, fetchImpl } = {}) {
-  const first = storyPoints(tenant, story, points);
-  const keep = { points: Array.isArray(points) ? points : [], ...first, rewritten: false };
-  if (first.kept.length >= MIN_POINTS || !agent) return keep;
-  const body = story.body ?? await fetchStoryBody(tenant, story, { fetchImpl });
-  // the new facts can only come from the article: without one a rewrite retells title and dek
-  if (!String(body || "").trim()) return keep;
-  let lines;
-  try { lines = parseSummaryLines(askSummaryAgent(agent, buildRewritePrompt(tenant, { ...story, body }, first.dropped), { spawnImpl })); }
-  catch { return keep; }
-  const second = storyPoints(tenant, story, lines);
-  return second.kept.length > first.kept.length ? { points: lines, ...second, rewritten: true } : keep;
+function mergeReplacements(verdicts, lines) {
+  const passing = (l) => verdicts.some((v) => v.pass && sameText(v.point, l));
+  const fresh = lines.length === verdicts.length ? lines.filter((_, i) => !verdicts[i].pass) : lines.filter((l) => !passing(l));
+  const next = [], removed = [], replaced = [];
+  let k = 0;
+  for (const v of verdicts) {
+    if (v.pass) { next.push(v.point); continue; }
+    const line = fresh[k++];
+    if (line && !sameText(line, v.point) && !passing(line) && !next.some((p) => sameText(p, line))) { next.push(line); replaced.push({ point: v.point, reason: v.reason, by: line }); }
+    else removed.push({ point: v.point, reason: v.reason });
+  }
+  return { next, removed, replaced };
 }
 
 /**
- * The pre-script: ask the tenant's agent for summary slides, from the article body too (fetched
- * when the story does not carry one), and once more when fewer than MIN_POINTS survive the filter
- * (rewriteThinPoints). Null without an agent; a failing first ask throws, and createStoryCampaign
- * goes on without points — a story campaign must always come out.
+ * The points a story keeps, on its reel and in its caption. Each round checks every point with
+ * the lexical filter (storyPoints) and the semantic judge (judge.mjs, the summary agent): a point
+ * fails when either rejects it. When one fails, the agent replaces only the failing points from
+ * the article (buildReplacePrompt), and the new list is checked again — at most `maxRounds`
+ * checks; what still fails after the last is dropped. 0–4 points is fine: never a refusal.
+ *
+ *   no agent        lexical only, no rewrite (the old behaviour)
+ *   judge off/fails lexical decides (tenant.feed.judge === false, ZIGGY_JUDGE=0, a bad reply)
+ *   no article      no rewrite (new facts can only come from it); still judged and dropped
+ *
+ * `story.body` is fetched when the story does not carry it. Returns `{ points, kept, dropped,
+ * replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, threshold, ms }`: `points` and
+ * `kept` are the final list, `dropped` the points left out (`{ point, reason }`, reason lexical
+ * or "semantic 0.83 vs dek" / "generic" / "vague" / "ungrounded" / "no new fact"), `replaced` the ones a
+ * rewrite swapped out, `judge` "on" | "off" | "failed".
  */
-export async function summarizeStory(tenant, story, { spawnImpl, fetchImpl } = {}) {
+export async function refinePoints(tenant, story, points, { agent = storyAgent(tenant), spawnImpl, fetchImpl, maxRounds = REFINE_ROUNDS, threshold } = {}) {
+  const started = Date.now();
+  const cfg = judgeConfig(tenant);
+  const out = { rounds: 0, judgeCalls: 0, rewriteCalls: 0, judge: agent && cfg.enabled ? "on" : "off", threshold: threshold ?? cfg.threshold };
+  let list = (Array.isArray(points) ? points : []).map(cleanPoint).filter(Boolean);
+  const body = agent ? story.body ?? await fetchStoryBody(tenant, story, { fetchImpl }) : story.body;
+  const full = { ...story, body: body ?? "" };
+  const removed = [], replaced = [], rewrites = new Set();
+
+  const check = async () => {
+    const lexical = lexicalReasons(tenant, full, list);
+    let judged = null;
+    if (out.judge === "on" && lexical.some((r) => !r)) {
+      out.judgeCalls++;
+      judged = await judgePoints(tenant, full, list, { agent, spawnImpl, threshold: out.threshold });
+      if (!judged) out.judge = "failed";
+    }
+    return list.map((point, i) => {
+      const j = judged?.[i];
+      const reason = lexical[i] || (j && !j.pass ? judgeReason(j, out.threshold) : null);
+      return { point, pass: !reason, reason, ...(j ? { score: j.score, against: j.against, newFact: j.newFact } : {}) };
+    });
+  };
+
+  let verdicts = [];
+  while (list.length) {
+    out.rounds++;
+    verdicts = await check();
+    if (verdicts.every((v) => v.pass) || out.rounds >= maxRounds || !agent || !String(body || "").trim()) break;
+    let lines;
+    try {
+      out.rewriteCalls++;
+      lines = parseSummaryLines(await askSummaryAgent(agent, buildReplacePrompt(tenant, full, verdicts), { spawnImpl }));
+    } catch { break; }
+    const merged = mergeReplacements(verdicts, lines);
+    removed.push(...merged.removed);
+    replaced.push(...merged.replaced);
+    for (const r of merged.replaced) rewrites.add(r.by);
+    list = merged.next;
+    // nothing new to check: the passing points pass in a shorter list too
+    if (!merged.replaced.length) { verdicts = verdicts.filter((v) => v.pass); break; }
+  }
+  const kept = verdicts.filter((v) => v.pass).map((v) => v.point);
+  const dropped = [...removed, ...verdicts.filter((v) => !v.pass).map(({ point, reason }) => ({ point, reason }))];
+  return { points: kept, kept, dropped, replaced, rewritten: kept.some((p) => rewrites.has(p)), ...out, ms: Date.now() - started };
+}
+
+/**
+ * The summary and its points: the tenant's agent writes the slides, from the article body too
+ * (fetched when the story does not carry one), and refinePoints keeps the ones that add a fact.
+ * Null without an agent; a failing first ask throws.
+ */
+async function summarize(tenant, story, { spawnImpl, fetchImpl } = {}) {
   const agent = storyAgent(tenant);
   if (!agent) return null;
   const body = story.body ?? await fetchStoryBody(tenant, story, { fetchImpl });
-  const lines = parseSummaryLines(askSummaryAgent(agent, buildSummaryPrompt(tenant, { ...story, body }), { spawnImpl }));
-  return (await rewriteThinPoints(tenant, { ...story, body }, lines, { agent, spawnImpl })).points;
+  const lines = parseSummaryLines(await askSummaryAgent(agent, buildSummaryPrompt(tenant, { ...story, body }), { spawnImpl }));
+  return refinePoints(tenant, { ...story, body }, lines, { agent, spawnImpl, fetchImpl });
+}
+
+/**
+ * The pre-script: the summary slides that survive refinePoints. Null without an agent; a failing
+ * first ask throws, and createStoryCampaign goes on without points — a story campaign must
+ * always come out.
+ */
+export async function summarizeStory(tenant, story, options = {}) {
+  return (await summarize(tenant, story, options))?.points ?? null;
 }
 
 /**
@@ -366,9 +549,10 @@ export function formatDate(iso, lang = "en") {
 
 /**
  * Build the campaign object for a story. Pass the summary or the round's points via `points`:
- * they go through storyPoints, and only the kept ones are used. Pure.
+ * they go through storyPoints, and only the kept ones are used. `dropped` (refinePoints') goes
+ * in front of copy.droppedPoints. Pure.
  */
-export function campaignFromStory(tenant, story, { name, points: given } = {}) {
+export function campaignFromStory(tenant, story, { name, points: given, dropped: refused = [] } = {}) {
   const feed = tenant.feed || {};
   const lang = tenant.language || "en";
   const date = story.date ? story.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
@@ -398,7 +582,7 @@ export function campaignFromStory(tenant, story, { name, points: given } = {}) {
     duration: storyDurationPointCount(points),
     intent: `Story reel: ${story.title}`,
     story: { slug: story.slug, url: story.url, date: story.date, section: story.section },
-    copy: { kicker, headline: story.title, dek: story.dek, points, captionPoints: shown, droppedPoints: dropped, meta, sources: story.sources ?? null, url: displayUrl },
+    copy: { kicker, headline: story.title, dek: story.dek, points, captionPoints: shown, droppedPoints: [...refused, ...dropped], meta, sources: story.sources ?? null, url: displayUrl },
     image: story.image,
     // bed.mjs mood per tenant: "ambient" default, tenant.social.bed overrides (e.g. "news").
     audio: { bed: social.bed || "ambient", volume: 0.6, swellAt: 1.6, beats: [[0.6, 1318.5, 1.2, 0.07], [1.5, 659.3, 1.6, 0.06], [7.6, 987.8, 0.9, 0.035]] },
@@ -443,7 +627,7 @@ export function campaignFromStory(tenant, story, { name, points: given } = {}) {
  * Write a story as a campaign: `story` when the caller already holds it (the daily loop — a
  * second feed read could return a different order), else the feed's N-th. Returns { name, dir, story }.
  */
-export async function createStoryCampaign(tenant, { index = 0, story: given = null, name, fetchImpl, force = false, spawnImpl, summarize = true, write = true } = {}) {
+export async function createStoryCampaign(tenant, { index = 0, story: given = null, name, fetchImpl, force = false, spawnImpl, summarize: withSummary = true, write = true } = {}) {
   let story = given;
   if (!story) {
     const stories = await fetchStories(tenant, { fetchImpl });
@@ -456,12 +640,12 @@ export async function createStoryCampaign(tenant, { index = 0, story: given = nu
   if (exists && !force) throw new Error(`campaign ${campaignName} already exists for ${tenant.slug} — pass --force to overwrite`);
   // the AI summary of the story: one short slide per story beat; the ones that add a fact go on
   // the reel and in the caption
-  let points = null;
-  if (summarize) {
-    try { points = await summarizeStory(tenant, story, { spawnImpl, fetchImpl }); }
-    catch { points = null; /* a broken agent must not block the campaign */ }
+  let refined = null;
+  if (withSummary) {
+    try { refined = await summarize(tenant, story, { spawnImpl, fetchImpl }); }
+    catch { refined = null; /* a broken agent must not block the campaign */ }
   }
-  const campaign = campaignFromStory(tenant, story, { name, points });
+  const campaign = campaignFromStory(tenant, story, { name, points: refined?.points ?? null, dropped: refined?.dropped });
   if (!write) {
     // dry-run: the campaign exists only in memory, so a probe can never block the real run
     const dir = join(tenantDir(tenant.slug), "campaigns", campaignName);
