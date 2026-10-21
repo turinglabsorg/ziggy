@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { after, before, test } from "node:test";
 
 import { pointProblems, roundConfig, storyDeadline } from "../scripts/round.mjs";
-import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
+import { API_KEY, fakeStoryAgent, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
 after(world.cleanup);
@@ -621,7 +621,7 @@ test("points that repeat title, dek or each other leave the reel and the caption
   assert.deepEqual(campaignRepetition(mixed.made[0].campaign), { ok: true, pairs: [] });
 });
 
-test("fewer than 2 points left: the summary agent rewrites them once from the article; the better list wins, and the round never fails on it", async () => {
+test("the operator's points through the lexical filter and the judge: the failing ones replaced from the article, up to 3 rounds; the round never fails on it", async () => {
   const { campaignsFromPoints, runRound } = await import("../scripts/round.mjs");
   const { loadTenant } = await import("../scripts/config.mjs");
   const { createClient } = await import("../scripts/postproxy.mjs");
@@ -634,62 +634,92 @@ test("fewer than 2 points left: the summary agent rewrites them once from the ar
     if (u.pathname === "/feed/v1/briefings") return new Response(JSON.stringify({ data: LIBRARY }), { status: 200 });
     return new Response(JSON.stringify({ data: { bodyHtml: article } }), { status: 200 });
   };
-  const prompts = [];
-  const agent = (reply) => (bin, args, { input }) => {
-    prompts.push(input);
-    return typeof reply === "function" ? reply() : typeof reply === "string" ? { status: 0, stdout: reply, stderr: "" } : reply;
-  };
-  const run = (pts, spawnImpl, t = tenant) => campaignsFromPoints(t, { "library-room": pts }, { fetchImpl, spawnImpl, now: new Date(NOW), write: false });
+  const run = (pts, spawnImpl, t = tenant, fetch = fetchImpl) => campaignsFromPoints(t, { "library-room": pts }, { fetchImpl: fetch, spawnImpl, now: new Date(NOW), write: false });
+  // few shared words with the dek, the same information: the lexical filter keeps it, the judge does not
+  const PARA = "Up to forty people can sit and read there.";
+  const NEW4 = "A regional grant covered the new shelves and lamps.";
+  const judge = { [PARA]: { vsDek: 0.85, newFact: "" } };
 
-  // the operator's points only retell title and dek: one rewrite, with the article and the rejected points
-  const good = await run(ECHO, agent(FACTS.join("\n")));
-  assert.equal(prompts.length, 1);
-  assert.deepEqual(urls.filter((p) => p !== "/feed/v1/briefings"), ["/feed/v1/briefings/library-room-9a8b7c6d"], "the body fetched for the rewrite");
-  assert.match(prompts[0], /^These slides for a vertical reel repeat the headline or the deck and were rejected:\n- The library opens a new reading room\. \(says nothing the headline and deck do not\)\n/);
-  for (const p of ECHO) assert.ok(prompts[0].includes(`- ${p} (`), p);
-  assert.match(prompts[0], /Do not repeat the rejected slides, the headline or the deck/);
-  assert.match(prompts[0], /invent nothing/);
-  assert.match(prompts[0], /\nHeadline: Library opens a new reading room\nDeck: The room seats forty readers and opens on Monday\.\nArticle: The council paid 40,000 euros/);
+  // the operator's points only retell title and dek: no judge call while every point fails the
+  // lexical filter; the agent replaces them from the article, and the new ones are judged
+  const a = fakeStoryAgent({ judge, replace: FACTS.join("\n") });
+  const good = await run(ECHO, a.spawnImpl);
+  assert.deepEqual([a.prompts.judge.length, a.prompts.replace.length], [1, 1]);
+  assert.deepEqual(urls.filter((p) => p !== "/feed/v1/briefings"), ["/feed/v1/briefings/library-room-9a8b7c6d"], "the body fetched once, for judge and rewrite");
+  assert.match(a.prompts.replace[0], /^These are the points of a news story for the slides of a vertical reel and its caption, in order\. The ones marked ✗ were rejected, the ones marked ✓ are good:\n1\. ✗ The library opens a new reading room\. — says nothing the headline and deck do not\n/);
+  for (const p of ECHO) assert.ok(a.prompts.replace[0].includes(`✗ ${p} — `), p);
+  assert.match(a.prompts.replace[0], /Replace ONLY the ✗ points/);
+  assert.match(a.prompts.replace[0], /CANNOT say/);
+  assert.match(a.prompts.replace[0], /\nHeadline: Library opens a new reading room\nDeck: The room seats forty readers and opens on Monday\.\nArticle: The council paid 40,000 euros/);
+  assert.match(a.prompts.judge[0], /\nPoints:\n0\. The council paid 40,000 euros/);
   const made = good.made[0];
-  assert.deepEqual([made.points, made.captionPoints, made.dropped, made.rewritten], [3, 3, 0, true]);
+  assert.deepEqual([made.points, made.captionPoints, made.dropped, made.rewritten, made.rounds], [3, 3, 1, true, 2]);
+  assert.deepEqual(made.judge, { status: "on", threshold: 0.7, calls: 1, rewrites: 1, ms: made.judge.ms });
   assert.deepEqual(made.campaign.copy.points, FACTS);
+  assert.deepEqual(made.campaign.copy.droppedPoints, [{ point: ECHO[3], reason: "dek" }], "the agent wrote three: the fourth is left out");
   assert.match(made.campaign.posts.instagram_reel.body, /\n\n• The council paid 40,000 euros from the 2026 budget\.\n• Opening hours/);
 
-  // a rewrite no better than the operator's (one kept each): the operator's stay
-  prompts.length = 0;
-  const tie = await run([ECHO[0], ECHO[1], ECHO[2], FACTS[0]], agent(`${ECHO[3]}\n${FACTS[0]}`));
-  assert.equal(prompts.length, 1);
-  assert.deepEqual([tie.made[0].points, tie.made[0].rewritten], [1, false]);
-  assert.deepEqual(tie.made[0].campaign.copy.points, [FACTS[0]]);
+  // a paraphrase the lexical filter lets through: the judge fails it, the agent replaces only it
+  const b = fakeStoryAgent({ judge, replace: [FACTS[0], FACTS[1], NEW4, FACTS[2]].join("\n") });
+  const para = await run([FACTS[0], FACTS[1], PARA, FACTS[2]], b.spawnImpl);
+  assert.deepEqual(para.made[0].campaign.copy.points, [FACTS[0], FACTS[1], NEW4, FACTS[2]]);
+  assert.match(b.prompts.replace[0], /\n1\. ✓ The council paid[^\n]*\n2\. ✓ Opening hours[^\n]*\n3\. ✗ Up to forty people can sit and read there\. — repeats the deck \(0\.85\)\n4\. ✓ Volunteers/);
+  assert.deepEqual([para.made[0].points, para.made[0].dropped, para.made[0].rounds, b.prompts.judge.length], [4, 0, 2, 2]);
 
-  // enough points left: no agent call
-  prompts.length = 0;
-  await run([ECHO[0], ...FACTS], agent(() => assert.fail("no rewrite needed")));
-  assert.equal(prompts.length, 0);
+  // every point adds a fact: one judge call, one round, no rewrite
+  const c = fakeStoryAgent({ replace: () => assert.fail("nothing to replace") });
+  const clean = await run([...FACTS, NEW4], c.spawnImpl);
+  assert.deepEqual([clean.made[0].points, clean.made[0].rounds, clean.made[0].rewritten, c.prompts.all.length], [4, 1, false, 1]);
 
-  // a failing agent, or none: the operator's survivors stay, the story still goes out
-  for (const spawnImpl of [agent({ status: 1, stdout: "", stderr: "boom" }), agent(() => ({ error: Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" }) }))]) {
-    const out = await run(ECHO, spawnImpl);
+  // a failing agent: the judge fails → the lexical filter alone, the story still goes out
+  for (const reply of [{ status: 1, stdout: "", stderr: "boom" }, { error: Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" }) }]) {
+    const broken = fakeStoryAgent({ judge: () => reply, replace: reply });
+    const out = await run([ECHO[0], FACTS[0], PARA, FACTS[1]], broken.spawnImpl);
     assert.deepEqual(out.refused, []);
-    assert.deepEqual([out.made[0].points, out.made[0].rewritten], [0, false]);
+    assert.deepEqual([out.made[0].campaign.copy.points, out.made[0].rewritten, out.made[0].judge.status], [[FACTS[0], PARA, FACTS[1]], false, "failed"]);
   }
-  prompts.length = 0;
-  const none = await run(ECHO, agent(() => assert.fail("feed.agent: null")), { ...tenant, feed: { ...tenant.feed, agent: null } });
-  assert.deepEqual([none.made[0].points, none.made[0].rewritten, prompts.length], [0, false, 0]);
+  // no agent: the lexical filter alone, nothing asked
+  const none = await run(ECHO, () => assert.fail("feed.agent: null"), { ...tenant, feed: { ...tenant.feed, agent: null } });
+  assert.deepEqual([none.made[0].points, none.made[0].rewritten, none.made[0].rounds, none.made[0].judge.status], [0, false, 1, "off"]);
 
-  // no article to take new facts from: no rewrite
+  // no article: judged and dropped, never rewritten (new facts come only from the article)
   const noBody = async (url) => (new URL(url).pathname === "/feed/v1/briefings" ? new Response(JSON.stringify({ data: LIBRARY }), { status: 200 }) : new Response("nope", { status: 404 }));
-  prompts.length = 0;
-  const bare = await campaignsFromPoints(tenant, { "library-room": ECHO }, { fetchImpl: noBody, spawnImpl: agent(() => assert.fail("no body, no rewrite")), now: new Date(NOW), write: false });
-  assert.deepEqual([bare.made[0].points, bare.made[0].rewritten, prompts.length], [0, false, 0]);
+  const d = fakeStoryAgent({ judge, replace: () => assert.fail("no body, no rewrite") });
+  const bare = await run([FACTS[0], FACTS[1], PARA, FACTS[2]], d.spawnImpl, tenant, noBody);
+  assert.deepEqual(bare.made[0].campaign.copy.droppedPoints, [{ point: PARA, reason: "semantic 0.85 vs dek" }]);
+  assert.deepEqual([bare.made[0].points, bare.made[0].rounds, d.prompts.replace.length], [3, 1, 0]);
 
-  // the round's summary line: kept points, dropped ones, and a rewrite
+  // the round's summary line: kept points, dropped ones, and the rounds when more than one
   const client = createClient({ baseUrl: mock.baseUrl, apiKey: API_KEY });
-  const round = await runRound(tenant, { "library-room": ECHO }, { fetchImpl, spawnImpl: agent(`${FACTS.join("\n")}\n${ECHO[1]}`), client, now: new Date(NOW), dryRun: true });
-  assert.match(round.text, /— library room 9a8b7c6d · 3 punti riscritti \(1 scartato\)$/m);
-  assert.deepEqual(round.scheduled.map((s) => [s.points, s.captionPoints, s.dropped, s.rewritten]), [[3, 3, 1, true]]);
+  const round = await runRound(tenant, { "library-room": ECHO }, { fetchImpl, spawnImpl: fakeStoryAgent({ judge, replace: FACTS.join("\n") }).spawnImpl, client, now: new Date(NOW), dryRun: true });
+  assert.match(round.text, /— library room 9a8b7c6d · 3 punti \(1 scartato, 2 giri\)$/m);
+  assert.deepEqual(round.scheduled.map((s) => [s.points, s.captionPoints, s.dropped, s.rewritten, s.rounds, s.judge.status, s.judge.calls, s.judge.rewrites]), [[3, 3, 1, true, 2, "on", 1, 1]]);
+  const replaced = await runRound(tenant, { "library-room": [FACTS[0], FACTS[1], PARA, FACTS[2]] }, { fetchImpl, spawnImpl: fakeStoryAgent({ judge, replace: [FACTS[0], FACTS[1], NEW4, FACTS[2]].join("\n") }).spawnImpl, client, now: new Date(NOW), dryRun: true });
+  assert.match(replaced.text, /— library room 9a8b7c6d · 4 punti \(2 giri\)$/m);
   const thin = await runRound({ ...tenant, feed: { ...tenant.feed, agent: null } }, { "library-room": [ECHO[0], ECHO[1], ECHO[2], FACTS[0]] }, { fetchImpl, client, now: new Date(NOW), dryRun: true });
   assert.match(thin.text, /— library room 9a8b7c6d · 1 punto \(3 scartati\)$/m);
   const empty = await runRound({ ...tenant, feed: { ...tenant.feed, agent: null } }, { "library-room": ECHO }, { fetchImpl, client, now: new Date(NOW), dryRun: true });
   assert.match(empty.text, /— library room 9a8b7c6d · nessun punto \(4 scartati\)$/m);
+});
+
+test("a round judges the stories' points three at a time, and keeps the points file's order", async () => {
+  const { campaignsFromPoints } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  const tenant = { ...loadTenant("acme"), feed: { ...loadTenant("acme").feed, url: "https://news.example/feed/v1/briefings?lang=en&limit=20", agent: { command: ["fake-agent"] } } };
+  const feed = Array.from({ length: 5 }, (_, i) => ({ ...LIBRARY[0], title: `Pier ${"ABCDE"[i]} lights up`, dek: "The pier lights up at dusk.", slug: `pier-${i}-lights-0a1b2c3${i}` }));
+  const fetchImpl = async (url) => new Response(JSON.stringify(new URL(url).pathname === "/feed/v1/briefings" ? { data: feed } : { data: { bodyHtml: "<p>Body.</p>" } }), { status: 200 });
+  const { spawnImpl: judgeNow } = fakeStoryAgent();
+  let inFlight = 0, peak = 0;
+  const spawnImpl = async (...args) => {
+    inFlight++; peak = Math.max(peak, inFlight);
+    await new Promise((r) => setTimeout(r, 20));
+    inFlight--;
+    return judgeNow(...args);
+  };
+  const first = (i) => `The council spent ${i + 1}0,000 euros on the lamps.`;
+  const points = Object.fromEntries(feed.map((s, i) => [s.slug, [first(i), "Workers from Ragusa installed them overnight.", "They switch on daily at 18:30."]]));
+  const out = await campaignsFromPoints(tenant, points, { fetchImpl, spawnImpl, now: new Date(NOW), write: false });
+  assert.equal(peak, 3);
+  assert.deepEqual(out.made.map((m) => m.campaign.story.slug), feed.map((s) => s.slug));
+  assert.deepEqual(out.made.map((m) => [m.campaign.copy.points[0], m.points, m.rounds]), feed.map((_, i) => [first(i), 3, 1]));
 });

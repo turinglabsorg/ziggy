@@ -1,0 +1,1107 @@
+{
+  "version": 1,
+  "description": "Story points labelled new / repeat / generic by meaning against the CAN/CANNOT spec (story.mjs POINT_SPEC). Each story's points are judged together, in order: a case is a point with its headline, dek and the points before it. See README.md.",
+  "counts": {
+    "stories": 28,
+    "cases": 112,
+    "new": 48,
+    "repeat": 53,
+    "generic": 11,
+    "human": 4,
+    "curated": 108
+  },
+  "stories": [
+    {
+      "id": "ragusa-modica-corte-human",
+      "tenant": "ragusa",
+      "slug": "modica-la-corte-dei-conti-la-indica-al-parlamento-e-la-commissione-d-inc-c57e2fef-0271853c",
+      "date": "2026-10-19T23:25:39.753Z",
+      "title": "Modica, la Corte dei conti la indica al Parlamento mentre la commissione d'inchiesta non parte",
+      "dek": "La Sezione delle autonomie dedica a Modica una scheda sul dissesto; il Pd chiede l'insediamento della commissione d'inchiesta e il bilancio riequilibrato, mentre la Procura di Ragusa contesta l'ex sindaco.",
+      "body": "La Corte dei conti ha inserito Modica, nel Ragusano, tra i casi nazionali di crisi finanziaria degli enti locali: nella relazione 2025 sui Comuni in crisi finanziaria, approvata dalla Sezione delle autonomie lo scorso 24 settembre, alla città è dedicata una scheda autonoma che elenca sette versioni del piano di riequilibrio, un'istruttoria ministeriale durata 1.155 giorni, un disavanzo di 117,6 milioni di euro, una capacità di riscossione dei residui scesa sotto il 6 per cento e ritardi nei pagamenti ai fornitori fino a oltre 570 giorni. Secondo i due articoli, le responsabilità politiche e amministrative indicate si sarebbero maturate in larga misura tra il 2013 e il 2022. È il passaggio che riporta il dissesto di un comune della provincia di Ragusa al centro del confronto politico locale, sul terreno della gestione delle risorse pubbliche e dei tempi del risanamento.\n\nSul versante giudiziario, la Procura di Ragusa ha chiesto il rinvio a giudizio dell'ex sindaco Ignazio Abbate e di altri quattro indagati, tra cui l'allora segretario generale dell'Ente, per le vicende relative ai ristori per il maltempo e alla gestione dei fondi regionali destinati ai buoni libro negli anni scolastici 2019-2022. Francesco Stornello, segretario cittadino del Partito Democratico, dopo aver richiamato la presunzione di innocenza, definisce «devastante» il dato politico e amministrativo che emerge: a suo giudizio, mentre la Corte dei conti certifica al Parlamento il fallimento contabile di quegli anni, in sede giudiziaria si contesta l'indebita destinazione ad altre finalità di somme vincolate al diritto allo studio delle famiglie modicane, che secondo l'accusa non sarebbero mai state reintegrate. Il dirigente domanda quindi cosa stia facendo chi a Palazzo San Domenico ha il dovere di fare luce su questo disastro, e risponde: «assolutamente nulla».\n\nIl 2 febbraio 2026 il Consiglio comunale ha istituito all'unanimità una Commissione consiliare d'inchiesta sulle cause del dissesto, con l'obiettivo di esaminare vent'anni di gestione (2005-2025) e una durata dei lavori fissata in dodici mesi. A oltre otto mesi da quella decisione, secondo i due articoli l'organismo non ha mai iniziato l'attività: la nomina del presidente è rimasta bloccata tra rilievi di incompatibilità, dimissioni e un parere della Segreteria generale atteso da mesi.",
+      "points": [
+        {
+          "text": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+          "label": "repeat",
+          "why": "the dek's first clause in other words (lexical overlap 0.57)",
+          "source": "operator queue 2026-10-21, badPointsEVt4JeD",
+          "labelSource": "human"
+        },
+        {
+          "text": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+          "label": "repeat",
+          "why": "the dek: the Pd asks for the inquiry commission to be set up",
+          "source": "operator queue 2026-10-21, badPointsEVt4JeD",
+          "labelSource": "human"
+        },
+        {
+          "text": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+          "label": "repeat",
+          "why": "the dek: the Pd asks for the rebalanced budget",
+          "source": "operator queue 2026-10-21, badPointsEVt4JeD",
+          "labelSource": "human"
+        },
+        {
+          "text": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+          "label": "repeat",
+          "why": "the dek: the Ragusa prosecutors charge the former mayor",
+          "source": "operator queue 2026-10-21, badPointsEVt4JeD",
+          "labelSource": "human"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-ottaviano-published",
+      "tenant": "ragusa",
+      "slug": "omicidio-ottaviano-in-aula-a-siracusa-la-ricostruzione-dei-carabinieri-l-53f12a27-fa834b4e",
+      "date": "2026-10-07T07:27:37Z",
+      "title": "Nove ore di udienza a Siracusa per l'omicidio Ottaviano: le difese contestano il riconoscimento nei video",
+      "dek": "Al processo per l'uccisione di Giuseppe Ottaviano, avvenuta a Scicli nel maggio 2024, i carabinieri hanno esposto in aula l'indagine; i legali degli imputati chiedono una perizia antropometrica sulle immagini.",
+      "body": "",
+      "points": [
+        {
+          "text": "A Siracusa è in corso il processo per l'omicidio di Giuseppe Ottaviano, ucciso a Scicli nel maggio 2024",
+          "label": "repeat",
+          "why": "title and dek: Siracusa, the trial, Ottaviano, Scicli, May 2024",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Nove ore di udienza: in aula i carabinieri hanno raccontato come è stata condotta l'indagine",
+          "label": "repeat",
+          "why": "title (nine hours) and dek (the carabinieri set out the investigation)",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le difese degli imputati contestano il riconoscimento degli accusati nei video delle telecamere",
+          "label": "repeat",
+          "why": "the title's second half",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Ora i legali chiedono una perizia antropometrica sulle immagini: sarà decisiva per il processo",
+          "label": "repeat",
+          "why": "the dek's last clause, plus an evaluation (\"decisiva\") the dek does not make",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-confcooperative-published",
+      "tenant": "ragusa",
+      "slug": "confcooperative-ragusa-indica-nell-aggregazione-la-via-per-la-filiera-la-11a0ca70-262de8e5",
+      "date": "2026-10-06T06:46:23.023Z",
+      "title": "Confcooperative Ragusa indica nell'aggregazione la via per la filiera lattiero-casearia iblea",
+      "dek": "Alla 51ª edizione della FAM, l'associazione siciliana ha annunciato un appuntamento precongressuale per il 30 novembre e quattro direttrici per valorizzare il latte prodotto nel territorio ibleo.",
+      "body": "",
+      "points": [
+        {
+          "text": "Confcooperative Ragusa punta sull'unione tra produttori per rilanciare la filiera del latte ibleo",
+          "label": "repeat",
+          "why": "the title in other words: aggregazione → unione tra produttori, lattiero-casearia → latte",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "L'annuncio è arrivato alla 51ª edizione della FAM, la fiera agricola del territorio",
+          "label": "repeat",
+          "why": "the dek: the 51st FAM",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il 30 novembre è in programma un appuntamento precongressuale per discuterne insieme",
+          "label": "repeat",
+          "why": "the dek: the pre-congress meeting on 30 November",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Quattro direttrici guideranno il piano per valorizzare il latte prodotto negli Iblei",
+          "label": "repeat",
+          "why": "the dek: four lines to add value to Iblei milk",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-bus-comiso-published",
+      "tenant": "ragusa",
+      "slug": "bus-pieni-verso-vittoria-le-famiglie-di-comiso-e-pedalino-scrivono-al-pr-5f9a1c89-a8f3ce70",
+      "date": "2026-10-06T06:09:21Z",
+      "title": "Autobus pieni e corse insufficienti: da Comiso e Pedalino le famiglie scrivono al Prefetto",
+      "dek": "L'ingresso a scuola anticipato dalle 8.15 alle 8 e le corse non adeguate: sei autobus verso Ragusa, al massimo due verso Vittoria. Le famiglie chiedono orari allineati alle lezioni.",
+      "body": "",
+      "points": [
+        {
+          "text": "Da Comiso e Pedalino gli studenti partono all'alba: autobus pieni e corse troppo poche.",
+          "label": "repeat",
+          "why": "the title (full buses, too few runs, Comiso and Pedalino); \"all'alba\" is colour, not a fact",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "L'ingresso a scuola è anticipato alle 8, ma i mezzi non seguono i nuovi orari.",
+          "label": "repeat",
+          "why": "the dek: school starts at 8, the runs do not fit",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Sei bus verso Ragusa, appena due verso Vittoria: molti ragazzi restano a terra.",
+          "label": "repeat",
+          "why": "the dek's numbers; \"restano a terra\" is an inference the dek does not make",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le famiglie scrivono al Prefetto: chiedono corse allineate con le lezioni.",
+          "label": "repeat",
+          "why": "title (letter to the Prefect) and dek (timetables aligned with lessons)",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-sanita-pozzallo-published",
+      "tenant": "ragusa",
+      "slug": "sanita-a-pozzallo-vertice-in-comune-su-turni-scoperti-e-cantiere-del-pta-83c42b44-da098528",
+      "date": "2026-10-06T13:01:54Z",
+      "title": "Sanità a Pozzallo, vertice in Comune su turni scoperti e cantiere del PTA",
+      "dek": "Il direttore generale dell'Asp di Ragusa, Giuseppe Drago, ha incontrato il sindaco sugli impegni per PTE, Casa della Comunità e guardia medica; il PTA in costruzione potrebbe chiudersi entro l'estate 2027.",
+      "body": "",
+      "points": [
+        {
+          "text": "Il direttore dell'Asp di Ragusa incontra il sindaco di Pozzallo sulla sanità locale.",
+          "label": "repeat",
+          "why": "title (meeting at the town hall) and dek (the ASP director meets the mayor)",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Al centro i turni scoperti di guardia medica e l'attesa per la Casa della Comunità.",
+          "label": "repeat",
+          "why": "title (uncovered shifts) and dek (guardia medica, Casa della Comunità)",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Intanto va avanti il cantiere del nuovo PTA, il Presidio Territoriale Avanzato della città.",
+          "label": "repeat",
+          "why": "the title's PTA building site; spelling out the acronym adds no fact",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "I lavori potrebbero finire entro l'estate 2027: più servizi sanitari per i residenti.",
+          "label": "repeat",
+          "why": "the dek's summer 2027, plus a generic benefit",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-penitenziaria-published",
+      "tenant": "ragusa",
+      "slug": "cinquanta-agenti-in-piu-per-gli-istituti-penitenziari-di-ragusa-siracusa-a8720374-63f9dcbe",
+      "date": "2026-10-07T09:08:22Z",
+      "title": "Polizia Penitenziaria, FdI annuncia rinforzi nelle carceri del Sud-Est siciliano",
+      "dek": "Sallemi e Cannata indicano 201 nuovi agenti in Sicilia e 50 tra Ragusa, Siracusa e Calatino; nessuna conferma ministeriale è riportata dalle testate che diffondono la ripartizione.",
+      "body": "",
+      "points": [
+        {
+          "text": "FdI annuncia rinforzi per la Polizia Penitenziaria nelle carceri del Sud-Est siciliano.",
+          "label": "repeat",
+          "why": "the title, word for word",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "I deputati Sallemi e Cannata parlano di 201 nuovi agenti in arrivo in Sicilia.",
+          "label": "repeat",
+          "why": "the dek: Sallemi and Cannata, 201 officers",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Di questi, 50 dovrebbero essere assegnati tra Ragusa, Siracusa e il Calatino.",
+          "label": "repeat",
+          "why": "the dek: 50 for Ragusa, Siracusa and Calatino",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le testate riportano la ripartizione, ma dal ministero non arriva conferma ufficiale.",
+          "label": "repeat",
+          "why": "the dek's own caveat: no ministry confirmation",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "alienwatch-osaka-published",
+      "tenant": "alienwatch",
+      "slug": "osaka-nanogap-sensor-distinguishes-amino-acid-mirror-forms-with-over-80--c6bd6e02-878da495",
+      "date": "2026-10-06T10:19:46Z",
+      "title": "Osaka team's nanogap sensor reads amino acid chirality one molecule at a time",
+      "dek": "Japanese researchers report a gold-wire nanogap and AI pipeline that distinguish L- and D-amino acids in single molecules with over 80 per cent accuracy, tested on meteorite and desert soil.",
+      "body": "",
+      "points": [
+        {
+          "text": "Osaka University researchers built a new sensor that reads single amino acid molecules.",
+          "label": "repeat",
+          "why": "the title: an Osaka team's sensor reading single molecules",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "A gold-wire nanogap plus an AI pipeline tells left- and right-handed forms apart.",
+          "label": "repeat",
+          "why": "the dek in other words: L- and D- forms → left- and right-handed",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Tested on meteorite and desert soil samples, it hit over 80 per cent accuracy.",
+          "label": "repeat",
+          "why": "the dek: over 80 per cent, meteorite and desert soil",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "This could help spot signs of life in space rocks and barren places on Earth.",
+          "label": "generic",
+          "why": "an evaluation of why it matters, no fact from the story",
+          "source": "published campaign 2026-10-06 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "alienwatch-isaacman-published",
+      "tenant": "alienwatch",
+      "slug": "nasa-s-isaacman-keeps-alien-option-open-as-uap-disclosure-waiver-faces-l-359c3611-f8d379d0",
+      "date": "2026-10-07T03:01:00Z",
+      "title": "Isaacman Leans to Natural or Man-Made UAP Causes, Keeps NASA Role Open",
+      "dek": "The NASA administrator told NewsNation the agency should be involved if unexplained objects prove extraterrestrial, while saying his instinct points to natural phenomena or advanced technology.",
+      "body": "",
+      "points": [
+        {
+          "text": "NASA chief Jared Isaacman spoke to NewsNation about unexplained aerial phenomena.",
+          "label": "repeat",
+          "why": "title and dek: Isaacman, NASA administrator, NewsNation",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "He said his instinct points to natural causes or advanced human technology.",
+          "label": "repeat",
+          "why": "the dek: natural phenomena or advanced technology",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Still, he said NASA should be involved if the objects ever prove extraterrestrial.",
+          "label": "repeat",
+          "why": "the dek's first clause",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "For now, he is keeping NASA's role in UAP research open.",
+          "label": "repeat",
+          "why": "the title's \"Keeps NASA Role Open\"",
+          "source": "published campaign 2026-10-07 (points written from title and dek only)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-modica-corte-article",
+      "tenant": "ragusa",
+      "slug": "modica-la-corte-dei-conti-la-indica-al-parlamento-e-la-commissione-d-inc-c57e2fef-0271853c",
+      "date": "2026-10-19T23:25:39.753Z",
+      "title": "Modica, la Corte dei conti la indica al Parlamento mentre la commissione d'inchiesta non parte",
+      "dek": "La Sezione delle autonomie dedica a Modica una scheda sul dissesto; il Pd chiede l'insediamento della commissione d'inchiesta e il bilancio riequilibrato, mentre la Procura di Ragusa contesta l'ex sindaco.",
+      "body": "La Corte dei conti ha inserito Modica, nel Ragusano, tra i casi nazionali di crisi finanziaria degli enti locali: nella relazione 2025 sui Comuni in crisi finanziaria, approvata dalla Sezione delle autonomie lo scorso 24 settembre, alla città è dedicata una scheda autonoma che elenca sette versioni del piano di riequilibrio, un'istruttoria ministeriale durata 1.155 giorni, un disavanzo di 117,6 milioni di euro, una capacità di riscossione dei residui scesa sotto il 6 per cento e ritardi nei pagamenti ai fornitori fino a oltre 570 giorni. Secondo i due articoli, le responsabilità politiche e amministrative indicate si sarebbero maturate in larga misura tra il 2013 e il 2022. È il passaggio che riporta il dissesto di un comune della provincia di Ragusa al centro del confronto politico locale, sul terreno della gestione delle risorse pubbliche e dei tempi del risanamento.\n\nSul versante giudiziario, la Procura di Ragusa ha chiesto il rinvio a giudizio dell'ex sindaco Ignazio Abbate e di altri quattro indagati, tra cui l'allora segretario generale dell'Ente, per le vicende relative ai ristori per il maltempo e alla gestione dei fondi regionali destinati ai buoni libro negli anni scolastici 2019-2022. Francesco Stornello, segretario cittadino del Partito Democratico, dopo aver richiamato la presunzione di innocenza, definisce «devastante» il dato politico e amministrativo che emerge: a suo giudizio, mentre la Corte dei conti certifica al Parlamento il fallimento contabile di quegli anni, in sede giudiziaria si contesta l'indebita destinazione ad altre finalità di somme vincolate al diritto allo studio delle famiglie modicane, che secondo l'accusa non sarebbero mai state reintegrate. Il dirigente domanda quindi cosa stia facendo chi a Palazzo San Domenico ha il dovere di fare luce su questo disastro, e risponde: «assolutamente nulla».\n\nIl 2 febbraio 2026 il Consiglio comunale ha istituito all'unanimità una Commissione consiliare d'inchiesta sulle cause del dissesto, con l'obiettivo di esaminare vent'anni di gestione (2005-2025) e una durata dei lavori fissata in dodici mesi. A oltre otto mesi da quella decisione, secondo i due articoli l'organismo non ha mai iniziato l'attività: la nomina del presidente è rimasta bloccata tra rilievi di incompatibilità, dimissioni e un parere della Segreteria generale atteso da mesi.",
+      "points": [
+        {
+          "text": "Il disavanzo indicato nella scheda è di 117,6 milioni di euro.",
+          "label": "new",
+          "why": "a number from the article",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il piano di riequilibrio ha avuto sette versioni, con un'istruttoria di 1.155 giorni.",
+          "label": "new",
+          "why": "two numbers from the article",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "La Corte dei conti dedica a Modica una scheda nella relazione sul dissesto.",
+          "label": "repeat",
+          "why": "the dek's first clause, slightly more specific wording of the same fact",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "La Procura chiede il rinvio a giudizio dell'ex sindaco Abbate e di altri quattro.",
+          "label": "new",
+          "why": "hard: shares the dek's subject (Procura, ex sindaco) but adds the name, the request and four co-defendants",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-modica-15-milioni",
+      "tenant": "ragusa",
+      "slug": "modica-oltre-15-milioni-da-fua-e-viminale-per-opere-pubbliche-e-strade-ea186748-e0efd621",
+      "date": "2026-10-19T08:53:57Z",
+      "title": "Modica, oltre 15 milioni per le opere pubbliche: decreti emanati, restano le gare",
+      "dek": "Secondo gli ex assessori Antoci e Drago i decreti sono già emanati; per i 5 milioni del Viminale manca la variazione di bilancio, mentre le prime gare sono attese tra fine anno e fine 2026.",
+      "body": "A Modica sono destinati oltre 15 milioni di euro per le opere pubbliche dei prossimi anni: 10 milioni e 427 mila euro arrivano dai fondi della Fua di Ragusa e finanziano cinque interventi, mentre altri 5 milioni sono stanziati dal Ministero dell'Interno. La cifra è stata resa pubblica da due ex assessori comunali, Tino Antoci e Antonio Drago, dopo la firma dei disciplinari da parte dei sei sindaci dell'area Fua e l'emanazione dei decreti ministeriali. Il passaggio riguarda la programmazione dei lavori pubblici e la vita civile di Modica, un tema che ricade pienamente nella politica locale della provincia di Ragusa.\n\nGli interventi finanziati dalla Fua, secondo la ricostruzione dei due ex amministratori, sono distribuiti tra le diverse aree del comune. A Modica Alta è previsto il parcheggio di San Giovanni con un'area di interscambio, opera che — secondo Antoci e Drago — il centro storico attende da trent'anni e che potrebbe incidere sulla sua fruibilità da parte dei residenti e dei visitatori. Alla Sorda il programma comprende il completamento del Polo commerciale, con la quarta corsia e la riqualificazione dell'asse urbano; sulla costa la prima pista ciclopedonale della città, tra Marina di Modica e Maganuco, accompagnata dalla riqualificazione della piazzetta di Maganuco. Completano il quadro lo stadio Pietro Scollo, destinato anche a eventi e famiglie, e l'efficientamento energetico della scuola Sacro Cuore.\n\nAi fondi Fua si aggiungono i 5 milioni del Viminale, destinati ai bagni diurni di via Santa Elisabetta e alla strada di riferimento, alla sistemazione del «geodetico» di via Fabrizio — intervento citato da Ragusa Oggi e dal Quotidiano di Ragusa senza ulteriori precisazioni sulla sua natura — e a oltre 3 milioni di lavori su asfalto e sicurezza stradale. Antoci e Drago sottolineano che i decreti sono già stati emanati e che per procedere resta da completare la variazione di bilancio; stando alle fonti, l'attesa del passaggio amministrativo riguarda questa tranche del Viminale e non l'intero pacchetto. Sempre secondo i due ex assessori, la somma complessiva supera quanto Modica ha ricevuto dal Pnrr e da Agenda Urbana, raffronto che gli articoli non accompagnano con cifre indipendenti.\n\nSul piano dei tempi, la previsione dei due ex amministratori è che le prime gare partano entro la fine dell'anno: lo riportano Ragusa Oggi e Radio RTM, mentre il Quotidiano di Ragusa indica la fine del 2026.",
+      "points": [
+        {
+          "text": "Dai fondi Fua arrivano 10 milioni e 427 mila euro per cinque interventi.",
+          "label": "new",
+          "why": "the Fua share and the number of works",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "La tranche del Ministero dell'Interno attende un passaggio contabile del Comune.",
+          "label": "repeat",
+          "why": "hard paraphrase of the dek: Viminale → Ministero dell'Interno, variazione di bilancio → passaggio contabile",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Tra le opere c'è la prima pista ciclopedonale, tra Marina di Modica e Maganuco.",
+          "label": "new",
+          "why": "a named work and places",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "A Modica Alta è previsto il parcheggio di San Giovanni con un'area di interscambio.",
+          "label": "new",
+          "why": "a named work and place",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-pozzallo-enel",
+      "tenant": "ragusa",
+      "slug": "pozzallo-ammatuna-sospende-i-lavori-enel-e-avvia-la-ripavimentazione-del-6a00950c-cf6205d1",
+      "date": "2026-10-19T08:51:14.6Z",
+      "title": "Pozzallo, Ammatuna sospende i cantieri Enel e chiede garanzie sul ripristino dell'asfalto",
+      "dek": "Il sindaco Roberto Ammatuna ha ordinato lo stop alle imprese incaricate dall'Enel su tutto il territorio comunale, nello stesso giorno in cui sono iniziate le scarificazioni propedeutiche al nuovo manto stradale.",
+      "body": "Le operazioni di scarificazione di alcune arterie urbane di Pozzallo, propedeutiche alla realizzazione del nuovo manto stradale, sono iniziate il 19 ottobre 2026 e nello stesso giorno il sindaco Roberto Ammatuna ha ordinato la sospensione immediata dei lavori di tutte le imprese incaricate dall'Enel su tutto il territorio comunale. Il passaggio riguarda la politica locale e la vita civile della provincia di Ragusa: la manutenzione delle strade cittadine, il coordinamento tra cantieri e la qualità del ripristino dopo gli scavi sono materia di amministrazione quotidiana, e la decisione del primo cittadino di Pozzallo rende pubblico un punto di conflitto con il gestore della rete elettrica.\n\nLa posizione dell'amministrazione comunale è affidata alle parole dello stesso sindaco. Secondo Ammatuna non è possibile che ogni anno il Comune impegni somme ingenti, provenienti da finanziamenti regionali e nazionali, per la pavimentazione delle strade e che poi vi siano imprese le quali non eseguono i lavori di normale ripristino dell'asfalto, lasciando parecchie arterie urbane cittadine in uno stato di degrado che il primo cittadino definisce inaccettabile. L'ordine di sospensione resterà in vigore, secondo quanto reso noto dall'amministrazione, fino a quando l'azienda non assumerà impegni chiari e precisi sia sull'esecuzione degli scavi sia, soprattutto, sul ripristino dell'asfalto nel rispetto delle norme vigenti. Non risulta alcuna replica dell'Enel.\n\nIl nodo indicato dal Comune riguarda l'impiego di risorse pubbliche e la loro tenuta nel tempo: a Pozzallo l'amministrazione ha impegnato finanziamenti regionali e nazionali per asfaltare le arterie, e il rischio prospettato è che interventi successivi sulla sede stradale vanifichino quello sforzo, restituendo ai cittadini una rete compromessa. La vicenda è inserita in un fenomeno più ampio, quello delle strade riaperte a poche settimane dall'asfaltatura per lavori alla rete elettrica, alla fibra ottica o ad altri sottoservizi, con rattoppi approssimativi e scavi che si protraggono. Sul piano della sicurezza stradale, l'asfalto ammalorato è descritto come un pericolo concreto soprattutto per motociclisti e ciclisti, maggiormente esposti a una perdita di aderenza o a una manovra improvvisa per evitare un ostacolo; le responsabilità dei singoli incidenti vanno comunque accertate caso per caso.",
+      "points": [
+        {
+          "text": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+          "label": "new",
+          "why": "hard: restates the dek's same-day detail but adds the date",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Dall'Enel, al momento, non risulta alcuna replica.",
+          "label": "new",
+          "why": "hard: the other party's response (none) — a fact about the story, not about the sources",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il sindaco ha fermato tutte le ditte che lavorano per conto dell'Enel in città.",
+          "label": "repeat",
+          "why": "the dek's first clause in other words",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Una scelta che riguarda la sicurezza di tutti gli automobilisti pozzallesi.",
+          "label": "generic",
+          "why": "generic commentary",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-chirurgo-danno-erariale",
+      "tenant": "ragusa",
+      "slug": "corte-dei-conti-373-mila-euro-di-danno-erariale-a-un-chirurgo-estetico-a8c684d3-cd261ce6",
+      "date": "2026-10-19T08:08:28Z",
+      "title": "Danno erariale da 373 mila euro contestato a un chirurgo estetico tra Catania e Messina",
+      "dek": "La Procura della Corte dei conti di Palermo contesta a un chirurgo estetico 373 mila euro per prestazioni private non autorizzate svolte nel 2021, anche durante i turni in ospedale; citati primario e clinica messinese.",
+      "body": "La Procura regionale della Corte dei conti di Palermo ha contestato a un chirurgo estetico un danno erariale di 373.000 euro, al termine di accertamenti condotti dal I Gruppo della Guardia di finanza di Catania. L'atto di citazione, notificato anche ad altri soggetti, riguarda una condotta ricostruita nel corso del 2021 e collocata, secondo gli inquirenti, tra le province di Catania e di Messina.\n\nSecondo la contestazione, il medico – che aveva optato per il regime di intramoenia con l'ospedale pubblico di appartenenza e percepiva la relativa indennità di esclusività – avrebbe svolto attività libero professionale non autorizzata in alcuni studi medici privati del Catanese e del Messinese e per una società di lavoro interinale, coprendo tali impegni anche in giorni e orari in cui figurava in servizio in ospedale. Nella ricostruzione della Procura contabile, l'attività privata si sarebbe svolta senza contribuire all'abbattimento delle liste di attesa della struttura pubblica.\n\nPresso una clinica privata della provincia di Messina le prestazioni sarebbero state erogate, secondo gli accertamenti della Guardia di finanza, grazie all'interposizione di altri medici indicati come prestanome nelle cartelle cliniche e nelle fatture. Il calcolo dei compensi percepiti in nero è stato avviato dalla documentazione extracontabile sequestrata nello studio del professionista: in particolare un'agenda personale con sigle alfanumeriche, la cui decodifica è stata completata con le informazioni raccolte dalle testimonianze di oltre 130 pazienti.\n\nL'atto di citazione è stato notificato anche al primario del reparto ospedaliero, al quale si contesta la mancata vigilanza sull'effettiva presenza del medico nei turni previsti, alla clinica privata messinese e a un altro medico che si sarebbe prestato a figurare al posto del collega nei documenti sanitari e fiscali; nei loro confronti viene ipotizzata una responsabilità in solido. Le contestazioni restano allo stato di atto di citazione e nessuna delle posizioni richiamate risulta definita; non è indicata una data di udienza.",
+      "points": [
+        {
+          "text": "Gli accertamenti li ha condotti la Guardia di finanza di Catania.",
+          "label": "new",
+          "why": "a name (who investigated)",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "I compensi in nero sono stati ricostruiti anche con oltre 130 pazienti ascoltati.",
+          "label": "new",
+          "why": "a number and the method",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il medico avrebbe lavorato nel privato senza permesso, persino mentre era di turno.",
+          "label": "repeat",
+          "why": "hard paraphrase of the dek: unauthorised private work, also during hospital shifts",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Per ora non è indicata alcuna data di udienza.",
+          "label": "generic",
+          "why": "a statement that a detail is missing: no fact",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-acate-fotovoltaico",
+      "tenant": "ragusa",
+      "slug": "acate-due-intrusioni-notturne-nel-parco-fotovoltaico-di-contrada-chiappa-75352586-2f5379c7",
+      "date": "2026-10-18T17:51:29.389Z",
+      "title": "Acate, due intrusioni notturne nel parco fotovoltaico di contrada Chiappa",
+      "dek": "Due allarmi nella stessa notte hanno segnalato intrusioni nell'impianto: cavi tranciati e recinzione manomessa, nessuna persona individuata. I gestori sono stati invitati a presentare denuncia.",
+      "body": "Rientra nella cronaca della provincia di Ragusa, e in particolare del territorio di Acate, la vicenda di un impianto fotovoltaico di contrada Chiappa finito al centro di due segnalazioni di intrusione nella stessa notte. Secondo la ricostruzione diffusa dalle cronache locali, il primo allarme è scattato intorno alle 23.21 e il secondo all'1.02, facendo intervenire in entrambi i casi la vigilanza privata e i Carabinieri. Dei responsabili non è stata trovata traccia.\n\nSul posto sono giunte le guardie giurate dell'Istituto di Vigilanza La Sicurezza di Vittoria, raggiunte poi da una radiomobile dell'Arma chiamata attraverso il Numero Unico di Emergenza 112. Nel primo sopralluogo è emerso che la lastra in cemento di un pozzetto interrato era stata spezzata e che alcuni cavi elettrici risultavano già tagliati. Dopo il secondo allarme, i controlli hanno accertato ulteriori danni: la rete di recinzione perimetrale manomessa, altri fili elettrici tagliati dietro alcuni pannelli solari e un secondo tombino in cemento aperto, con i cavi interni tranciati. Le guardie giurate sono rimaste all'interno della struttura per presidiarla, mentre i militari hanno esteso i controlli alle zone circostanti.\n\nRestano aperte alcune questioni che le stesse fonti di cronaca indicano come non chiarite. Non è stabilito se i due episodi siano stati compiuti dalle stesse persone, né che cosa i responsabili intendessero asportare — se cavi di rame o altro materiale — e se siano riusciti a impossessarsene. I gestori dell'impianto sono stati informati dell'accaduto e invitati a presentare una denuncia formale, necessaria per quantificare i danni e avviare le indagini finalizzate all'identificazione degli autori.\n\nLo stato verificato al momento è dunque quello di un'indagine in corso e di danni accertati ma non ancora quantificati. Eventuali sistemi di videosorveglianza presenti nell'area potrebbero fornire elementi utili, secondo quanto riferito dalle cronache locali, ma nessun fermo o provvedimento è stato reso noto.",
+      "points": [
+        {
+          "text": "Il primo allarme è scattato alle 23.21, il secondo all'1.02.",
+          "label": "new",
+          "why": "times",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Sul posto le guardie dell'Istituto di Vigilanza La Sicurezza di Vittoria.",
+          "label": "new",
+          "why": "a name",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Nella stessa notte l'impianto è stato violato due volte e nessuno è stato trovato.",
+          "label": "repeat",
+          "why": "title and dek: two intrusions in one night, nobody found",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le fonti non chiariscono se i ladri cercassero il rame.",
+          "label": "generic",
+          "why": "a statement about the sources",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-studenti-piazza",
+      "tenant": "ragusa",
+      "slug": "a-ragusa-la-protesta-studentesca-mette-al-centro-edilizia-scolastica-e-c-75936f99-4b42c7c2",
+      "date": "2026-10-18T06:42:06Z",
+      "title": "Ragusa, cinque istituti in piazza San Giovanni: sicurezza degli edifici e costo della scuola",
+      "dek": "Il 16 ottobre gli studenti del Gagliardi, Umberto I, Vico, Galileo-Ferraris e Fermi hanno aderito allo sciopero nazionale promosso da Voce degli Studenti, tra plafoniere cadute, bagni senz'acqua e rincari.",
+      "body": "Piazza San Giovanni, a Ragusa, la mattina del 16 ottobre. È qui che gli studenti degli istituti R. Gagliardi, Umberto I, G.B. Vico, Galileo-Ferraris e del liceo Enrico Fermi si sono ritrovati per la manifestazione promossa da Voce degli Studenti in occasione dello sciopero studentesco nazionale. La vicenda riguarda la vita civile della città e, insieme, quella della provincia: il documento diffuso dagli organizzatori richiama infatti anche quanto accaduto all'istituto Pappalardo di Vittoria, e la richiesta finale è quella di aprire un confronto concreto con le istituzioni su sicurezza degli edifici, condizioni igieniche, trasporti e costi dell'istruzione.\n\nIl cuore della protesta è l'incolumità dentro i plessi. Secondo il comunicato degli organizzatori, al Pappalardo di Vittoria il cedimento di una parte del soffitto ha provocato il ferimento di due studenti; nei giorni precedenti, al liceo Fermi di Ragusa, un apparecchio di illuminazione a LED si è staccato colpendo un ragazzo a un braccio, e un secondo elemento pericolante è stato successivamente rimosso dal docente presente in aula. A questo si aggiungono, sempre secondo la nota, bagni frequentemente guasti o privi d'acqua e un topo vivo avvistato di recente tra i banchi del Galileo-Ferraris. «La scuola deve essere un luogo sicuro, non uno spazio nel quale convivere quotidianamente con rischi e disservizi», si legge nel documento.\n\nLa mobilitazione non si è fermata all'edilizia. Gli studenti hanno parlato delle difficoltà economiche delle famiglie: il caro carburanti ha aumentato i costi dei trasporti, mentre i prezzi dei libri scolastici continuano a rappresentare un peso considerevole. «Il diritto allo studio non può dipendere dalle possibilità economiche di ciascuno», si legge ancora nella nota, che interviene anche sulle condizioni di lavoro degli insegnanti, tra precarietà e stipendi inadeguati destinati a ripercuotersi sulla qualità dell'insegnamento. Di qui la tesi, attribuita ai promotori, secondo cui le politiche degli ultimi vent'anni avrebbero progressivamente indebolito la scuola pubblica sottraendole risorse.",
+      "points": [
+        {
+          "text": "Al liceo Fermi una plafoniera a LED si è staccata e ha colpito un ragazzo a un braccio.",
+          "label": "new",
+          "why": "a concrete detail: where and what happened (the dek only says \"plafoniere cadute\")",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Al Galileo-Ferraris è stato visto un topo vivo tra i banchi.",
+          "label": "new",
+          "why": "a concrete detail",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Studenti di cinque istituti ragusani in piazza il 16 ottobre per lo sciopero.",
+          "label": "repeat",
+          "why": "title and dek: five schools, the square, 16 October",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Una protesta che fa riflettere sul futuro della scuola pubblica.",
+          "label": "generic",
+          "why": "generic commentary",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-marina-marza-ustioni",
+      "tenant": "ragusa",
+      "slug": "ferito-ustionato-a-marina-marza-elisoccorso-attivato-resta-il-nodo-delle-48d31d74-db7bb470",
+      "date": "2026-10-17T11:08:47.995Z",
+      "title": "Ustioni e fumo inalato a Marina Marza: un ferito e la questione del 118",
+      "dek": "L'uomo ha riportato ustioni al volto e alle mani ed è stato trasferito in una struttura specializzata; secondo quanto riferito, la disponibilità di ambulanze medicalizzate nell'area di Modica resta da verificare.",
+      "body": "Un uomo è rimasto ustionato al volto e alle mani oggi nella zona di Marina Marza, nel territorio di Ispica, e sarebbe stato trasferito d'urgenza in una struttura ospedaliera specializzata. La vicenda appartiene alla cronaca della provincia di Ragusa e, in particolare, a quel territorio ibleo che comprende Ispica e Modica: è su questo sfondo che il caso richiama la copertura delle postazioni del 118, questione che le fonti presentano come ricorrente nell'area.\n\nSecondo le prime informazioni, il ferito avrebbe anche inalato del fumo, circostanza che avrebbe reso necessario il trasferimento urgente. Per garantire l'assistenza sanitaria è stato attivato l'elisoccorso, intervenuto sul posto per il trasporto del paziente. I due resoconti disponibili non riportano le generalità dell'uomo.\n\nResta invece oggetto di verifica un aspetto dell'intervento. Secondo quanto riferito, e senza che le fonti indichino un autore specifico di questa ricostruzione, il ricorso all'elicottero non sarebbe stato legato unicamente alla gravità delle condizioni del ferito, ma anche alla presunta indisponibilità di ambulanze medicalizzate nell'area di Modica nel momento in cui è scattato l'allarme. Le stesse fonti precisano che la circostanza dovrà essere eventualmente confermata dagli organi competenti. Distinta da questa è la segnalazione del giornalista Carmelo Riccotti La Rocca, che ha evidenziato come il caso riproponga una problematica già nota nel territorio ibleo, ovvero la carenza di medici sulle postazioni del 118.\n\nSu questo terreno si innesta il contesto richiamato dalle fonti: da tempo, si legge, il servizio 118 nella provincia di Ragusa fa i conti con la cronica mancanza di personale medico, una situazione che rischia di incidere sulla copertura delle postazioni territoriali e sulla capacità di risposta in caso di emergenze particolarmente delicate. Le fonti disponibili non riportano, allo stato, conferme né smentite della presunta indisponibilità delle ambulanze medicalizzate.",
+      "points": [
+        {
+          "text": "Per il trasferimento del ferito è intervenuto l'elisoccorso.",
+          "label": "new",
+          "why": "the method: air ambulance",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "L'uomo avrebbe respirato anche del fumo.",
+          "label": "repeat",
+          "why": "hard: the title already says \"fumo inalato\"",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il giornalista Carmelo Riccotti La Rocca segnala la carenza di medici del 118.",
+          "label": "new",
+          "why": "a name and an attributed position",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le fonti non riportano il nome del ferito.",
+          "label": "generic",
+          "why": "a statement about the sources",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-mare-senza-frontiere",
+      "tenant": "ragusa",
+      "slug": "a-ragusa-la-stagione-2026-di-mare-senza-frontiere-chiude-con-392-utenti-afa486f2-d92d0103",
+      "date": "2026-10-17T08:09:01.06Z",
+      "title": "Mare senza frontiere, il 2026 segna il picco storico di utenti e interventi",
+      "dek": "Il progetto di accessibilità balneare nato su iniziativa e finanziamento dell'ASP di Ragusa con i Comuni costieri chiude la stagione 2026 con 392 utenti e 1.888 interventi.",
+      "body": "Nel 2019, sulle spiagge più affollate della provincia di Ragusa, box infermieristici erano attivi dal lunedì al venerdì. Era la prima edizione, sperimentale, rivolta a casi clinici particolarmente complessi, di \"Mare senza frontiere\", il progetto di accessibilità balneare nato su iniziativa e finanziamento dell'ASP di Ragusa in stretta sinergia con i Comuni costieri iblei, con un obiettivo chiaro: abbattere le barriere e permettere alle persone con disabilità e gravi limitazioni dell'autonomia di godersi il mare in sicurezza e dignità. Da allora il servizio è cresciuto fino a chiudere la stagione 2026 con 392 utenti accolti e 1.888 interventi complessivi: un picco storico che riguarda da vicino la vita civile del Ragusano, i suoi litorali e le amministrazioni locali coinvolte.\n\nI dati di fine stagione diffusi dall'ASP di Ragusa indicano un balzo rispetto al 2023: +50,19% di utenti e +59,46% di prestazioni. La spinta istituzionale e la copertura economica del progetto sono garantite dall'ASP di Ragusa e dai Comuni costieri. I questionari di gradimento raccolti a fine stagione registrano 4,97 su 5 per la cordialità del personale e 4,93 su 5 per il lavoro degli operatori socio-sanitari; il 94,44% degli intervistati raccomanderebbe il servizio ad altre persone.\n\nNel tempo, il modello è stato rimodulato ascoltando le risposte dell'utenza. La figura centrale è diventata quella dell'OSS e il servizio è stato esteso a 7 giorni su 7, includendo i fine settimana per garantire una copertura continuativa. La gestione quotidiana poggia su una collaborazione nel Terzo settore: dopo i primi due anni affidati direttamente agli enti di cure palliative, dal terzo anno l'ASP ha indetto una procedura di gara aggiudicata a un Raggruppamento Temporaneo di Imprese che vede Samot Ragusa ETS nel ruolo di capogruppo e Samot ETS come componente. Il coordinamento operativo, affidato sin dall'inizio a Samot ETS, si occupa del flusso informativo con l'utenza, delle prenotazioni per le spiagge, del coordinamento del personale e del monitoraggio sul campo.\n\nIl bilancio di fine stagione descrive l'esperienza come un modello da esportare, e richiama l'unione tra sanità pubblica, amministrazioni locali e competenze del Terzo settore come motore di un'assistenza che può diventare benessere, socializzazione e libertà. Dai questionari emergono anche indicazioni per il futuro: migliorare le dotazioni strutturali, come passerelle, sedie Job, parcheggi riservati e servizi igienici.",
+      "points": [
+        {
+          "text": "Rispetto al 2023 gli utenti sono cresciuti del 50,19%.",
+          "label": "new",
+          "why": "a number",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il 94,44% degli intervistati consiglierebbe il servizio.",
+          "label": "new",
+          "why": "a number",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Quest'anno il progetto ha accolto 392 persone con 1.888 interventi.",
+          "label": "repeat",
+          "why": "hard: the dek's numbers with other words (lexical overlap under 0.6)",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il servizio ora copre sette giorni su sette, fine settimana compresi.",
+          "label": "new",
+          "why": "a concrete detail",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-seme-baps",
+      "tenant": "ragusa",
+      "slug": "ragusa-un-milione-di-euro-per-incubare-12-team-e-accelerare-9-pmi-sicili-964efc36-99ad1360",
+      "date": "2026-10-16T15:56:29Z",
+      "title": "Ragusa, un milione di euro per incubare 12 team e accelerare 9 Pmi siciliane",
+      "dek": "Il progetto S.E.M.E. guidato da BAPS con Incubatore SEI e MEET apre le candidature fino al 15 novembre 2026 nell'Hub di piazza Matteotti, con graduatorie previste entro il 28 novembre.",
+      "body": "A Ragusa BAPS ha aperto le candidature per i programmi di incubazione e accelerazione del progetto S.E.M.E. – Sicilian Ecosystem for Modern Entrepreneurship: dodici posti sono riservati a team di aspiranti imprenditori e nove a piccole e medie imprese già operative. La selezione si svolge in città, nel Greentech Mediterranean Innovation Hub ricavato nello storico palazzo BAPS di piazza Matteotti, già sede della Banca d'Italia, e rientra dunque tra le notizie economiche e civili del capoluogo ibleo: l'iniziativa mobilita risorse per un milione di euro e oltre 3.000 metri quadrati dedicati all'innovazione, con una ricaduta diretta sulle imprese e sui talenti del territorio.\n\nIl progetto è promosso da BAPS insieme a Incubatore SEI e MEET S.r.l.; BAPS è capofila dell'associazione temporanea di scopo beneficiaria del contributo previsto dal bando «Open Innovation Sicilia», nell'ambito del PR FESR Sicilia 2021–2027. L'avviso, pubblicato venerdì 16 ottobre, prevede due percorsi complementari: l'incubazione accompagna la nascita di nuove imprese, l'accelerazione punta a rafforzare i modelli di business, le competenze tecnologiche e la presenza sul mercato delle Pmi. Le attività comprendono formazione, mentoring, sperimentazione di soluzioni e contatti con potenziali investitori.\n\nLa selezione avverrà tramite procedura pubblica e valorizzerà innovazione, sostenibilità, imprenditoria giovanile ed equilibrio di genere. Secondo i promotori, le startup selezionate potranno testare le proprie soluzioni su esigenze reali delle aziende, avviare progetti pilota e accedere a bandi e capitali per la crescita; il network dell'Hub è descritto come una piattaforma capace di connettere imprese, startup, università, centri di ricerca e istituzioni. «Il progetto S.E.M.E. rappresenta un importante riconoscimento della capacità di BAPS di promuovere iniziative concrete a sostegno dell'innovazione e dello sviluppo del territorio», dichiara Saverio Continella, amministratore delegato di BAPS, secondo il quale l'obiettivo è «contribuire alla creazione di un ecosistema capace di trasformare idee e competenze in nuove opportunità imprenditoriali», accompagnando startup e Pmi siciliane lungo percorsi di crescita «più competitivi, digitali e sostenibili».\n\nLe domande dovranno essere presentate entro le ore 12.00 del 15 novembre 2026; la pubblicazione delle graduatorie è prevista entro il 28 novembre 2026.",
+      "points": [
+        {
+          "text": "L'Hub mette a disposizione oltre 3.000 metri quadrati per l'innovazione.",
+          "label": "new",
+          "why": "a number",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "L'ad di BAPS, Saverio Continella, parla di «nuove opportunità imprenditoriali».",
+          "label": "new",
+          "why": "a name and an attributed quote",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "BAPS cerca 12 team da incubare e 9 Pmi da accelerare con un milione di euro.",
+          "label": "repeat",
+          "why": "the title",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il bando rientra in «Open Innovation Sicilia», nel PR FESR 2021-2027.",
+          "label": "new",
+          "why": "a name: the programme",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-omicidio-russo",
+      "tenant": "ragusa",
+      "slug": "vittoria-omicidio-russo-la-corte-d-assise-d-appello-di-catania-fissa-al--ef1649e1-55458f94",
+      "date": "2026-10-16T12:13:45Z",
+      "title": "Omicidio Russo a Vittoria, l'appello di Catania sulla capacità di intendere e di volere",
+      "dek": "Secondo gli investigatori il movente risalirebbe a una lite di due anni prima per una sigaretta negata; la difesa di Alex Ventura chiede una nuova perizia psichiatrica.",
+      "body": "Il processo d'appello per l'omicidio di Giovanni Russo, il 22enne ucciso a Vittoria il 27 febbraio 2024, si è riaperto davanti alla Corte d'Assise d'Appello di Catania: il giudizio di secondo grado ruota attorno alla capacità di intendere e di volere dell'imputato, il 29enne Alex Ventura, condannato in primo grado a 26 anni di reclusione. Il caso rientra nella cronaca della provincia di Ragusa, perché il delitto avvenne in via IV aprile, a Vittoria, mentre le udienze di secondo grado si tengono a Catania. La prossima udienza è fissata per il 10 dicembre, quando è attesa la requisitoria del Procuratore generale.\n\nSecondo la ricostruzione dell'accusa, Ventura avrebbe incontrato casualmente Russo nei pressi della propria abitazione, sarebbe rientrato in casa per prendere un fucile e avrebbe poi fatto fuoco a distanza ravvicinata; il Corriere di Ragusa e Ragusa Oggi riferiscono di due colpi, uno alla testa e uno al cuore. Le indagini vennero affidate ai carabinieri; il movente, secondo gli inquirenti, sarebbe stato ricondotto a una lite avvenuta un paio d'anni prima per una sigaretta negata, un episodio che — sempre secondo l'accusa — avrebbe alimentato nel tempo un risentimento culminato nell'omicidio. Le fonti presentano tale movente come presunto.\n\nLa difesa, rappresentata dall'avvocato Santino Garufi, ha chiesto la rinnovazione del dibattimento e la nomina di un «super perito»: secondo il legale, la consulenza specialistica di parte del professore Salvatore Bruno e la perizia del professore Antonino Petralia, nominato dalla Corte d'Assise, sono giunte a esiti diametralmente opposti sulla capacità di intendere e di volere di Ventura al momento dei fatti. Secondo la difesa, il dato riportato da Petralia non si sarebbe basato sulla somministrazione di test scientificamente riconosciuti e in grado di garantire un giudizio asettico e non manipolabile dal soggetto esaminato; di opposto avviso il perito nominato dalla Corte in primo grado.\n\nIn primo grado la Corte d'Assise di Siracusa aveva disposto risarcimenti per le parti civili superiori ai due milioni di euro: secondo il Corriere di Ragusa oltre 2 milioni per 11 parti civili, di cui 355.000 euro alla moglie e 743.000 euro ai due figli minori, mentre Ragusa Oggi indica un totale complessivo di oltre due milioni e 100mila euro. La stessa Corte aveva sospeso i termini della custodia cautelare in attesa delle motivazioni.",
+      "points": [
+        {
+          "text": "In primo grado Alex Ventura è stato condannato a 26 anni.",
+          "label": "new",
+          "why": "hard: the dek's name, a new number",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+          "label": "new",
+          "why": "a date and the next step",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Per chi indaga, tutto nascerebbe da una sigaretta negata due anni prima.",
+          "label": "repeat",
+          "why": "the dek's motive in other words",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "La difesa vuole un nuovo esperto che valuti la salute mentale dell'imputato.",
+          "label": "repeat",
+          "why": "hard paraphrase: the dek's new psychiatric assessment, the title's capacity to understand",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-bonus-centro-storico",
+      "tenant": "ragusa",
+      "slug": "ragusa-tre-esponenti-politici-contestano-il-bonus-da-900mila-euro-per-il-03904a06-7fa7a43a",
+      "date": "2026-10-15T14:15:08Z",
+      "title": "Ragusa, il bonus da 900mila euro per il centro storico divide Comune e opposizione",
+      "dek": "L'opposizione contesta il bonus destinato alla residenzialità tra Ragusa Superiore e Ragusa Ibla: secondo Caruso, Poidomani e Mauro interesserà una ventina di beneficiari, alcuni già residenti.",
+      "body": "A Ragusa la decisione dell'amministrazione comunale di destinare 900mila euro a incentivare la residenzialità nel centro storico, tra Ragusa Superiore e Ragusa Ibla, è al centro di uno scontro politico che riguarda la vita civile della città. Tre esponenti dell'opposizione contestano l'efficacia del bonus edilizio, sostenendo che non affronti i problemi di sicurezza, degrado e abbandono che, a loro giudizio, interessano le due aree storiche; la polemica riapre una questione che, secondo il racconto delle cronache locali, accompagna da anni il dibattito cittadino sul futuro del centro.\n\nSecondo Rossana Caruso, consigliera della Democrazia Cristiana, Luca Poidomani, coordinatore cittadino di Fratelli d'Italia, e Gaetano Mauro, consigliere del Movimento per l'Autonomia, il provvedimento interesserà appena una ventina di beneficiari, alcuni dei quali già residenti nelle zone interessate. «Si annunciano 900mila euro per ripopolare il centro storico, ma quanti nuovi residenti arriveranno davvero?», chiedono i tre, per i quali il rischio è che si tratti di «fumo negli occhi», di una misura insufficiente a cambiare il volto della città. Nella loro ricostruzione, le risorse avrebbero potuto finanziare un piano organico di videosorveglianza, il potenziamento dei controlli, una maggiore presenza della vigilanza pubblica e privata e interventi contro l'abbandono indiscriminato dei rifiuti.\n\nL'assessore ai Centri storici, Giovanni Gurrieri, respinge le critiche: ricorda che la sicurezza pubblica non rientra tra le competenze dirette del Comune e sostiene che una residenzialità «sana» rappresenti «il miglior presidio di sicurezza possibile», contestando all'opposizione polemiche che rischiano di danneggiare l'immagine del centro storico. I tre esponenti replicano che «denunciare queste criticità non significa infangare Ragusa» e che «la città non coincide con l'amministrazione Cassì», e pongono all'assessore tre domande: quanti nuovi residenti porteranno i 900mila euro, quanti beneficiari abitano già nel centro storico e quali interventi concreti accompagneranno il finanziamento.",
+      "points": [
+        {
+          "text": "L'assessore Giovanni Gurrieri ricorda che la sicurezza non spetta al Comune.",
+          "label": "new",
+          "why": "a name and an attributed position",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Per i tre esponenti quei fondi potevano pagare videosorveglianza e più controlli.",
+          "label": "new",
+          "why": "an attributed position the dek does not hold",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Secondo l'opposizione il bonus andrà a circa venti persone, alcune già residenti.",
+          "label": "repeat",
+          "why": "hard paraphrase of the dek: una ventina di beneficiari → circa venti persone",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Resta da vedere se la misura riuscirà davvero a ripopolare il centro.",
+          "label": "generic",
+          "why": "generic: \"resta da vedere\"",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-legambiente-serre",
+      "tenant": "ragusa",
+      "slug": "serre-del-ragusano-legambiente-il-milione-regionale-per-i-materiali-biod-19bb4304-73b6e3fc",
+      "date": "2026-10-15T08:34:46Z",
+      "title": "Serre del Ragusano, Legambiente: il milione regionale per i biodegradabili non basta",
+      "dek": "Un milione di euro dalla Regione per fili e clips biodegradabili nelle serre: Legambiente Ragusa lo considera un primo passo, ma chiede un accordo di programma sui rifiuti agricoli e un impianto per le fratte.",
+      "body": "L'Assemblea regionale siciliana ha stanziato un milione di euro per l'acquisto di fili e clips biodegradabili da usare nelle serre al posto di quelli in plastica. Legambiente Ragusa accoglie la misura come un primo intervento contro le fumarole, ma la giudica «lodevole ma non sufficiente». La questione tocca da vicino la vita civile e amministrativa del Ragusano, dove le serre della fascia trasformata sorreggono il comparto agricolo e dove la gestione degli scarti di coltivazione è da anni un nodo irrisolto: la proposta di un contributo regionale per sostituire i materiali plastici era stata avanzata dall'associazione sei anni fa.\n\nPer Legambiente la misura resta parziale sotto due profili: l'entità dello stanziamento e il perimetro dell'intervento, limitato a fili e clips. Per tutti gli altri rifiuti agricoli non sarebbe stato previsto alcun intervento e, secondo l'associazione, nell'aggiornamento del piano regionale di gestione dei rifiuti speciali i rifiuti agricoli «non sono neanche menzionati». Il quadro richiamato è quello delle fumarole, i roghi illegali di scarti agricoli che interessano vaste aree della fascia trasformata tra le province di Ragusa e Siracusa, con conseguenze ambientali e sanitarie.\n\nDa qui la richiesta al Libero Consorzio comunale di Ragusa di promuovere un nuovo accordo di programma, lo strumento previsto dall'articolo 206 del decreto legislativo 152. Il precedente accordo, secondo l'associazione, «non ha sortito alcun risultato». L'obiettivo dichiarato è organizzare sul territorio circuiti di raccolta che garantiscano la corretta gestione e la tracciabilità dei rifiuti agricoli, ridurne quantità e pericolosità, semplificare gli adempimenti per i produttori e rendere più efficaci i controlli; il modello, sostiene Legambiente, basterebbe copiarlo dalle decine e decine di province italiane che già lo applicano, adattandolo alla realtà locale. Alla presidente del Libero Consorzio è stato chiesto di dare mandato agli uffici per predisporre una bozza di accordo, da sottoporre poi a tutti i soggetti coinvolti.\n\nIn parallelo, l'associazione propone di programmare un impianto di compostaggio o di digestione anaerobica dedicato soltanto agli scarti organici delle colture in serra, le fratte, che molti piccoli e medi serricoltori non riescono a gestire in azienda.",
+      "points": [
+        {
+          "text": "Legambiente aveva proposto il contributo regionale già sei anni fa.",
+          "label": "new",
+          "why": "a time detail",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "L'associazione chiede al Libero Consorzio di Ragusa un accordo di programma.",
+          "label": "new",
+          "why": "hard: the dek's request, plus who it is addressed to (a name not in title or dek)",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Per Legambiente lo stanziamento è «lodevole ma non sufficiente».",
+          "label": "repeat",
+          "why": "hard: an attributed quote whose content is the title (\"non basta\")",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Secondo Legambiente il precedente accordo di programma non ha dato risultati.",
+          "label": "new",
+          "why": "an attributed position",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-incendio-santa-rosalia",
+      "tenant": "ragusa",
+      "slug": "incendio-serale-vicino-alla-diga-di-santa-rosalia-danni-ancora-da-quanti-328e5dab-684d60c8",
+      "date": "2026-10-14T10:32:55Z",
+      "title": "Incendio nella zona della diga Santa Rosalia, superficie interessata non ancora quantificata",
+      "dek": "Nella serata del 13 ottobre 2026 un incendio ha interessato la vegetazione vicino alla diga Santa Rosalia, nel Ragusano; segnalato dal Movimento Antincendio Ibleo, l'estensione dei danni è ancora da accertare.",
+      "body": "Un incendio è divampato nella serata del 13 ottobre 2026 lungo l'area che costeggia la diga Santa Rosalia, nel Ragusano, interessando la vegetazione nelle vicinanze dell'invaso. L'allarme è scattato intorno alle 20:30 e la segnalazione è stata diffusa dal Movimento Antincendio Ibleo, associazione attiva nel territorio ibleo. L'episodio si inserisce nella cronaca della provincia di Ragusa, dove il fenomeno degli incendi ha continuato a manifestarsi anche oltre i mesi estivi.\n\nSecondo Ragusa Oggi, l'intervento dei Vigili del fuoco del Comando provinciale di Ragusa, richiesto dalla Forestale, ha permesso di affrontare tempestivamente l'emergenza; le operazioni di spegnimento sono proseguite per circa tre ore e mezza, anche a causa dei diversi focolai individuati nell'area. La presenza di più focolai, secondo la stessa testata, alimenta il sospetto che il rogo possa avere un'origine dolosa, ipotesi che dovrà essere verificata attraverso eventuali accertamenti. Il Domani Ibleo rileva invece che non ci sono elementi sufficienti per stabilire se si sia trattato di un incendio doloso. Resta da quantificare l'estensione della superficie interessata, come concordano tutte le fonti.\n\nLe condizioni atmosferiche serali, con temperature più miti e umidità generalmente più elevata rispetto alle ore diurne, possono aver contribuito a limitare la propagazione delle fiamme. Il Corriere di Ragusa riferisce che ciò ha contribuito a contenere almeno in parte la propagazione, favorendo le operazioni di spegnimento e il contenimento del fronte del fuoco; Il Domani Ibleo precisa che si tratta di una possibilità, non di un nesso causale accertato. Tutte le testate concordano sul fatto che l'incendio si è sviluppato in orario serale.\n\nL'episodio riporta all'attenzione il tema della prevenzione e della sicurezza nell'area della diga Santa Rosalia, già interessata da altri incendi nei mesi scorsi. Secondo Ragusa Oggi, lo scorso 30 agosto un rogo di vaste dimensioni aveva richiesto l'intervento di diverse squadre di soccorso, con il supporto di un Canadair; nelle settimane precedenti era stata richiamata l'attenzione sulla necessità di rafforzare la tutela dell'area. Il Giornale Ibleo e La Sicilia rilevano che il rischio di incendi di probabile origine dolosa non può considerarsi archiviato nonostante l'arrivo dell'autunno.",
+      "points": [
+        {
+          "text": "L'allarme è scattato intorno alle 20:30.",
+          "label": "new",
+          "why": "a time",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le operazioni di spegnimento sono durate circa tre ore e mezza.",
+          "label": "new",
+          "why": "a duration",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il 30 agosto un rogo di vaste dimensioni nella stessa area aveva richiesto un Canadair.",
+          "label": "new",
+          "why": "a date and a detail",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Non si sa ancora quanta vegetazione sia bruciata.",
+          "label": "repeat",
+          "why": "hard paraphrase of the title: the area is not yet quantified",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-collisione-modica-ragusa",
+      "tenant": "ragusa",
+      "slug": "collisione-tra-un-auto-e-un-autobus-di-studenti-nel-ragusano-un-ottanten-865e14dc-26af05d7",
+      "date": "2026-10-13T08:04:43Z",
+      "title": "Collisione sulla strada Modica-Ragusa, ferito l'ottantenne alla guida: bus fermo e code chilometriche",
+      "dek": "L'impatto all'alba ha coinvolto un mezzo pubblico con studenti e pendolari a bordo, diretto a Enna; la dinamica è ancora al vaglio delle forze dell'ordine e il traffico ha subito forti rallentamenti.",
+      "body": "Un'auto e un autobus si sono scontrati all'alba di oggi, martedì 13 ottobre 2026, lungo la strada che collega Modica a Ragusa, intorno alle 7, in una fascia oraria segnata dagli spostamenti di lavoratori e studenti. L'episodio rientra appieno nella cronaca del Ragusano: riguarda due centri della provincia e un'arteria percorsa quotidianamente da pendolari, e le sue conseguenze si sono misurate anzitutto sulla viabilità locale.\n\nSecondo le prime informazioni, una Kia condotta da un uomo di 80 anni avrebbe oltrepassato la linea di separazione delle corsie, scontrandosi con un autobus che procedeva in senso opposto e che trasportava studenti e pendolari diretto a Enna. Il conducente dell'autovettura è stato trasportato in ospedale per controlli: una testata locale lo descrive come rimasto ferito, mentre un'altra riferisce in termini generici di feriti le cui condizioni non sarebbero gravi. Nelle code sono rimasti bloccati automobilisti e pendolari diretti a Ragusa e a Modica, gruppo distinto dai passeggeri del mezzo pubblico.\n\nSul posto sono intervenute le forze dell'ordine, i Vigili del fuoco e i mezzi di soccorso del 118; le testate locali divergono su quali forze di polizia fossero presenti, alcune citando i Carabinieri, altre la Polizia di Stato. L'autobus è rimasto fermo sulla carreggiata per i rilievi, provocando una coda estesa per diversi chilometri e forti disagi per chi era diretto verso Modica e Ragusa. Le operazioni di rimozione dei mezzi sono durate circa tre ore.\n\nL'esatta dinamica resta in fase di accertamento e dovrà essere ricostruita dagli approfondimenti delle autorità intervenute. Non concorde è l'indicazione del punto dell'impatto: due testate collocano lo scontro all'altezza del bivio per Giarratana, una in una curva poco prima dell'ospedale Maria Paternò Arezzo di Ragusa. Sulla statale tra Modica e Ragusa il traffico procede a rilento anche per i lavori sul ponte Costanzo, dove il transito è regolato da un semaforo. Al momento la circolazione resta rallentata fino al completamento delle operazioni di rimozione.",
+      "points": [
+        {
+          "text": "L'auto, una Kia, avrebbe superato la linea di mezzeria.",
+          "label": "new",
+          "why": "a name and the cause, hedged",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "La rimozione dei mezzi è durata circa tre ore.",
+          "label": "new",
+          "why": "a duration",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Sull'autobus viaggiavano studenti e pendolari diretti a Enna.",
+          "label": "repeat",
+          "why": "the dek",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Una mattinata da dimenticare per chi viaggiava tra Modica e Ragusa.",
+          "label": "generic",
+          "why": "generic commentary",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-violenza-genere-fondi",
+      "tenant": "ragusa",
+      "slug": "violenza-di-genere-258-350-euro-dalla-regione-sicilia-ai-distretti-doman-44b1e4bc-bd492dc3",
+      "date": "2026-10-12T21:27:25Z",
+      "title": "Violenza di genere, la Regione Sicilia stanzia 258.350 euro per i distretti socio-sanitari",
+      "dek": "Un avviso del dipartimento regionale della Famiglia destina 258.350 euro ai distretti socio-sanitari siciliani per progetti contro la violenza di genere, con domande entro il 6 novembre.",
+      "body": "Le domande dovranno essere trasmesse a un indirizzo di posta elettronica certificata, dipartimento.famiglia@certmail.regione.sicilia.it, entro il prossimo 6 novembre: è l'unico canale indicato nell'avviso pubblicato dal dipartimento regionale della Famiglia e delle Politiche sociali della Sicilia, rivolto ai distretti socio-sanitari dell'isola per sostenere progetti di prevenzione della violenza di genere. Il bando vale per tutti i distretti siciliani, senza indicazioni su quali presenteranno istanza, e non nomina comuni: i distretti che coprono la provincia di Ragusa rientrano dunque in un perimetro disegnato su scala regionale, mentre resta non precisato se uno di essi parteciperà. È in questo scarto tra misura regionale e ricaduta locale che la notizia riguarda il territorio ibleo.\n\nL'iniziativa punta a sostenere progetti capaci di intervenire sulle cause culturali della violenza, favorendo l'educazione al rispetto nelle relazioni, la promozione delle pari opportunità e il coinvolgimento attivo delle comunità locali, con particolare attenzione alle scuole e alle famiglie. Parallelamente, l'avviso intende incentivare la costituzione e il potenziamento di reti territoriali tra istituzioni e soggetti pubblici e privati, per rendere più coordinati ed efficaci gli interventi di prevenzione e protezione.\n\n«La prevenzione – dichiara l'assessore Nuccia Albano – è fondamentale per contrastare la violenza di genere e richiede un impegno condiviso che coinvolga istituzioni, scuole, famiglie e realtà del territorio». L'assessore indica poi il metodo: diffondere una cultura fondata sul rispetto, sulla parità e sul riconoscimento della libertà di ogni donna, intervenendo sugli stereotipi e sui modelli culturali che alimentano la violenza. Il rafforzamento della collaborazione tra chi opera sul territorio — dai servizi sociali e sanitari ai centri antiviolenza e alle case rifugio, fino alle forze dell'ordine e agli istituti scolastici — serve, secondo Albano, a intercettare tempestivamente le situazioni di rischio e a offrire «alle donne e ai loro figli percorsi di tutela e sostegno più integrati», favorendo il raggiungimento di una piena autonomia.\n\nSul piano operativo i fondi disponibili ammontano a 258.350 euro.",
+      "points": [
+        {
+          "text": "Le domande vanno inviate via Pec al dipartimento regionale della Famiglia.",
+          "label": "new",
+          "why": "the method",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Per l'assessore Nuccia Albano la prevenzione richiede «un impegno condiviso».",
+          "label": "new",
+          "why": "a name and an attributed quote",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Ai distretti socio-sanitari vanno 258.350 euro contro la violenza di genere.",
+          "label": "repeat",
+          "why": "the title",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Le fonti non dicono se i distretti iblei parteciperanno.",
+          "label": "generic",
+          "why": "a statement about the sources",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-assenza-concordato",
+      "tenant": "ragusa",
+      "slug": "il-deputato-assenza-e-il-concordato-sui-debiti-da-495mila-a-57mila-euro-9636c15b-1b55e130",
+      "date": "2026-10-12T12:05:40.287Z",
+      "title": "Il deputato Assenza e il concordato sui debiti: da 495mila a 57mila euro",
+      "dek": "Il capogruppo di Fratelli d'Italia all'Ars respinge le accuse di privilegi dopo la ricostruzione del Fatto Quotidiano sul concordato omologato dal Tribunale di Ragusa, che riduce l'esposizione verso Fisco ed enti previdenziali.",
+      "body": "Nel Ragusano continua a tenere banco la vicenda del concordato ottenuto dall'on. Giorgio Assenza, capogruppo di Fratelli d'Italia all'Assemblea regionale siciliana, dopo l'articolo pubblicato dal Fatto Quotidiano. La vicenda ricade pienamente nel perimetro della politica locale della provincia: il deputato è di Comiso e tra gli immobili citati nella ricostruzione figurano una casa a Punta Secca, frazione balneare di Santa Croce Camerina, e uno storico palazzo di circa 800 metri quadrati coperti acquistato nel 1991 a Comiso, con ulteriori spazi, garage e pertinenze. È su questo intreccio tra cariche pubbliche, patrimonio immobiliare nel territorio ibleo e procedure giudiziarie che si è concentrata l'attenzione in Sicilia.\n\nSecondo la ricostruzione di Ragusa News, che rinvia all'articolo del Fatto Quotidiano firmato da Leo Amato e pubblicato domenica 11 ottobre 2026, il parlamentare aveva accumulato debiti per 495mila euro verso l'Agenzia delle Entrate e gli enti previdenziali; con il concordato la somma da soddisfare scenderebbe a 57mila euro, con un abbattimento di circa l'88 per cento. L'Organismo di composizione della crisi da sovraindebitamento aveva presentato al Tribunale di Ragusa, il 5 maggio 2026, una domanda di concordato per conto del deputato. Sempre secondo quella ricostruzione, in caso di liquidazione i creditori avrebbero ricevuto circa 622mila euro, mentre la proposta concordataria prevedeva un soddisfacimento complessivo di circa 1,6 milioni di euro per l'insieme dei creditori coinvolti. Il Tribunale ha omologato il piano ritenendolo economicamente più conveniente dell'alternativa liquidatoria, coinvolgendo nel piano anche le posizioni verso creditori diversi dal Fisco.\n\nAssenza ha respinto ogni ipotesi di corsia preferenziale o di vantaggi derivanti dal ruolo politico. «Io, il \"Capo di FdI\" non ho salvato la casa sulla spiaggia di Montalbano», ha dichiarato, sostenendo di non avere mai usato l'attività politica per trarne vantaggi e di avere in parte sacrificato la professione di avvocato, rinunciando a incarichi e opportunità.",
+      "points": [
+        {
+          "text": "La domanda di concordato è arrivata al Tribunale di Ragusa il 5 maggio 2026.",
+          "label": "new",
+          "why": "a date",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Il concordato taglia il debito di circa l'88 per cento.",
+          "label": "repeat",
+          "why": "hard: a new number with the same information as the title (495mila → 57mila)",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Assenza guida il gruppo di Fratelli d'Italia all'Ars.",
+          "label": "repeat",
+          "why": "the dek: capogruppo FdI all'Ars",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Assenza: «Non ho salvato la casa sulla spiaggia di Montalbano».",
+          "label": "new",
+          "why": "an attributed quote",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "alienwatch-trump-newsmax",
+      "tenant": "alienwatch",
+      "slug": "trump-signals-openness-to-ufo-disclosure-but-gives-no-timetable-in-newsm-9557b1f3-1518338d",
+      "date": "2026-10-16T20:25:48Z",
+      "title": "Trump Signals Openness to UFO Disclosure but Gives No Timetable in Newsmax Interview",
+      "dek": "President tells Newsmax host Rob Finnerty he is \"looking\" at disclosure and calls his pilot witnesses credible, while setting out no timetable for any announcement.",
+      "body": "President Donald Trump said he is \"looking\" at whether to disclose what the United States knows about UFOs and UAPs, but set no timetable and did not confirm whether aliens had visited Earth or whether Washington is reverse-engineering non-human technology. The remark came in a White House interview with the Newsmax host Rob Finnerty on 15 October, as reported by Liberation Times. Within the disclosure strand of UFO coverage, the exchange follows a presidential directive to release government material on the subject and months of lobbying by advocates seeking a statement from the president, and it leaves open whether such an announcement will be delivered.\n\nFinnerty put the question directly, according to Liberation Times: \"No president has ever been willing to step to the microphone and finally disclose the truth. Are aliens real? Have we been visited? Are we reverse engineering their technology? Will you do that?\" Trump said he \"wasn't much of a believer\", adding: \"I do know we see some pretty strange things.\" He described speaking to about five or six Air Force pilots, whom he called \"solid people\" and not \"conspiracy theorists\", and cited one account of a round object that \"went faster by four times than an F-22\". Asked again whether he would be the president to make the disclosure, he replied: \"I'm looking,\" adding that he was \"not high on the list of that particular subject\".\n\nThe German outlet GreWi characterised the response as another evasion, noting that Trump has returned to the same anecdotes since 2020, including conversations with \"wonderful, beautiful Air Force pilots\" who had seen UFOs and a claim that Area 51 is the world's most popular tourist attraction. In its report, GreWi disputed two of the claims: it said the F-22, at Mach 2.25 (about 2,414 km/h), is not the world's fastest combat aircraft — the Mikoyan MiG-31 reaches roughly Mach 2.83 — and that the restricted Nevada site, known officially as Groom Lake and Homey Airport, is a sealed military facility within Nellis Air Force Base, where visitors encounter barriers and armed patrols rather than rows of parked cars.\n\nAccording to Liberation Times, the interview sits in a longer sequence of disclosure-related developments. On 21 July the outlet reported, citing multiple sources, that a presidential speech confirming that some UFOs are of non-human origin was understood to have been prepared.",
+      "points": [
+        {
+          "text": "Trump gave the interview to Rob Finnerty at the White House on 15 October.",
+          "label": "new",
+          "why": "hard: the dek's host, plus a date and a place",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "He said he had spoken to five or six Air Force pilots.",
+          "label": "new",
+          "why": "a number",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "The president is weighing disclosure but has set no date for it.",
+          "label": "repeat",
+          "why": "title and dek in other words",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "GreWi says the F-22 is not the world's fastest combat jet.",
+          "label": "new",
+          "why": "a name and an attributed position",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "alienwatch-stratton-memoir",
+      "tenant": "alienwatch",
+      "slug": "former-uap-task-force-director-publishes-memoir-claiming-secret-retrieva-fada3872-6cba41eb",
+      "date": "2026-10-14T18:34:28Z",
+      "title": "Former Pentagon UAP Task Force Chief Publishes Memoir on Retrieval Claims",
+      "dek": "Jay Stratton's Out of the Shadows alleges secret recovery and reverse-engineering programmes, though no independent public evidence has been presented.",
+      "body": "Jay Stratton, the former US intelligence official who led Pentagon investigations into unidentified anomalous phenomena, published a memoir on Tuesday titled Out of the Shadows: Revealing the Truth About Non-Human Intelligent Life. The book, issued by William Morrow, gathers his account of more than 16 years investigating UAPs for the US government and sits squarely within the disclosure debate over crash-retrieval claims, congressional testimony and government transparency.\n\nAccording to the Portuguese-language outlet Revista UFO, Stratton became the first director of the Unidentified Aerial Phenomena Task Force, the body the Department of Defense created in 2020 to examine reports of unidentified objects, particularly those recorded by military personnel. He had earlier taken part in investigations under the Advanced Aerospace Weapon System Applications Program, financed by the Defense Intelligence Agency. The German outlet GreWi reports that the UAPTF operated from August 2020 to November 2021, and that its establishment followed disclosures about a secret Pentagon UFO investigation programme and the publication of three Navy UFO videos, including by the New York Times in December 2017.\n\nIn an interview with People published alongside the launch, Stratton said he had learned of clandestine operations to recover vehicles of non-human origin and of alleged biological remains of their occupants, and that information about these activities had been concealed for decades, including from US government officials. Revista UFO reports the book alleges secret recovery programmes, reverse-engineering operations and a government cover-up said to have spanned roughly 80 years. GreWi describes Stratton as convinced of an 80-year disinformation campaign concealing a decades-old programme involving crashed extraterrestrial craft recovered by the US military, and reports he puts the number of recovered non-terrestrial craft held by US military contractors at at least a dozen, including the craft and deceased crew said to have crashed near Roswell in 1947. The claims echo testimony given to Congress in 2023 by former intelligence official David Grusch. No independent public evidence confirming such operations has been presented.",
+      "points": [
+        {
+          "text": "The book is published by William Morrow.",
+          "label": "new",
+          "why": "a name",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "The task force he led ran from August 2020 to November 2021.",
+          "label": "new",
+          "why": "hard: the title's task force, plus dates",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "His book claims the US secretly recovered craft of non-human origin.",
+          "label": "repeat",
+          "why": "the dek: secret recovery programmes",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "It remains to be seen whether his claims will stand up.",
+          "label": "generic",
+          "why": "generic: \"it remains to be seen\"",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "alienwatch-duke-demons",
+      "tenant": "alienwatch",
+      "slug": "apollo-16-astronaut-charles-duke-calls-ufos-demonic-on-christian-network-08b8e18f-c00e0888",
+      "date": "2026-10-13T13:59:55Z",
+      "title": "Apollo 16 astronaut Charles Duke calls UFOs demonic on Christian network",
+      "dek": "The 91-year-old lunar module pilot says UFOs are demons disguised as angels of light, a reading a North Wales priest argues may leave Christians unprepared.",
+      "body": "Some years ago, Charles Duke recalled during a recent appearance on the Christian Broadcasting Network, he prayed for a sign. He wanted something specific: that a close friend, a businessman who never discussed such topics, would raise UFOs at breakfast the following morning. 'Charlie, come on over. I want to start talking to you about UFOs,' he remembers the friend saying. The 91-year-old former lunar module pilot, who became the youngest person to walk on the moon at 36 during Apollo 16 in 1972, now says the objects are demonic — a claim that belongs to a debate which has drifted from sighting reports and official disclosure into theology, and which the White House has lately fed with a series of UFO disclosure releases.\n\nDuke's proof text is 2 Corinthians 11:14, in which the Apostle Paul writes that Satan disguises himself as an angel of light; the surrounding passage warns believers against false apostles who present themselves as representatives of Christ. 'The Lord says what we're seeing is real, but the devil can appear as an angel of light, the Bible says,' Duke said. The objects, he argues, are 'trying to turn us away from the truth' and are 'demonic'. He has said he held the belief for years, and was laughed off stages at rotary clubs for voicing it. 'You can laugh at me if you want to, but that's what God showed me, and I'm sticking to it.' By his own account, he logged no close encounters during his lunar voyages.\n\nSuch readings are not his alone. Vice President JD Vance told the conservative podcaster Benny Johnson in March that he did not think the objects were alien: 'I don't think they're aliens. I think they're demons anyway, but that's a long discussion.' Vance has also said he believes in supernatural phenomena, suggesting that a powerful being which harms humans could be understood as a demon, and one that helps them as an angel. Tucker Carlson, speaking on The Joe Rogan Experience in 2024, called them 'spiritual entities' and said they are 'from here, and they've been here for thousands of years'. Rep. Anna Paulina Luna posted an image of a winged Ophanim, the wheel-like entity of Ezekiel's vision, on 8 May, the day of the first UFO disclosure release.\n\nAgainst that, Father Lee Taylor, who leads three churches in North Wales, told the Daily Mail that Scripture can be read differently.",
+      "points": [
+        {
+          "text": "Duke cites 2 Corinthians 11:14, on Satan posing as an angel of light.",
+          "label": "new",
+          "why": "hard: the dek's \"angels of light\", plus the verse",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "At 36, Duke was the youngest person to walk on the moon.",
+          "label": "new",
+          "why": "a number and a detail",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "The former astronaut believes UFOs are demons in disguise.",
+          "label": "repeat",
+          "why": "title and dek",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Father Lee Taylor, who leads three churches in North Wales, disagrees.",
+          "label": "new",
+          "why": "hard: the dek's North Wales priest, plus his name",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "alienwatch-betts-area51",
+      "tenant": "alienwatch",
+      "slug": "podcast-account-alleges-area-51-operation-killed-three-beings-and-one-so-1956a805-844b69d0",
+      "date": "2026-10-19T16:24:03Z",
+      "title": "A Story Told Over Wine: Ex-Sniper's Account of Reptilians Near Area 51",
+      "dek": "Nick Betts says he was told of a subterranean firefight near Area 51 in a Polish hotel room. No casualty record, named witness or mission document has emerged to support it.",
+      "body": "The detail that lingers is the microwave. As Nick Betts tells it, a man he had been drinking with in a Polish hotel room gathered up the phones and put them inside — an improvised Faraday cage, Betts said, meant to stop anything being transmitted. Four bottles of wine had been brought to the room, where Betts, a former US Army sniper who served in Iraq and Afghanistan and co-hosts the Liberty Risk podcast, was reviewing footage for a documentary about the war in Ukraine. What the man then described, according to Betts, was a firefight in an underground installation a few miles from Area 51 in Nevada, involving three beings he called 'mildly reptilian-looking' and the death of an American serviceman. The account lands in the most heavily worked seam of UFO culture — whistleblower testimony, crash-retrieval claims, a Nevada base long tied to stories of secret research — and it arrives without a document, a date or a name.\n\nThe narrative is specific where it can least be checked. A quick reaction force, Betts said, had already been sent into the complex after its security staff stopped making regular radio checks, and had also gone silent; a second team was recalled from Fort Bragg in North Carolina, briefed at Area 51 itself, issued weapons Betts described as a high-energy system that took no magazines, and flown by Black Hawk to a tunnel entrance. Inside, he said, the serviceman on the outer left-hand side of a horseshoe-shaped passage was struck in the chest by a weapon of the same kind and killed; the survivors killed all three beings. The dead man's body was cremated on site, over colleagues' objections because he was Catholic, and his death recorded as a training accident. Betts did not witness any of it and has produced no public evidence. His source, he acknowledged, had been drinking, though he insisted the man was not 'sloppy'; asked how many soldiers went in, he said his source had not supplied a headcount, and guessed six.\n\nReptilian beings have their own lineage in this literature. The shape-shifting reptilian conspiracy associated with David Icke gained popularity in the late twentieth century, and Betts's account is not the first mention of beings said to look reptilian: whistleblowers including the astrophysicist Eric Davis and the retired Air Force major David Grusch have alleged that at least four alien species exist.",
+      "points": [
+        {
+          "text": "Four bottles of wine had been brought to the hotel room, Betts says.",
+          "label": "new",
+          "why": "a number and a detail",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "No casualty record or named witness has surfaced to back the account.",
+          "label": "repeat",
+          "why": "the dek's second sentence",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "The source allegedly put the phones in a microwave to block transmissions.",
+          "label": "new",
+          "why": "a concrete detail, hedged",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        },
+        {
+          "text": "The sources give no date for the alleged firefight.",
+          "label": "generic",
+          "why": "a statement about the sources",
+          "source": "written for the eval from the article",
+          "labelSource": "curated"
+        }
+      ]
+    }
+  ]
+}

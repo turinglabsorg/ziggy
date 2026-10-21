@@ -1,0 +1,674 @@
+{
+  "date": "2026-10-21",
+  "agent": [
+    "claude",
+    "-p",
+    "--output-format",
+    "json"
+  ],
+  "model": "claude-opus-5-5",
+  "threshold": 0.7,
+  "maxRounds": 3,
+  "wallMs": 75197,
+  "calls": {
+    "total": 9,
+    "judge": 6,
+    "replace": 3,
+    "costUsd": 1.361
+  },
+  "stories": [
+    {
+      "id": "ragusa-modica-corte-human",
+      "tenant": "ragusa",
+      "slug": "modica-la-corte-dei-conti-la-indica-al-parlamento-e-la-commissione-d-inc-c57e2fef-0271853c",
+      "title": "Modica, la Corte dei conti la indica al Parlamento mentre la commissione d'inchiesta non parte",
+      "dek": "La Sezione delle autonomie dedica a Modica una scheda sul dissesto; il Pd chiede l'insediamento della commissione d'inchiesta e il bilancio riequilibrato, mentre la Procura di Ragusa contesta l'ex sindaco.",
+      "bodyChars": 2351,
+      "bodySource": "set",
+      "before": [
+        {
+          "text": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+          "label": "repeat",
+          "labelSource": "human",
+          "why": "the dek's first clause in other words (lexical overlap 0.57)"
+        },
+        {
+          "text": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+          "label": "repeat",
+          "labelSource": "human",
+          "why": "the dek: the Pd asks for the inquiry commission to be set up"
+        },
+        {
+          "text": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+          "label": "repeat",
+          "labelSource": "human",
+          "why": "the dek: the Pd asks for the rebalanced budget"
+        },
+        {
+          "text": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+          "label": "repeat",
+          "labelSource": "human",
+          "why": "the dek: the Ragusa prosecutors charge the former mayor"
+        }
+      ],
+      "trace": [
+        {
+          "kind": "check",
+          "ms": 19373,
+          "cost": 0.1343998,
+          "model": "claude-opus-5-5",
+          "judge": "ok",
+          "points": [
+            {
+              "point": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+              "lexical": null,
+              "score": 1,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "semantic 1.00 vs dek"
+            },
+            {
+              "point": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+              "lexical": null,
+              "score": 1,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "semantic 1.00 vs dek"
+            },
+            {
+              "point": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+              "lexical": null,
+              "score": 1,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "semantic 1.00 vs dek"
+            },
+            {
+              "point": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+              "lexical": null,
+              "score": 1,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "semantic 1.00 vs dek"
+            }
+          ]
+        },
+        {
+          "kind": "replace",
+          "ms": 27104,
+          "cost": 0.1632998,
+          "model": "claude-opus-5-5",
+          "asked": [
+            {
+              "pass": false,
+              "point": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+              "why": "ripete il sommario (1.00)"
+            },
+            {
+              "pass": false,
+              "point": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+              "why": "ripete il sommario (1.00)"
+            },
+            {
+              "pass": false,
+              "point": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+              "why": "ripete il sommario (1.00)"
+            },
+            {
+              "pass": false,
+              "point": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+              "why": "ripete il sommario (1.00)"
+            }
+          ],
+          "reply": [
+            "La scheda indica un disavanzo di 117,6 milioni di euro.",
+            "Istituita il 2 febbraio 2026, la commissione è ferma sulla nomina del presidente.",
+            "Per Francesco Stornello, segretario cittadino del Pd, il dato è «devastante».",
+            "La Procura chiede il rinvio a giudizio di Ignazio Abbate e di altri quattro indagati."
+          ]
+        },
+        {
+          "kind": "check",
+          "ms": 17384,
+          "cost": 0.1396078,
+          "model": "claude-opus-5-5",
+          "judge": "ok",
+          "points": [
+            {
+              "point": "La scheda indica un disavanzo di 117,6 milioni di euro.",
+              "lexical": null,
+              "score": 0.2,
+              "against": "dek",
+              "newFact": "disavanzo di 117,6 milioni di euro",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "Istituita il 2 febbraio 2026, la commissione è ferma sulla nomina del presidente.",
+              "lexical": null,
+              "score": 0.4,
+              "against": "title",
+              "newFact": "istituita il 2 febbraio 2026, bloccata sulla nomina del presidente",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "Per Francesco Stornello, segretario cittadino del Pd, il dato è «devastante».",
+              "lexical": null,
+              "score": 0.2,
+              "against": "dek",
+              "newFact": "Francesco Stornello (Pd) definisce «devastante» il dato",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "La Procura chiede il rinvio a giudizio di Ignazio Abbate e di altri quattro indagati.",
+              "lexical": null,
+              "score": 0.4,
+              "against": "dek",
+              "newFact": "rinvio a giudizio per Ignazio Abbate e altri quattro indagati",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "after": [
+        "La scheda indica un disavanzo di 117,6 milioni di euro.",
+        "Istituita il 2 febbraio 2026, la commissione è ferma sulla nomina del presidente.",
+        "Per Francesco Stornello, segretario cittadino del Pd, il dato è «devastante».",
+        "La Procura chiede il rinvio a giudizio di Ignazio Abbate e di altri quattro indagati."
+      ],
+      "dropped": [],
+      "replaced": [
+        {
+          "point": "La Sezione delle autonomie ha dedicato una scheda specifica al dissesto del Comune.",
+          "reason": "semantic 1.00 vs dek",
+          "by": "La scheda indica un disavanzo di 117,6 milioni di euro."
+        },
+        {
+          "point": "Il Pd chiede che la commissione d'inchiesta del consiglio comunale venga insediata.",
+          "reason": "semantic 1.00 vs dek",
+          "by": "Istituita il 2 febbraio 2026, la commissione è ferma sulla nomina del presidente."
+        },
+        {
+          "point": "Lo stesso partito sollecita anche il bilancio riequilibrato dell'ente.",
+          "reason": "semantic 1.00 vs dek",
+          "by": "Per Francesco Stornello, segretario cittadino del Pd, il dato è «devastante»."
+        },
+        {
+          "point": "Intanto la Procura di Ragusa muove contestazioni all'ex sindaco.",
+          "reason": "semantic 1.00 vs dek",
+          "by": "La Procura chiede il rinvio a giudizio di Ignazio Abbate e di altri quattro indagati."
+        }
+      ],
+      "rounds": 2,
+      "judgeCalls": 2,
+      "rewriteCalls": 1,
+      "judge": "on",
+      "threshold": 0.7,
+      "ms": 63885,
+      "costUsd": 0.437
+    },
+    {
+      "id": "ragusa-pozzallo-enel",
+      "tenant": "ragusa",
+      "slug": "pozzallo-ammatuna-sospende-i-lavori-enel-e-avvia-la-ripavimentazione-del-6a00950c-cf6205d1",
+      "title": "Pozzallo, Ammatuna sospende i cantieri Enel e chiede garanzie sul ripristino dell'asfalto",
+      "dek": "Il sindaco Roberto Ammatuna ha ordinato lo stop alle imprese incaricate dall'Enel su tutto il territorio comunale, nello stesso giorno in cui sono iniziate le scarificazioni propedeutiche al nuovo manto stradale.",
+      "bodyChars": 2371,
+      "bodySource": "set",
+      "before": [
+        {
+          "text": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+          "label": "new",
+          "labelSource": "curated",
+          "why": "hard: restates the dek's same-day detail but adds the date"
+        },
+        {
+          "text": "Dall'Enel, al momento, non risulta alcuna replica.",
+          "label": "new",
+          "labelSource": "curated",
+          "why": "hard: the other party's response (none) — a fact about the story, not about the sources"
+        },
+        {
+          "text": "Il sindaco ha fermato tutte le ditte che lavorano per conto dell'Enel in città.",
+          "label": "repeat",
+          "labelSource": "curated",
+          "why": "the dek's first clause in other words"
+        },
+        {
+          "text": "Una scelta che riguarda la sicurezza di tutti gli automobilisti pozzallesi.",
+          "label": "generic",
+          "labelSource": "curated",
+          "why": "generic commentary"
+        }
+      ],
+      "trace": [
+        {
+          "kind": "check",
+          "ms": 28071,
+          "cost": 0.17947459999999998,
+          "model": "claude-opus-5-5",
+          "judge": "ok",
+          "points": [
+            {
+              "point": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+              "lexical": "dek",
+              "score": 0.6,
+              "against": "dek",
+              "newFact": "stop ai cantieri scattato il 19 ottobre",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": false,
+              "reason": "dek"
+            },
+            {
+              "point": "Dall'Enel, al momento, non risulta alcuna replica.",
+              "lexical": null,
+              "score": 0.1,
+              "against": "title",
+              "newFact": "",
+              "grounded": true,
+              "generic": true,
+              "judgePass": false,
+              "pass": false,
+              "reason": "generic"
+            },
+            {
+              "point": "Il sindaco ha fermato tutte le ditte che lavorano per conto dell'Enel in città.",
+              "lexical": null,
+              "score": 0.95,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "semantic 0.95 vs dek"
+            },
+            {
+              "point": "Una scelta che riguarda la sicurezza di tutti gli automobilisti pozzallesi.",
+              "lexical": null,
+              "score": 0.1,
+              "against": "title",
+              "newFact": "",
+              "grounded": false,
+              "generic": true,
+              "judgePass": false,
+              "pass": false,
+              "reason": "ungrounded"
+            }
+          ]
+        },
+        {
+          "kind": "replace",
+          "ms": 26077,
+          "cost": 0.1651598,
+          "model": "claude-opus-5-5",
+          "asked": [
+            {
+              "pass": false,
+              "point": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+              "why": "ripete il sommario"
+            },
+            {
+              "pass": false,
+              "point": "Dall'Enel, al momento, non risulta alcuna replica.",
+              "why": "generico: un commento o una frase sulle fonti, nessun fatto"
+            },
+            {
+              "pass": false,
+              "point": "Il sindaco ha fermato tutte le ditte che lavorano per conto dell'Enel in città.",
+              "why": "ripete il sommario (0.95)"
+            },
+            {
+              "pass": false,
+              "point": "Una scelta che riguarda la sicurezza di tutti gli automobilisti pozzallesi.",
+              "why": "non è nell'articolo"
+            }
+          ],
+          "reply": [
+            "Il Comune spende ogni anno somme ingenti di fondi regionali e nazionali per le strade.",
+            "Per il sindaco, il degrado delle strade lasciate senza ripristino è «inaccettabile».",
+            "Lo stop resterà in vigore finché l'Enel non prenderà impegni chiari su scavi e asfalto.",
+            "L'asfalto rovinato è un pericolo soprattutto per motociclisti e ciclisti."
+          ]
+        },
+        {
+          "kind": "check",
+          "ms": 21007,
+          "cost": 0.1588758,
+          "model": "claude-opus-5-5",
+          "judge": "ok",
+          "points": [
+            {
+              "point": "Il Comune spende ogni anno somme ingenti di fondi regionali e nazionali per le strade.",
+              "lexical": null,
+              "score": 0.15,
+              "against": "dek",
+              "newFact": "ogni anno somme ingenti da fondi regionali e nazionali per strade",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "Per il sindaco, il degrado delle strade lasciate senza ripristino è «inaccettabile».",
+              "lexical": null,
+              "score": 0.35,
+              "against": "title",
+              "newFact": "il sindaco definisce «inaccettabile» il degrado delle strade",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "Lo stop resterà in vigore finché l'Enel non prenderà impegni chiari su scavi e asfalto.",
+              "lexical": null,
+              "score": 0.55,
+              "against": "title",
+              "newFact": "stop in vigore finché Enel non s'impegna su scavi e asfalto",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "L'asfalto rovinato è un pericolo soprattutto per motociclisti e ciclisti.",
+              "lexical": null,
+              "score": 0.15,
+              "against": "point 2",
+              "newFact": "asfalto rovinato pericoloso soprattutto per motociclisti e ciclisti",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "after": [
+        "Il Comune spende ogni anno somme ingenti di fondi regionali e nazionali per le strade.",
+        "Per il sindaco, il degrado delle strade lasciate senza ripristino è «inaccettabile».",
+        "Lo stop resterà in vigore finché l'Enel non prenderà impegni chiari su scavi e asfalto.",
+        "L'asfalto rovinato è un pericolo soprattutto per motociclisti e ciclisti."
+      ],
+      "dropped": [],
+      "replaced": [
+        {
+          "point": "Lo stop ai cantieri Enel è scattato il 19 ottobre, lo stesso giorno delle scarificazioni.",
+          "reason": "dek",
+          "by": "Il Comune spende ogni anno somme ingenti di fondi regionali e nazionali per le strade."
+        },
+        {
+          "point": "Dall'Enel, al momento, non risulta alcuna replica.",
+          "reason": "generic",
+          "by": "Per il sindaco, il degrado delle strade lasciate senza ripristino è «inaccettabile»."
+        },
+        {
+          "point": "Il sindaco ha fermato tutte le ditte che lavorano per conto dell'Enel in città.",
+          "reason": "semantic 0.95 vs dek",
+          "by": "Lo stop resterà in vigore finché l'Enel non prenderà impegni chiari su scavi e asfalto."
+        },
+        {
+          "point": "Una scelta che riguarda la sicurezza di tutti gli automobilisti pozzallesi.",
+          "reason": "ungrounded",
+          "by": "L'asfalto rovinato è un pericolo soprattutto per motociclisti e ciclisti."
+        }
+      ],
+      "rounds": 2,
+      "judgeCalls": 2,
+      "rewriteCalls": 1,
+      "judge": "on",
+      "threshold": 0.7,
+      "ms": 75174,
+      "costUsd": 0.504
+    },
+    {
+      "id": "ragusa-omicidio-russo",
+      "tenant": "ragusa",
+      "slug": "vittoria-omicidio-russo-la-corte-d-assise-d-appello-di-catania-fissa-al--ef1649e1-55458f94",
+      "title": "Omicidio Russo a Vittoria, l'appello di Catania sulla capacità di intendere e di volere",
+      "dek": "Secondo gli investigatori il movente risalirebbe a una lite di due anni prima per una sigaretta negata; la difesa di Alex Ventura chiede una nuova perizia psichiatrica.",
+      "bodyChars": 2408,
+      "bodySource": "set",
+      "before": [
+        {
+          "text": "In primo grado Alex Ventura è stato condannato a 26 anni.",
+          "label": "new",
+          "labelSource": "curated",
+          "why": "hard: the dek's name, a new number"
+        },
+        {
+          "text": "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+          "label": "new",
+          "labelSource": "curated",
+          "why": "a date and the next step"
+        },
+        {
+          "text": "Per chi indaga, tutto nascerebbe da una sigaretta negata due anni prima.",
+          "label": "repeat",
+          "labelSource": "curated",
+          "why": "the dek's motive in other words"
+        },
+        {
+          "text": "La difesa vuole un nuovo esperto che valuti la salute mentale dell'imputato.",
+          "label": "repeat",
+          "labelSource": "curated",
+          "why": "hard paraphrase: the dek's new psychiatric assessment, the title's capacity to understand"
+        }
+      ],
+      "trace": [
+        {
+          "kind": "check",
+          "ms": 19530,
+          "cost": 0.1352158,
+          "model": "claude-opus-5-5",
+          "judge": "ok",
+          "points": [
+            {
+              "point": "In primo grado Alex Ventura è stato condannato a 26 anni.",
+              "lexical": null,
+              "score": 0.2,
+              "against": "title",
+              "newFact": "condannato in primo grado a 26 anni di reclusione",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+              "lexical": null,
+              "score": 0.1,
+              "against": "title",
+              "newFact": "prossima udienza il 10 dicembre, requisitoria del Procuratore generale",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "Per chi indaga, tutto nascerebbe da una sigaretta negata due anni prima.",
+              "lexical": "dek",
+              "score": 0.95,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "dek"
+            },
+            {
+              "point": "La difesa vuole un nuovo esperto che valuti la salute mentale dell'imputato.",
+              "lexical": null,
+              "score": 0.95,
+              "against": "dek",
+              "newFact": "",
+              "grounded": true,
+              "generic": false,
+              "judgePass": false,
+              "pass": false,
+              "reason": "semantic 0.95 vs dek"
+            }
+          ]
+        },
+        {
+          "kind": "replace",
+          "ms": 26745,
+          "cost": 0.1490998,
+          "model": "claude-opus-5-5",
+          "asked": [
+            {
+              "pass": true,
+              "point": "In primo grado Alex Ventura è stato condannato a 26 anni.",
+              "why": null
+            },
+            {
+              "pass": true,
+              "point": "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+              "why": null
+            },
+            {
+              "pass": false,
+              "point": "Per chi indaga, tutto nascerebbe da una sigaretta negata due anni prima.",
+              "why": "ripete il sommario"
+            },
+            {
+              "pass": false,
+              "point": "La difesa vuole un nuovo esperto che valuti la salute mentale dell'imputato.",
+              "why": "ripete il sommario (0.95)"
+            }
+          ],
+          "reply": [
+            "In primo grado Alex Ventura è stato condannato a 26 anni.",
+            "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+            "Secondo l'accusa, Ventura avrebbe preso un fucile in casa e sparato da vicino.",
+            "La Corte d'Assise di Siracusa aveva disposto oltre 2 milioni di euro di risarcimenti."
+          ]
+        },
+        {
+          "kind": "check",
+          "ms": 15672,
+          "cost": 0.1358478,
+          "model": "claude-opus-5-5",
+          "judge": "ok",
+          "points": [
+            {
+              "point": "In primo grado Alex Ventura è stato condannato a 26 anni.",
+              "lexical": null,
+              "score": 0.2,
+              "against": "title",
+              "newFact": "condanna in primo grado a 26 anni di reclusione",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+              "lexical": null,
+              "score": 0.1,
+              "against": "title",
+              "newFact": "prossima udienza il 10 dicembre, requisitoria del Procuratore generale",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "Secondo l'accusa, Ventura avrebbe preso un fucile in casa e sparato da vicino.",
+              "lexical": null,
+              "score": 0.15,
+              "against": "title",
+              "newFact": "preso un fucile in casa e sparato a distanza ravvicinata",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            },
+            {
+              "point": "La Corte d'Assise di Siracusa aveva disposto oltre 2 milioni di euro di risarcimenti.",
+              "lexical": null,
+              "score": 0.15,
+              "against": "point 1",
+              "newFact": "Corte d'Assise di Siracusa: oltre 2 milioni di risarcimenti",
+              "grounded": true,
+              "generic": false,
+              "judgePass": true,
+              "pass": true,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "after": [
+        "In primo grado Alex Ventura è stato condannato a 26 anni.",
+        "La prossima udienza è il 10 dicembre, con la requisitoria del Procuratore generale.",
+        "Secondo l'accusa, Ventura avrebbe preso un fucile in casa e sparato da vicino.",
+        "La Corte d'Assise di Siracusa aveva disposto oltre 2 milioni di euro di risarcimenti."
+      ],
+      "dropped": [],
+      "replaced": [
+        {
+          "point": "Per chi indaga, tutto nascerebbe da una sigaretta negata due anni prima.",
+          "reason": "dek",
+          "by": "Secondo l'accusa, Ventura avrebbe preso un fucile in casa e sparato da vicino."
+        },
+        {
+          "point": "La difesa vuole un nuovo esperto che valuti la salute mentale dell'imputato.",
+          "reason": "semantic 0.95 vs dek",
+          "by": "La Corte d'Assise di Siracusa aveva disposto oltre 2 milioni di euro di risarcimenti."
+        }
+      ],
+      "rounds": 2,
+      "judgeCalls": 2,
+      "rewriteCalls": 1,
+      "judge": "on",
+      "threshold": 0.7,
+      "ms": 61973,
+      "costUsd": 0.42
+    }
+  ]
+}

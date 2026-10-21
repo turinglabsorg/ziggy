@@ -133,6 +133,11 @@ const POINT_MARKER_RE = /^(?:\s*(?:[•·*]|[-–—](?=\s)|\d{1,2}[.)](?=\s)))+
 // the numbers as written ("7", "7:30", "1.200", "30/11"): contentWords drops the short ones
 const numbers = (text) => new Set(String(text || "").match(/\d+(?:[.,:/]\d+)*/g) || []);
 
+/** A point as pointsReport reads it: trimmed, list markers off. */
+export function cleanPoint(point) {
+  return String(point ?? "").replace(POINT_MARKER_RE, "").trim();
+}
+
 /** A story caption with its points: headline, dek, the points one per "•" line, then `tail`. */
 export function storyCaption({ title = "", dek = "", points = [], tail = "" } = {}) {
   const bullets = points.map((p) => `• ${p}`).join("\n");
@@ -167,7 +172,7 @@ export function pointsReport(points, { title = "", dek = "", tail = "", max = 3,
   const kept = [], keptWords = [], keptKeys = new Set(), dropped = [];
   let base = pairs([]);
   for (const raw of Array.isArray(points) ? points : []) {
-    const point = String(raw ?? "").replace(POINT_MARKER_RE, "").trim();
+    const point = cleanPoint(raw);
     if (!point) continue;
     const words = contentWords(point);
     const key = [[...words].sort(), [...numbers(point)].sort()].join("|");
