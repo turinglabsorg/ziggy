@@ -6,7 +6,7 @@ import { after, before, test } from "node:test";
 
 import {
   EVENTS_DEFAULTS, addDays, clampTitle, dateLabels, eventTemplateTokens, eventsConfig, eventsTimeline, fetchWeekEvents, listLabel, localDay,
-  mergeEvents, normTitle, normalizeEvent, rangeLabel, resolveWeek, sameEvent, selectEvents, stripTownPrefix, teaserCampaign, untilLabel,
+  mergeEvents, normTitle, normalizeEvent, rangeLabel, resolveWeek, weekStrip, exclusionReason, CAPTION_MAX, sameEvent, selectEvents, stripTownPrefix, teaserCampaign, untilLabel,
   venueOf, weekCampaign, weekdayOf, wordSpans,
 } from "../scripts/events.mjs";
 import { planWeekPublish, weekPublishText } from "../scripts/eventspub.mjs";
@@ -24,6 +24,8 @@ const { loadTenant, fontsDir, logPost, readPostLog } = await import("../scripts/
 const FIXTURE = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "events-2026-10-26.json"), "utf8")).data;
 const CFG = eventsConfig({ slug: "ragusa", events: { exclusiveEndSources: ["ccn-antica-ibla-api"] } });
 const WEEK = resolveWeek({ from: "2026-10-26" });
+// the old selection (until Oct 2026): six cards, a town spread; still a valid tenant config
+const LEGACY = { ...CFG, maxEvents: 6, weights: { ...CFG.weights, sameTown: 2 } };
 
 /** A minimal API event: one day, a town, a source; override what the case needs. */
 let seq = 0;
@@ -110,8 +112,8 @@ test("end at 00:00: a date (inclusive), except iCal sources and shows running to
 
 /* ── selection on the real week ─────────────────────────────────────────── */
 
-test("the week of 26 October 2026: exclusions, merges, labels, six cards in time order", () => {
-  const r = selectEvents(FIXTURE, CFG, { week: WEEK });
+test("the week of 26 October 2026, capped at six (old config): exclusions, merges, labels, time order", () => {
+  const r = selectEvents(FIXTURE, LEGACY, { week: WEEK });
   assert.equal(r.skip, false);
   assert.deepEqual(r.chosen.map((c) => c.title), [
     "Mostra fotografica: 25 anni della Capitaneria di Porto di Pozzallo",
@@ -200,21 +202,40 @@ test("multi-day events from before the week: kept if they overlap it, dropped if
   assert.equal(when["Mostra nuova"], "28 ott – 8 nov");
 });
 
+test("default: every event of the week, one card each, in time order; conferences out", () => {
+  const r = selectEvents(FIXTURE, CFG, { week: WEEK });
+  assert.equal(r.chosen.length, 11);
+  assert.equal(r.notPicked.length, 0, "no cap reached, no town spread");
+  assert.ok(r.chosen.some((c) => /PINOCCHIO/.test(c.title)));
+  assert.ok(r.chosen.some((c) => c.title === "In viaggio con i Cabrera"));
+  const conv = r.excluded.find((e) => /^Ciclo di conversazioni/.test(e.title));
+  assert.match(conv.reason, /^convegno o conferenza/);
+  const firstDays = r.chosen.map((c) => (c.firstDay > WEEK.from ? c.firstDay : WEEK.from));
+  assert.deepEqual(firstDays, [...firstDays].sort(), "chronological");
+  for (const title of ["Convegno sul centro storico", "Conferenza stampa", "Seminario di diritto", "Tavola rotonda sul porto", "Workshop per commercialisti", "II Meeting regionale degli Iblei"]) {
+    assert.match(String(exclusionReason({ title, town: "Ragusa", category: "altro" }, CFG)), /convegno o conferenza/, title);
+  }
+  for (const title of ["Presentazione del libro di Carmelo Sardo", "Sagra della ricotta", "Back to Nature Party", "Galà di apertura"]) {
+    assert.equal(exclusionReason({ title, town: "Ragusa", category: "altro" }, CFG), null, title);
+  }
+});
+
 test("town spread: a town already picked costs the next candidate there", () => {
   const list = [
     ...Array.from({ length: 7 }, (_, i) => ev({ title: `Concerto Ragusa ${i}`, category: "musica-live", startsLocal: `2026-10-${30 + (i % 2)}T21:0${i}` })),
     ev({ title: "Sagra a Scicli", category: "sagre", startsLocal: "2026-10-28T10:00", place: { name: "", town: "Scicli" } }),
   ];
-  const spread = selectEvents(list, CFG, { week: WEEK }).chosen;
+  const spread = selectEvents(list, LEGACY, { week: WEEK }).chosen;
   assert.equal(spread.length, 6);
   assert.ok(spread.some((c) => c.town === "Scicli"));
-  const flat = selectEvents(list, { ...CFG, weights: { ...CFG.weights, sameTown: 0 } }, { week: WEEK }).chosen;
+  const flat = selectEvents(list, { ...LEGACY, weights: { ...LEGACY.weights, sameTown: 0 } }, { week: WEEK }).chosen;
   assert.ok(!flat.some((c) => c.town === "Scicli"), "without the spread the stronger Ragusa nights win");
 });
 
 test("max and min: at most maxEvents cards; fewer than minEvents is a skip", () => {
   const three = [ev({ title: "Uno" }), ev({ title: "Due", startsLocal: "2026-10-31T21:00" }), ev({ title: "Tre", startsLocal: "2026-11-01T18:00" })];
   assert.equal(selectEvents(three, { ...CFG, maxEvents: 2 }, { week: WEEK }).chosen.length, 2);
+  assert.equal(EVENTS_DEFAULTS.maxEvents, 40, "the cap only guards the reel length");
   const ok = selectEvents(three, CFG, { week: WEEK });
   assert.equal(ok.skip, false);
   const few = selectEvents(three.slice(0, 2), CFG, { week: WEEK });
@@ -241,12 +262,14 @@ test("fetchWeekEvents reads the week and the 45 days before it", async () => {
 /* ── campaigns and templates ───────────────────────────────────────────── */
 
 test("the weekly campaign: copy, timing, captions ending with the calendar url, nothing a live loop reads", () => {
-  const r = selectEvents(FIXTURE, CFG, { week: WEEK });
+  const r = selectEvents(FIXTURE, LEGACY, { week: WEEK });
   const cards = r.chosen.map((c, i) => ({ ...c, posterFile: i === 1 ? null : `posters/${c.id}.webp` }));
   const c = weekCampaign({ name: "Ragusa Buzz", language: "it" }, CFG, WEEK, cards);
   assert.equal(c.template, "eventi-settimana");
-  assert.equal(c.duration, 20);
-  assert.deepEqual(c.timing, { intro: 3, card: 2.25, outro: 3.5 });
+  assert.equal(c.duration, 22.1);
+  assert.deepEqual(c.timing, { intro: 3, card: 2.6, outro: 3.5 });
+  assert.equal(c.copy.title, "Gli eventi in provincia di Ragusa della settimana");
+  assert.deepEqual(c.week.days, WEEK.days);
   assert.equal(c.copy.kicker, "26 ott – 1 nov");
   assert.equal(c.copy.url, "ragusa.buzz/eventi");
   assert.equal(c.copy.headline, undefined, "the daily loop's coverage reads copy.headline: an events reel must not cover a story");
@@ -264,7 +287,40 @@ test("the weekly campaign: copy, timing, captions ending with the calendar url, 
   assert.equal(c.events[1].credit, "", "no poster, no credit line");
   assert.deepEqual(c.events[5].days, ["2026-10-31", "2026-11-01"]);
   assert.equal(eventsTimeline(3).duration, 15);
-  assert.equal(eventsTimeline(10).duration, 20);
+  assert.equal(eventsTimeline(10).duration, 32.5);
+  assert.equal(eventsTimeline(21).duration, 61.1);
+  assert.deepEqual(eventsTimeline(40), { intro: 3, card: 2.088, outro: 3.5, duration: 90 }, "a long week: shorter cards, never past 90 s");
+});
+
+test("a custom range: exact days, not snapped; strip, kicker and caption follow it", () => {
+  const w = resolveWeek({ from: "2026-10-21", to: "2026-10-25" });
+  assert.deepEqual(w, { from: "2026-10-21", to: "2026-10-25", days: ["2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"], label: "21–25 ott" });
+  assert.throws(() => resolveWeek({ to: "2026-10-25" }), /--to goes with --from/);
+  assert.throws(() => resolveWeek({ from: "2026-10-25", to: "2026-10-21" }), /before/);
+  assert.throws(() => resolveWeek({ from: "2026-10-01", to: "2026-10-25" }), /at most 14 days/);
+  assert.throws(() => resolveWeek({ from: "2026-10-21", to: "25/10" }), /--to wants a date/);
+  assert.equal(weekStrip(w.days, new Set(["2026-10-23"]), "x").match(/x-wd">(.)</g).map((m) => m.slice(-2, -1)).join(""), "MGVSD");
+  const cards = [ev({ title: "Sogni e passioni", startsLocal: "2026-10-24T21:00", place: { name: "Teatro Garibaldi", town: "Modica" } })]
+    .map((raw) => normalizeEvent(raw, CFG)).map((e) => ({ ...e, ...dateLabels(e, w), categoryLabel: "Musica live", posterFile: null }));
+  const c = weekCampaign({ name: "Ragusa Buzz", language: "it" }, CFG, w, cards);
+  assert.equal(c.copy.kicker, "21–25 ott");
+  assert.match(c.posts.instagram_reel.body, /^Gli eventi della settimana in provincia di Ragusa, dal 21 al 25 ottobre\./);
+  assert.match(c.posts.instagram_reel.body, /Sab 24 ott, 21:00 · Modica, Teatro Garibaldi\nSogni e passioni/);
+  const tok = eventTemplateTokens({ campaign: c, v: { evTitle: 76 }, brand: RAGUSA_BRAND });
+  assert.equal(tok.DAYS, "5");
+  assert.equal((tok.STRIP.match(/ev-ws-day/g) || []).length, 5);
+  assert.match(tok.CARDS, /<p class="ev-town">Modica<\/p>/);
+  assert.match(tok.CARDS, /<span class="ev-where">Teatro Garibaldi<\/span>/);
+});
+
+test("the caption stays under Instagram's limit: venues go first, then the last events", () => {
+  const w = resolveWeek({ from: "2026-10-26" });
+  const many = Array.from({ length: 40 }, (_, i) => ({ title: `Un evento con un titolo abbastanza lungo numero ${i}`, town: "Santa Croce Camerina", venue: "Una sala dal nome piuttosto lungo e articolato", when: "sab 31 ott", time: "21:00" }));
+  const body = weekCampaign({ name: "Ragusa Buzz", language: "it" }, CFG, w, many).posts.instagram_reel.body;
+  assert.ok(body.length <= CAPTION_MAX, String(body.length));
+  assert.doesNotMatch(body, /Una sala dal nome/);
+  assert.match(body, /…e altri \d+ eventi sul sito\./);
+  assert.ok(body.endsWith("https://ragusa.buzz/eventi"));
 });
 
 test("caption lint: the weekly list is not linted (its lines share venues by design), the teaser is", () => {
@@ -310,7 +366,7 @@ function eventsTenant(slug, extra = {}) {
 
 test("scaffold: the weekly template gets one card per event, posters, credits, the week strip; no token left", async () => {
   const dir = eventsTenant("evscaf");
-  const r = selectEvents(FIXTURE, CFG, { week: WEEK });
+  const r = selectEvents(FIXTURE, LEGACY, { week: WEEK });
   const campDir = join(dir, "campaigns", "eventi-2026-10-26");
   mkdirSync(join(campDir, "posters"), { recursive: true });
   const cards = r.chosen.map((c, i) => {
@@ -326,6 +382,8 @@ test("scaffold: the weekly template gets one card per event, posters, credits, t
     const sub = readFileSync(join(p.dir, "compositions", `${p.id}.html`), "utf8");
     assert.doesNotMatch(sub, /__[A-Z][A-Z0-9_]*__/, "every token is filled");
     assert.equal((sub.match(/<section class="ev-card/g) || []).length, 6);
+    assert.equal((sub.match(/<p class="ev-town">/g) || []).length, 6, "every card names its town");
+    assert.match(sub, /--days: 7;/);
     assert.equal((sub.match(/ev-card no-poster/g) || []).length, 1);
     assert.match(sub, /Locandina: Antica Ibla - Centro Commerciale Naturale/);
     assert.match(sub, /31 ott e 1 nov/);
@@ -385,10 +443,23 @@ test("cli: --dry-run prints the selection and writes nothing", async () => {
   const d = JSON.parse(r.stdout);
   assert.equal(d.week.from, "2026-10-26");
   assert.equal(d.campaign, "eventi-2026-10-26");
-  assert.equal(d.chosen.length, 6);
+  assert.equal(d.chosen.length, 11);
   assert.ok(d.excluded.length > 0);
   assert.equal(existsSync(join(world.repo, "tenants", "evcli", "campaigns", "eventi-2026-10-26")), false);
   assert.ok(api.hits.some((h) => h.includes("from=2026-09-11&to=2026-10-25")));
+});
+
+test("cli: --from --to is an exact range: its own campaign name, not the week's Monday", async () => {
+  const r = await runCli(["events", "evcli", "--week", "--from", "2026-10-28", "--to", "2026-11-01", "--dry-run", "--json"], world.env);
+  assert.equal(r.status, 0, r.stderr);
+  const d = JSON.parse(r.stdout);
+  assert.equal(d.week.from, "2026-10-28");
+  assert.equal(d.week.label, "28 ott – 1 nov");
+  assert.equal(d.campaign, "eventi-2026-10-28");
+  assert.ok(d.chosen.every((c) => c.lastDay >= "2026-10-28"));
+  const bad = await runCli(["events", "evcli", "--week", "--to", "2026-11-01", "--dry-run"], world.env);
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /--to goes with --from/);
 });
 
 test("cli: --no-render writes the campaign and downloads the posters; --force to redo", async () => {
@@ -398,7 +469,7 @@ test("cli: --no-render writes the campaign and downloads the posters; --force to
   assert.match(r.stdout, /nothing was posted/);
   const dir = join(world.repo, "tenants", "evcli", "campaigns", "eventi-2026-10-26");
   const c = JSON.parse(readFileSync(join(dir, "campaign.json"), "utf8"));
-  assert.equal(c.events.length, 6);
+  assert.equal(c.events.length, 11);
   for (const e of c.events) {
     assert.match(e.poster, /^posters\/e_[0-9a-f]+\.webp$/);
     assert.ok(existsSync(join(dir, e.poster)));

@@ -400,11 +400,14 @@ async function main() {
         return out({ name, dir, manifest }, `campaign ${name} → ${dir}/campaign.json${manifest ? `\n${outputs(manifest)}` : `\nrender: ziggy video ${t.slug} ${name}`}\nnothing was posted`);
       }
 
-      if (!has("--week")) fail("usage: ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] [--publish] [--notify] | --teaser", 2);
+      if (!has("--week")) fail("usage: ziggy events <slug> --week [--from YYYY-MM-DD [--to YYYY-MM-DD]] [--dry-run] [--no-render] [--publish] [--notify] | --teaser", 2);
       const nowFlag = flag("--now");
       const now = nowFlag && nowFlag !== true ? new Date(nowFlag) : new Date();
-      const fromFlag = flag("--from");
-      const week = resolveWeek({ now, tz: cfg.tz, from: fromFlag && fromFlag !== true ? String(fromFlag) : undefined });
+      const fromFlag = flag("--from"), toFlag = flag("--to");
+      let week;
+      try {
+        week = resolveWeek({ now, tz: cfg.tz, from: fromFlag && fromFlag !== true ? String(fromFlag) : undefined, to: toFlag && toFlag !== true ? String(toFlag) : undefined });
+      } catch (e) { fail(e.message, 2); }
       const raw = await fetchWeekEvents(cfg, week);
       const sel = selectEvents(raw, cfg, { week, today: localDay(now, cfg.tz) });
       const name = weekCampaignName(week);

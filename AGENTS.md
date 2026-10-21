@@ -124,10 +124,16 @@ working **with** Ziggy.
   API needs a paid ElevenLabs plan. Never borrow another client's key. Tests fake ElevenLabs on
   localhost (`ZIGGY_ELEVENLABS_BASE_URL`) and ffmpeg (`ZIGGY_FFMPEG_BIN`).
 - `ziggy events <slug> --week | --teaser` (events.mjs) renders the week's events reel
-  (`eventi-settimana`, campaign `eventi-<monday>`) or the evergreen events teaser
+  (`eventi-settimana`, campaign `eventi-<monday>` or `eventi-<from>`) or the evergreen events teaser
   (`eventi-teaser`) from `tenant.json → events` (the public events API). It writes a campaign and
   renders reel + post; without `--publish` it never posts. `tenant.events` is read by
   this command (and `events.schedule` by serve) only.
+  - Selection: every event of the week (or of `--from … --to …`, an exact range of at most 14
+    days, campaign `eventi-<from>`) except `excludeCategories`, `excludeTitles` and the
+    conference-type titles in `excludeConferences` (convegni, conferenze, seminari, tavole rotonde,
+    workshop, meeting…). One card per event, 2.6 s each, 15–90 s in all; `maxEvents` (40) only
+    guards the length. Each card shows the town big and uppercase above the date, the venue small.
+    The caption lists every event and drops venues, then the last events, to stay under 2,200 chars.
   - `--week --publish` (eventspub.mjs) then publishes the reel **live, now** on the tenant's
     `daily.only` kinds the campaign defines, one `publishCampaign` call per kind, logged in
     posts.jsonl with the time it went out as `scheduledAt` (`publishedAt`), so the rounds'

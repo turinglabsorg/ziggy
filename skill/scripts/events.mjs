@@ -21,9 +21,12 @@ export const EVENTS_DEFAULTS = {
   url: "https://ragusa.buzz/eventi",
   tz: "Europe/Rome",
   lookbackDays: 45,
-  excludeCategories: ["religione", "istituzionale", "corsi", "formazione"],
+  excludeCategories: ["religione", "istituzionale", "corsi", "formazione", "convegni", "conferenze"],
   excludeTitles: ["cresim", "consiglio comunale", "seduta"],
-  maxEvents: 6,
+  // conference-type events stay out of the reel whatever their category says; every other event is in
+  excludeConferences: ["convegn", "conferenz", "seminari", "tavola rotonda", "tavole rotonde", "workshop", "webinar", "simposio", "congress", "\\bmeeting\\b", "giornata di studi", "corso biennale", "conversazion", "dibattit"],
+  // every event of the week gets its own card; the cap only guards the reel's length
+  maxEvents: 40,
   minEvents: 3,
   template: "eventi-settimana",
   teaserTemplate: "eventi-teaser",
@@ -37,7 +40,7 @@ export const EVENTS_DEFAULTS = {
     altro: "Evento", "": "Evento",
   },
   categoryWeights: { "musica-live": 3, teatro: 3, sagre: 3, feste: 3, mostre: 2, cinema: 2, libri: 2, danza: 2, bambini: 1, natura: 1, sport: 1 },
-  weights: { poster: 3, evening: 2, weekend: 2, startsInWeek: 1, longSpan: -2, longSpanDays: 14, sameTown: 2 },
+  weights: { poster: 3, evening: 2, weekend: 2, startsInWeek: 1, longSpan: -2, longSpanDays: 14, sameTown: 0 },
   teaser: {
     categories: ["concerti", "mostre", "teatro", "sagre"],
     towns: ["Ragusa", "Modica", "Scicli", "Vittoria", "Comiso", "Pozzallo", "Ispica", "Santa Croce", "Chiaramonte", "Giarratana", "Acate", "Monterosso"],
@@ -90,9 +93,19 @@ export function localDay(now, tz) {
 /**
  * The week to show, Monday to Sunday. `from` wins and is snapped to its Monday. Otherwise the
  * day of `now` in the tenant's time zone decides: Friday to Sunday look at the coming week,
- * Monday to Thursday at the current one.
+ * Monday to Thursday at the current one. `from` + `to` is an exact range, not snapped (the rest
+ * of a week: «21–25 ott»), at most 14 days.
  */
-export function resolveWeek({ now = new Date(), tz = EVENTS_DEFAULTS.tz, from } = {}) {
+export function resolveWeek({ now = new Date(), tz = EVENTS_DEFAULTS.tz, from, to } = {}) {
+  if (to) {
+    if (!from) throw new Error("--to goes with --from");
+    for (const [k, d] of [["--from", from], ["--to", to]]) if (!DAY_RE.test(d) || Number.isNaN(toUtc(d))) throw new Error(`${k} wants a date as YYYY-MM-DD (got ${JSON.stringify(d)})`);
+    const n = daysBetween(from, to);
+    if (n < 0) throw new Error(`--to ${to} is before --from ${from}`);
+    if (n > 13) throw new Error(`--from ${from} --to ${to}: at most 14 days`);
+    const days = Array.from({ length: n + 1 }, (_, i) => addDays(from, i));
+    return { from, to, days, label: rangeLabel(from, to) };
+  }
   let monday;
   if (from) {
     if (!DAY_RE.test(from) || Number.isNaN(toUtc(from))) throw new Error(`--from wants a date as YYYY-MM-DD (got ${JSON.stringify(from)})`);
@@ -210,6 +223,8 @@ export function exclusionReason(ev, cfg = EVENTS_DEFAULTS, titleRes = compileTit
   if ((cfg.excludeCategories || []).includes(ev.category)) return `categoria ${ev.category}`;
   const hit = titleRes.find((re) => re.test(ev.title));
   if (hit) return `titolo /${hit.source}/`;
+  const conf = compileTitles(cfg.excludeConferences).find((re) => re.test(ev.title));
+  if (conf) return `convegno o conferenza (/${conf.source}/)`;
   if (!ev.town) return "senza comune";
   return null;
 }
@@ -464,10 +479,15 @@ export function runReportHook(slug, text, { hook = process.env.ZIGGY_REPORT_HOOK
 
 /* ── campaigns ──────────────────────────────────────────────────────────── */
 
-/** Reel timing: a 3 s intro, one card per event, a 3.5 s outro; 15–20 s in all. */
+/**
+ * Reel timing: a 3 s intro, 2.6 s per event card, a 3.5 s outro; at least 15 s, at most 90 s
+ * (a long week gets shorter cards, never fewer).
+ */
+export const CARD_SECONDS = 2.6;
+export const MAX_REEL_SECONDS = 90;
 export function eventsTimeline(n) {
   const intro = 3, outro = 3.5;
-  const duration = Math.round(Math.max(15, Math.min(20, intro + outro + 2.3 * n)) * 10) / 10;
+  const duration = Math.round(Math.max(15, Math.min(MAX_REEL_SECONDS, intro + outro + CARD_SECONDS * n)) * 10) / 10;
   const card = n ? Math.round(((duration - intro - outro) / n) * 1000) / 1000 : 0;
   return { intro, card, outro, duration };
 }
@@ -482,27 +502,18 @@ export function weekCampaignName(week) {
 export function weekCampaign(tenant, cfg, week, cards) {
   const t = eventsTimeline(cards.length);
   const [from, to] = [week.from, week.to];
-  const longRange = `dal ${dayNum(from)} ${MONTHS_LONG[Number(from.slice(5, 7)) - 1]} al ${dayNum(to)} ${MONTHS_LONG[Number(to.slice(5, 7)) - 1]}`;
-  const lines = cards.map((c) => {
-    const where = [c.town, c.venue].filter(Boolean).join(", ");
-    return `${cap(c.when)}${c.time && c.time !== "in corso" ? `, ${c.time}` : ""} · ${where}\n${displayTitle(c.title)}`;
-  });
-  const caption = [
-    `Gli eventi della settimana in provincia di Ragusa, ${longRange}.`,
-    ...lines,
-    "Organizzi qualcosa? Proponilo sul sito.",
-    cfg.hashtags || "",
-    `Tutti gli eventi, aggiornati ogni giorno: ${cfg.url}`,
-  ].filter(Boolean).join("\n\n");
+  const fromMonth = MONTHS_LONG[Number(from.slice(5, 7)) - 1], toMonth = MONTHS_LONG[Number(to.slice(5, 7)) - 1];
+  const longRange = fromMonth === toMonth ? `dal ${dayNum(from)} al ${dayNum(to)} ${toMonth}` : `dal ${dayNum(from)} ${fromMonth} al ${dayNum(to)} ${toMonth}`;
+  const caption = weekCaption(cards, longRange, cfg);
   return {
     template: cfg.template,
     language: tenant.language || "it",
     duration: t.duration,
     intent: `Weekly events reel: ${week.label}`,
-    week: { from, to, label: week.label },
+    week: { from, to, label: week.label, days: week.days || Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i)) },
     link: cfg.url,
     copy: {
-      title: "Gli eventi di Ragusa della settimana",
+      title: "Gli eventi in provincia di Ragusa della settimana",
       highlight: "Ragusa",
       kicker: week.label,
       cta: "Tutti gli eventi:",
@@ -526,6 +537,36 @@ export function weekCampaign(tenant, cfg, week, cards) {
       facebook_reel: { body: caption, media: "reel" },
     },
   };
+}
+
+/** Instagram cuts a caption at 2,200 characters; the list keeps under it. */
+export const CAPTION_MAX = 2150;
+
+/**
+ * The reel's caption: every event as «Ven 23 ott, 18:00 · Modica, Teatro Garibaldi» + its title.
+ * A week too long for Instagram drops the venues first, then the last events («e altri N»).
+ */
+export function weekCaption(cards, longRange, cfg) {
+  const line = (c, venue) => {
+    const where = [c.town, venue ? c.venue : ""].filter(Boolean).join(", ");
+    return `${cap(c.when)}${c.time && c.time !== "in corso" ? `, ${c.time}` : ""} · ${where}\n${displayTitle(c.title)}`;
+  };
+  const build = (lines, more = 0) => [
+    `Gli eventi della settimana in provincia di Ragusa, ${longRange}.`,
+    ...lines,
+    more ? `…e altri ${more} eventi sul sito.` : "",
+    "Organizzi qualcosa? Proponilo sul sito.",
+    cfg.hashtags || "",
+    `Tutti gli eventi, aggiornati ogni giorno: ${cfg.url}`,
+  ].filter(Boolean).join("\n\n");
+  let text = build(cards.map((c) => line(c, true)));
+  if (text.length <= CAPTION_MAX) return text;
+  const short = cards.map((c) => line(c, false));
+  for (let n = short.length; n > 0; n--) {
+    text = build(short.slice(0, n), short.length - n);
+    if (text.length <= CAPTION_MAX) return text;
+  }
+  return text;
 }
 
 /** The evergreen teaser: no dates, no event titles, so it can run as an ad at any time. */
@@ -594,10 +635,10 @@ export function clampTitle(title, max = 110) {
   return t.slice(0, max).replace(/\s+\S*$/, "") + "…";
 }
 
-/** The 7-day strip: weekday initial + day number, `on` when a card falls on it. */
-function weekStrip(weekDays, onDays, cls) {
+/** The days strip (a week, or the range shown): weekday initial + day number, `on` when a card falls on it. */
+export function weekStrip(weekDays, onDays, cls) {
   const initials = ["L", "M", "M", "G", "V", "S", "D"];
-  return weekDays.map((d, i) => `<div class="${cls}-day${onDays.has(d) ? " on" : ""}" data-day="${d}"><span class="${cls}-wd">${initials[i]}</span><span class="${cls}-n">${dayNum(d)}</span><i class="${cls}-dot"></i></div>`).join("");
+  return weekDays.map((d) => `<div class="${cls}-day${onDays.has(d) ? " on" : ""}" data-day="${d}"><span class="${cls}-wd">${initials[weekdayOf(d)]}</span><span class="${cls}-n">${dayNum(d)}</span><i class="${cls}-dot"></i></div>`).join("");
 }
 
 /**
@@ -642,7 +683,8 @@ export function eventTemplateTokens({ campaign, v, posterSrcs = [], brand }) {
   }
   const events = Array.isArray(campaign.events) ? campaign.events : [];
   const week = campaign.week || {};
-  const weekDays = week.from ? Array.from({ length: 7 }, (_, i) => addDays(week.from, i)) : [];
+  const weekDays = Array.isArray(week.days) && week.days.length ? week.days
+    : week.from ? Array.from({ length: week.to ? daysBetween(week.from, week.to) + 1 : 7 }, (_, i) => addDays(week.from, i)) : [];
   const allOn = new Set(events.flatMap((e) => e.days || []));
   const cards = events.map((e, i) => {
     const n = String(i + 1).padStart(2, "0");
@@ -652,13 +694,15 @@ export function eventTemplateTokens({ campaign, v, posterSrcs = [], brand }) {
     const poster = src
       ? `<div class="ev-poster" data-layout-allow-overflow="true"><div class="ev-poster-bg" style="background-image: url('${src}')"></div><img class="ev-poster-img" src="${src}" alt="" /></div><p class="ev-credit">${esc(e.credit)}</p>`
       : `<div class="ev-poster ev-type"><span class="ev-type-n">${firstDay ? dayNum(firstDay) : ""}</span><span class="ev-type-m">${esc(firstDay ? MONTHS_LONG[Number(firstDay.slice(5, 7)) - 1] : "")}</span><span class="ev-type-wd">${esc(firstDay ? WEEKDAYS_LONG[weekdayOf(firstDay)] : "")}</span><div class="ev-type-grid">${weekStrip(weekDays, new Set(e.days || []), "ev-tg")}</div></div><p class="ev-credit"></p>`;
-    const where = [e.town, e.venue].filter(Boolean).map(esc).join('<span class="ev-sep"> · </span>');
+    // the town is the card's own line, big; the venue goes small under the title
+    const town = e.town ? `<p class="ev-town">${esc(e.town)}</p>` : "";
     return `            <section class="ev-card${src ? "" : " no-poster"}" id="__ID__-card-${i}" data-days="${esc((e.days || []).join(","))}">
               ${poster}
               <div class="ev-text">
+                ${town}
                 <p class="ev-date"><span class="ev-when">${esc(e.when)}</span><span class="ev-time">${esc(e.time || "")}</span></p>
                 <h2 class="ev-title" data-size="${titleSize(clampTitle(e.title), v.evTitle || 64)}" style="font-size: ${titleSize(clampTitle(e.title), v.evTitle || 64)}px">${esc(clampTitle(e.title))}</h2>
-                <p class="ev-meta"><span class="ev-chip tone-${tone}">${esc(e.categoryLabel || "Evento")}</span><span class="ev-where">${where}</span></p>
+                <p class="ev-meta"><span class="ev-chip tone-${tone}">${esc(e.categoryLabel || "Evento")}</span>${e.venue ? `<span class="ev-where">${esc(e.venue)}</span>` : ""}</p>
               </div>
               <span class="ev-count">${n}<span class="ev-count-of"> / ${String(events.length).padStart(2, "0")}</span></span>
             </section>`;
@@ -668,6 +712,7 @@ export function eventTemplateTokens({ campaign, v, posterSrcs = [], brand }) {
     ...base,
     CARDS: cards,
     N: String(events.length),
+    DAYS: String(weekDays.length || 7),
     T_INTRO: String(t.intro), T_CARD: String(t.card), T_OUTRO: String(t.outro),
     TITLE_WORDS: wordSpans(campaign.copy?.title, campaign.copy?.highlight),
     STRIP: weekStrip(weekDays, allOn, "ev-ws"),
