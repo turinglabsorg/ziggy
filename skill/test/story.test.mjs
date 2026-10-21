@@ -3,8 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
-import { campaignFromStory, campaignNameFor, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, parseSummaryLines, summarizeStory } from "../scripts/story.mjs";
-import { campaignRepetition, captionRepetition, stripPointLabels } from "../scripts/lint.mjs";
+import { campaignFromStory, campaignNameFor, fetchStories, normalizeStory, pick, slugify, createStoryCampaign, buildSummaryPrompt, buildRewritePrompt, parseSummaryLines, summarizeStory, storyDetailUrl, storyPoints, htmlToText, fetchStoryBody } from "../scripts/story.mjs";
+import { campaignRepetition, captionPoints, captionRepetition, pointsReport, storyCaption, stripPointLabels } from "../scripts/lint.mjs";
+import { composeThread } from "../scripts/thread.mjs";
 import { endCard, resolveVariants, scaffold, sourceCount } from "../scripts/video.mjs";
 import { makeWorld } from "./helpers.mjs";
 
@@ -129,7 +130,9 @@ test("campaignFromStory builds a story-template campaign with reel post and Engl
   assert.equal(c.posts.tiktok.enabled, false);
   assert.equal(c.posts.tiktok.platform.privacy_status, "PUBLIC_TO_EVERYONE");
   assert.equal(c.posts.tiktok.platform.disable_comment, false);
-  assert.deepEqual(c.copy.points, ["A modelled orbit could sustain an Earth-sized world, but no planet has been detected."]);
+  // no summary: the reel is title and close, never the dek split into slides
+  assert.deepEqual(c.copy.points, []);
+  assert.deepEqual(c.copy.droppedPoints, []);
   assert.equal(c.duration, 13);
 });
 
@@ -164,13 +167,16 @@ const RAGUSA = {
 };
 const scicliStory = () => ({ title: SCICLI.title, dek: SCICLI.dek, slug: "la-protesta-degli-autotrasportatori-90e6f218", url: SCICLI.url, date: "2026-10-19T08:00:00Z", section: "Cronaca", sources: 2, languages: 1 });
 
-test("story caption: headline, dek, sources, link, hashtags — the points stay on the reel", () => {
+test("story caption: points that only retell headline and dek are on neither the reel nor the caption", () => {
   const c = campaignFromStory(RAGUSA, scicliStory(), { points: SCICLI.points });
   const body = c.posts.instagram_reel.body;
   assert.equal(body, `${SCICLI.title}\n\n${SCICLI.dek}\n\nBasato su 2 fonti in 1 lingua.\n\nLa storia completa: ${SCICLI.url}\n\n#Ragusa #Sicilia #Cronaca #Notizie`);
   for (const p of SCICLI.points) assert.ok(!body.includes(p), `no points paragraph: ${p}`);
-  assert.deepEqual(c.copy.points, SCICLI.points, "the reel slides keep the points");
-  assert.equal(c.duration, 27);
+  assert.doesNotMatch(body, /•/);
+  assert.deepEqual(c.copy.points, [], "the slides would retell them too");
+  assert.deepEqual(c.copy.captionPoints, []);
+  assert.deepEqual(c.copy.droppedPoints, SCICLI.points.map((point, i) => ({ point, reason: ["no new words", "dek", "no new words", "no new words"][i] })));
+  assert.equal(c.duration, 13, "title and close only");
   for (const k of ["tiktok", "facebook_reel", "instagram_post"]) assert.equal(c.posts[k].body, body, k);
   // the sources line is its own paragraph, never glued to the sentence before
   const en = campaignFromStory({ slug: "acme", name: "Acme", site: "https://acme.example/", language: "en", feed: FEED }, normalizeStory(ITEM, FEED));
@@ -242,6 +248,309 @@ test("case file points never carry their label twice", () => {
   assert.doesNotMatch(body, /(confirmed|why it matters):\s*(✅\s*|❓\s*)?(not )?(confirmed|why it matters):/i);
 });
 
+// points written from the article: each adds a fact the Scicli title and dek do not have
+const NEW_FACTS = [
+  "Il presidio dei camionisti resta al porto di Pozzallo fino a venerdì.",
+  "La Coldiretti chiede un tavolo in Prefettura entro lunedì 26 ottobre.",
+  "L'azienda ha messo in cassa integrazione 14 dipendenti.",
+  "La FlorGuarino stima altre perdite se il blocco supera la settimana.",
+];
+
+test("captionPoints: only the points that add a fact, in order, list markers off, at most 3", () => {
+  const opts = { title: SCICLI.title, dek: SCICLI.dek };
+  const lintOk = (kept, o = opts) => assert.deepEqual(captionRepetition(storyCaption({ ...o, points: kept }), { title: o.title }), { ok: true, pairs: [] });
+  // the real Ragusa points retell title and dek: none is left for the caption
+  assert.deepEqual(captionPoints(SCICLI.points, opts), []);
+  assert.deepEqual(pointsReport(SCICLI.points, opts).dropped.map((d) => d.reason), ["no new words", "dek", "no new words", "no new words"]);
+  // new facts stay, in order; the fourth is over the limit
+  assert.deepEqual(captionPoints(NEW_FACTS, opts), NEW_FACTS.slice(0, 3));
+  assert.deepEqual(pointsReport(NEW_FACTS, opts).dropped, [{ point: NEW_FACTS[3], reason: "max" }]);
+  assert.deepEqual(captionPoints(NEW_FACTS, { ...opts, max: 1 }), [NEW_FACTS[0]]);
+  lintOk(captionPoints(NEW_FACTS, opts));
+  // a point that retells the headline with one word more
+  const retitle = "Lo sciopero dei tir pesa molto sul florovivaismo di Scicli.";
+  assert.deepEqual(pointsReport([retitle, NEW_FACTS[0]], opts), { kept: [NEW_FACTS[0]], dropped: [{ point: retitle, reason: "title" }] });
+  // two points that say the same thing: the second goes
+  const again = "Fino a venerdì i camionisti restano in presidio al porto di Pozzallo.";
+  assert.deepEqual(pointsReport([NEW_FACTS[0], again, NEW_FACTS[1]], opts), { kept: [NEW_FACTS[0], NEW_FACTS[1]], dropped: [{ point: again, reason: "point" }] });
+  // the mix: retold ones out, new ones in
+  const mixed = [SCICLI.points[0], NEW_FACTS[0], SCICLI.points[1], again, NEW_FACTS[1], SCICLI.points[3], NEW_FACTS[2]];
+  assert.deepEqual(captionPoints(mixed, opts), NEW_FACTS.slice(0, 3));
+  lintOk(captionPoints(mixed, opts));
+  // list markers off, never a number's "3."
+  assert.deepEqual(captionPoints([`• ${NEW_FACTS[0]}`, `2) ${NEW_FACTS[1]}`, `- ${NEW_FACTS[2]}`], opts), NEW_FACTS.slice(0, 3));
+  assert.deepEqual(captionPoints(["3.000 euro di danni alle serre di Vittoria."], opts), ["3.000 euro di danni alle serre di Vittoria."]);
+  // a short point is not compared by overlap, but one with nothing new goes, and a new number is new
+  const ferry = { title: "Ferry service to the island resumes after the storm", dek: "The first crossing leaves Marina on Monday; the port authority expects delays all week." };
+  assert.deepEqual(pointsReport(["The ferry leaves Marina.", "The ferry leaves at 7."], ferry), { kept: ["The ferry leaves at 7."], dropped: [{ point: "The ferry leaves Marina.", reason: "no new words" }] });
+  // the same short point twice: once
+  assert.deepEqual(captionPoints(["Sono 2 feriti.", "Sono 2 feriti.", "Sono 3 feriti."], { title: "Incidente sulla statale", dek: "Due auto si sono scontrate all'alba." }), ["Sono 2 feriti.", "Sono 3 feriti."]);
+  // the caption's tail counts: a point that echoes the CTA would fail the lint
+  const harbour = { title: "Harbour reopens after the storm", dek: "The port authority lifted the ban this morning." };
+  const tail = "Read the full story of the harbour reopening on acme.example.";
+  const echo = "Read about the harbour reopening story in full tomorrow.";
+  assert.deepEqual(pointsReport([echo], { ...harbour, tail }).dropped, [{ point: echo, reason: "lint" }]);
+  assert.deepEqual(captionPoints([echo], harbour), [echo]);
+  // nothing to work with: nothing to show
+  assert.deepEqual(captionPoints(undefined), []);
+  assert.deepEqual(captionPoints([]), []);
+  assert.deepEqual(captionPoints("not a list", opts), []);
+  assert.deepEqual(captionPoints(["", "  ", null, "•"], opts), []);
+});
+
+test("storyDetailUrl: the list path + slug with only its lang, or feed.detailUrl", () => {
+  assert.equal(storyDetailUrl({ feed: { url: "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=50" } }, "scicli-90e6f218"), "https://ragusa.buzz/feed/v1/briefings/scicli-90e6f218?lang=it");
+  assert.equal(storyDetailUrl({ feed: { url: "https://alienwatch.buzz/feed/v1/briefings?limit=50&lang=en" } }, "orb-11f587e9"), "https://alienwatch.buzz/feed/v1/briefings/orb-11f587e9?lang=en");
+  assert.equal(storyDetailUrl({ feed: { url: "http://127.0.0.1:9/feed/?limit=20" } }, "a b/c"), "http://127.0.0.1:9/feed/a%20b%2Fc");
+  assert.equal(storyDetailUrl({ feed: { url: "https://x.example/list?lang=it", detailUrl: "https://x.example/api/story/{slug}.json" } }, "s-1"), "https://x.example/api/story/s-1.json");
+  assert.equal(storyDetailUrl({ feed: {} }, "s"), null);
+  assert.equal(storyDetailUrl({ feed: { url: "https://x.example/list" } }, ""), null);
+  assert.equal(storyDetailUrl({}, "s"), null);
+});
+
+test("htmlToText: tags off, entities decoded once, a blank line between paragraphs", () => {
+  const html = `<h2>Il porto</h2>\n  <p>Riapre alle <strong>7:00</strong>,\n   dice la   Capitaneria.</p>
+    <p>Fonti: Comune &amp; Regione, &quot;ok&quot; &#39;sì&#39; &lt;b&gt; &#8211; &#x2014;&nbsp;fine &amp;lt;</p><script>alert(1)</script><style>p {}</style><!-- note --><ul><li>Uno</li><li>Due</li></ul>`;
+  assert.equal(htmlToText(html), "Il porto\n\nRiapre alle 7:00, dice la Capitaneria.\n\nFonti: Comune & Regione, \"ok\" 'sì' <b> – — fine &lt;\n\nUno\n\nDue");
+  assert.equal(htmlToText(""), "");
+  assert.equal(htmlToText(undefined), "");
+  assert.equal(htmlToText("plain text"), "plain text");
+});
+
+test("fetchStoryBody: the detail endpoint's article as plain text, cut at a sentence end; '' on any failure", async () => {
+  const tenant = { slug: "ragusa", language: "it", feed: { url: "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=50" } };
+  const story = { slug: "scicli-90e6f218" };
+  const seen = [];
+  const reply = (payload, status = 200) => async (url, opts) => {
+    seen.push({ url: String(url), signal: opts?.signal });
+    return new Response(typeof payload === "string" ? payload : JSON.stringify(payload), { status });
+  };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply({ data: { title: "x", bodyHtml: "<p>Uno.</p><p>Due &amp; tre.</p>", sources: [] } }) }), "Uno.\n\nDue & tre.");
+  assert.equal(seen[0].url, "https://ragusa.buzz/feed/v1/briefings/scicli-90e6f218?lang=it");
+  assert.ok(seen[0].signal instanceof AbortSignal, "the request carries a timeout");
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply({ bodyHtml: "<p>Top level.</p>" }) }), "Top level.");
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply({ body: "<p>Plain body.</p>" }) }), "Plain body.");
+  // cut after the last sentence that fits
+  const long = `<p>${"Prima frase del pezzo. ".repeat(10)}</p>`;
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply({ data: { bodyHtml: long } }), maxChars: 50 }), "Prima frase del pezzo. Prima frase del pezzo.");
+  assert.ok((await fetchStoryBody(tenant, story, { fetchImpl: reply({ data: { bodyHtml: long } }) })).length <= 2500);
+  // never a throw: a round must not fail on the article
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply("not found", 404) }), "");
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply("{ not json") }), "");
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply({ data: [] }) }), "");
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: async () => { throw new TypeError("fetch failed"); }, retryDelayMs: 0 }), "");
+  // a request that never answers (the timer stands in for the open socket: AbortSignal.timeout's own is unref'd)
+  const hang = (url, { signal }) => new Promise((_, reject) => {
+    const socket = setTimeout(() => {}, 5_000);
+    signal.addEventListener("abort", () => { clearTimeout(socket); reject(signal.reason); });
+  });
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: hang, timeoutMs: 20 }), "");
+  let called = false;
+  assert.equal(await fetchStoryBody({ slug: "x", feed: {} }, story, { fetchImpl: async () => { called = true; } }), "");
+  assert.equal(called, false, "no URL, no request");
+});
+
+test("fetchStoryBody: a request that fails outright is tried once more; an HTTP error or a timeout is not", async () => {
+  const tenant = { slug: "ragusa", language: "it", feed: { url: "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=50" } };
+  const story = { slug: "scicli-90e6f218" };
+  const article = () => new Response(JSON.stringify({ data: { bodyHtml: "<p>Di nuovo su.</p>" } }), { status: 200 });
+  // the stale keep-alive socket: the first call fails, the next one gets through
+  let signals = [];
+  const flaky = async (url, { signal }) => { signals.push(signal); if (signals.length === 1) throw new TypeError("fetch failed"); return article(); };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: flaky, retryDelayMs: 0 }), "Di nuovo su.");
+  assert.equal(signals.length, 2);
+  assert.notEqual(signals[0], signals[1], "each try has its own timeout");
+  // down twice: one retry, not more, and still no throw
+  let calls = 0;
+  const down = async () => { calls++; throw new TypeError("fetch failed"); };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: down, retryDelayMs: 0 }), "");
+  assert.equal(calls, 2);
+  // the retry waits retryDelayMs
+  signals = [];
+  const t0 = Date.now();
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: flaky, retryDelayMs: 40 }), "Di nuovo su.");
+  assert.ok(Date.now() - t0 >= 35, `${Date.now() - t0} ms`);
+  // an HTTP error is an answer, not a dropped socket
+  calls = 0;
+  const bad = async () => { calls++; return new Response("bad gateway", { status: 502 }); };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: bad, retryDelayMs: 0 }), "");
+  assert.equal(calls, 1);
+  // a timeout already waited timeoutMs: no second wait
+  calls = 0;
+  const hang = (url, { signal }) => new Promise((_, reject) => {
+    calls++;
+    const socket = setTimeout(() => {}, 5_000);
+    signal.addEventListener("abort", () => { clearTimeout(socket); reject(signal.reason); });
+  });
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: hang, timeoutMs: 20, retryDelayMs: 0 }), "");
+  assert.equal(calls, 1);
+});
+
+test("the summary prompt: with the article, its facts that headline and deck do not say; without, the same as before", () => {
+  const story = normalizeStory(ITEM, FEED);
+  const en = { slug: "acme", language: "en", feed: FEED };
+  const it = { slug: "acme", language: "it", feed: FEED };
+  assert.equal(buildSummaryPrompt(en, story), [
+    "Summarise this story as 3-4 slides for a vertical reel. Each slide adds a new fact (what happened, who, when/where, what it means): the first does not repeat the headline, none repeats another.",
+    "Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.",
+    "Print ONLY the slides, one per line, nothing else.",
+    "",
+    `Headline: ${story.title}`,
+    `Deck: ${story.dek}`,
+  ].join("\n"));
+  assert.equal(buildSummaryPrompt(en, { ...story, body: "" }), buildSummaryPrompt(en, story), "an empty body is no body");
+  const body = "The team at the University of Geneva ran 10,000 simulated orbits.\n\nA follow-up search with ESPRESSO starts in 2027.";
+  const p = buildSummaryPrompt(en, { ...story, body });
+  assert.match(p, /told with facts from the article/);
+  assert.match(p, /Prefer facts NOT already in the headline or deck: numbers, names, dates, what happens next/);
+  assert.match(p, /Slide 1 does not repeat the headline, none repeats another or the deck/);
+  assert.match(p, /max 90 characters each/);
+  assert.match(p, /one sentence per slide/);
+  assert.match(p, /invent nothing/);
+  assert.ok(p.endsWith(`Deck: ${story.dek}\nArticle: ${body}`), p);
+  const pit = buildSummaryPrompt(it, { ...story, body });
+  assert.match(pit, /con i fatti dell'articolo/);
+  assert.match(pit, /numeri, nomi, date, cosa succede dopo/);
+  assert.match(pit, /La prima slide non ripete il titolo/);
+  assert.match(pit, /max 90 caratteri/);
+  assert.match(pit, /non inventare nulla/);
+  assert.ok(pit.indexOf("Deck:") < pit.indexOf("Article:"));
+});
+
+test("summarizeStory reads the article from the detail endpoint when the story does not carry it", async () => {
+  const tenant = { slug: "acme", name: "Acme", site: "https://acme.example/", language: "en", feed: { ...FEED, agent: { command: ["fake-agent"] } } };
+  const story = normalizeStory(ITEM, FEED);
+  const slides = ["Geneva astronomers ran 10,000 simulated orbits.", "A stable zone sits 1.2 AU from the larger star.", "ESPRESSO starts a follow-up search in 2027."];
+  const prompts = [], urls = [];
+  const spawnImpl = (bin, args, { input }) => { prompts.push(input); return { status: 0, stdout: slides.join("\n"), stderr: "" }; };
+  const fetchImpl = async (url) => { urls.push(String(url)); return new Response(JSON.stringify({ data: { bodyHtml: "<p>Geneva ran 10,000 orbits.</p>" } }), { status: 200 }); };
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl, fetchImpl }), slides);
+  assert.deepEqual(urls, [`https://acme.example/feed/v1/briefings/${ITEM.slug}?lang=en`]);
+  assert.match(prompts[0], /\nArticle: Geneva ran 10,000 orbits\.$/);
+  // a story that already carries its body (a round's plan) is not fetched again
+  await summarizeStory(tenant, { ...story, body: "Known body." }, { spawnImpl, fetchImpl });
+  assert.equal(urls.length, 1);
+  assert.match(prompts[1], /\nArticle: Known body\.$/);
+  // the campaign: every slide on the reel, the new facts in the caption
+  const c = campaignFromStory(tenant, story, { points: slides });
+  assert.deepEqual(c.copy.points, slides);
+  assert.deepEqual(c.copy.captionPoints, slides);
+  assert.ok(c.posts.instagram_reel.body.includes(`${ITEM.dek}\n\n${slides.map((s) => `• ${s}`).join("\n")}\n\nSourced from 2 reports in 2 languages.`), c.posts.instagram_reel.body);
+});
+
+test("createStoryCampaign (the daily loop's path) hands its fetchImpl to the summary: the article reaches the agent", async () => {
+  const tenant = { ...loadTenant("acme"), feed: { ...FEED, agent: { command: ["fake-agent"] } } };
+  const slides = ["Geneva astronomers ran 10,000 simulated orbits.", "A stable zone sits 1.2 AU from the larger star.", "ESPRESSO starts a follow-up search in 2027."];
+  let prompt = "";
+  const spawnImpl = (bin, args, { input }) => { prompt = input; return { status: 0, stdout: slides.join("\n"), stderr: "" }; };
+  const fetchImpl = async (url) => {
+    assert.equal(String(url), `https://acme.example/feed/v1/briefings/${ITEM.slug}?lang=en`);
+    return new Response(JSON.stringify({ data: { bodyHtml: "<p>Geneva ran 10,000 orbits.</p>" } }), { status: 200 });
+  };
+  const made = await createStoryCampaign(tenant, { story: normalizeStory(ITEM, FEED), fetchImpl, spawnImpl, write: false, force: true });
+  assert.match(prompt, /\nArticle: Geneva ran 10,000 orbits\.$/);
+  assert.deepEqual(made.campaign.copy.points, slides);
+  assert.deepEqual(made.campaign.copy.captionPoints, slides);
+  assert.deepEqual(campaignRepetition(made.campaign), { ok: true, pairs: [] });
+});
+
+test("summarizeStory: fewer than 2 points survive → one rewrite from the article, told what was rejected; the list that keeps more wins", async () => {
+  const tenant = { ...loadTenant("acme"), language: "en", feed: { ...FEED, agent: { command: ["fake-agent"] } } };
+  const story = normalizeStory(ITEM, FEED);
+  const echo = ["Modelling suggests 70 Ophiuchi could host an Earth-sized planet.", "A modelled orbit could sustain an Earth-sized world."];
+  const slides = ["Geneva astronomers ran 10,000 simulated orbits.", "A stable zone sits 1.2 AU from the larger star.", "ESPRESSO starts a follow-up search in 2027."];
+  const body = "Geneva astronomers ran 10,000 simulated orbits. ESPRESSO starts a follow-up search in 2027.";
+  const fetchImpl = async () => new Response(JSON.stringify({ data: { bodyHtml: `<p>${body}</p>` } }), { status: 200 });
+  const agent = (...replies) => {
+    const prompts = [];
+    const spawnImpl = (bin, args, { input }) => { prompts.push(input); const r = replies[prompts.length - 1]; return typeof r === "string" ? { status: 0, stdout: r, stderr: "" } : r; };
+    return { prompts, spawnImpl };
+  };
+  // the first summary retells headline and deck but for one slide: one rewrite, which wins
+  const first = [...echo, slides[0]].join("\n");
+  const a = agent(first, slides.join("\n"));
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: a.spawnImpl, fetchImpl }), slides);
+  assert.equal(a.prompts.length, 2);
+  assert.match(a.prompts[0], /^Summarise this story/);
+  assert.equal(a.prompts[1], [
+    "These slides for a vertical reel repeat the headline or the deck and were rejected:",
+    `- ${echo[0]} (says nothing the headline and deck do not)`,
+    `- ${echo[1]} (says nothing the headline and deck do not)`,
+    "",
+    "Rewrite them: 3-4 new slides with facts from the article that the headline and deck do not say: numbers, names, dates, what happens next. Do not repeat the rejected slides, the headline or the deck; no slide repeats another.",
+    "Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per slide.",
+    `Only facts from the article: invent nothing, and keep the source's hedges ("allegedly", "according to"). If the article holds no other fact, write fewer slides.`,
+    "Print ONLY the slides, one per line, nothing else.",
+    "",
+    `Headline: ${ITEM.title}`,
+    `Deck: ${ITEM.dek}`,
+    `Article: ${body}`,
+  ].join("\n"));
+  // the rewrite keeps no more than the first: the first stays
+  const b = agent(first, echo.join("\n"));
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: b.spawnImpl, fetchImpl }), [...echo, slides[0]]);
+  assert.equal(b.prompts.length, 2);
+  // a rewrite that fails: the first stays, no throw
+  const c = agent(first, { status: 1, stdout: "", stderr: "rate limited" });
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: c.spawnImpl, fetchImpl }), [...echo, slides[0]]);
+  // two that survive: no second ask
+  const d = agent([slides[0], slides[1], echo[0]].join("\n"));
+  assert.deepEqual(await summarizeStory(tenant, story, { spawnImpl: d.spawnImpl, fetchImpl }), [slides[0], slides[1], echo[0]]);
+  assert.equal(d.prompts.length, 1);
+  // the daily loop's path: the rewritten slides on the reel and in the caption
+  const e = agent(first, slides.join("\n"));
+  const made = await createStoryCampaign(tenant, { story, fetchImpl, spawnImpl: e.spawnImpl, write: false, force: true });
+  assert.deepEqual([made.campaign.copy.points, made.campaign.copy.captionPoints, made.campaign.copy.droppedPoints], [slides, slides, []]);
+  assert.equal(made.campaign.duration, 22);
+  // Italian
+  const it = buildRewritePrompt({ language: "it" }, { title: "T", dek: "D", body: "B" }, [{ point: "Uno.", reason: "title" }, { point: "Due.", reason: "point" }]);
+  assert.match(it, /^Queste slide per un reel verticale ripetono titolo o sommario \(Headline, Deck\) e sono state scartate:\n- Uno\. \(ripete il titolo\)\n- Due\. \(ripete un'altra slide\)\n/);
+  assert.match(it, /Riscrivile: 3-4 slide nuove con i fatti dell'articolo/);
+  assert.match(it, /non inventare nulla/);
+  assert.ok(it.endsWith("Headline: T\nDeck: D\nArticle: B"), it);
+});
+
+test("storyPoints: the reel keeps up to 4 of the filtered points, the caption the first 3, from one list", () => {
+  const five = [...NEW_FACTS, "Il sindaco incontra gli autotrasportatori giovedì alle 10."];
+  const r = storyPoints(RAGUSA, scicliStory(), five);
+  assert.deepEqual(r.kept, NEW_FACTS);
+  assert.deepEqual(r.dropped, [{ point: five[4], reason: "max" }]);
+  assert.deepEqual(storyPoints(RAGUSA, scicliStory(), undefined), { kept: [], dropped: [] });
+  const c = campaignFromStory(RAGUSA, scicliStory(), { points: [SCICLI.points[0], NEW_FACTS[0], SCICLI.points[1], NEW_FACTS[1]] });
+  assert.deepEqual(c.copy.points, NEW_FACTS.slice(0, 2));
+  assert.deepEqual(c.copy.captionPoints, NEW_FACTS.slice(0, 2));
+  assert.deepEqual(c.copy.droppedPoints.map((d) => d.reason), ["no new words", "dek"]);
+  assert.equal(c.duration, 18);
+});
+
+test("story caption with points: the ones that add a fact, as • lines between the dek and the sources", () => {
+  const points = [SCICLI.points[0], ...NEW_FACTS.slice(0, 3)];
+  const c = campaignFromStory(RAGUSA, scicliStory(), { points });
+  const body = c.posts.instagram_reel.body;
+  assert.equal(body, `${SCICLI.title}\n\n${SCICLI.dek}\n\n• ${NEW_FACTS[0]}\n• ${NEW_FACTS[1]}\n• ${NEW_FACTS[2]}\n\nBasato su 2 fonti in 1 lingua.\n\nLa storia completa: ${SCICLI.url}\n\n#Ragusa #Sicilia #Cronaca #Notizie`);
+  assert.deepEqual(c.copy.points, NEW_FACTS.slice(0, 3), "the reel shows the same points: the one that retells the title is on neither");
+  assert.deepEqual(c.copy.captionPoints, NEW_FACTS.slice(0, 3));
+  assert.deepEqual(c.copy.droppedPoints, [{ point: SCICLI.points[0], reason: "no new words" }]);
+  assert.equal(c.duration, 22, "the reel's length from the kept points");
+  for (const k of ["tiktok", "facebook_reel", "instagram_post"]) assert.equal(c.posts[k].body, body, k);
+  assert.deepEqual(campaignRepetition(c), { ok: true, pairs: [] });
+  // four new facts: three in the caption, four on the reel
+  const four = campaignFromStory(RAGUSA, scicliStory(), { points: NEW_FACTS });
+  assert.deepEqual(four.copy.captionPoints, NEW_FACTS.slice(0, 3));
+  assert.deepEqual(four.copy.points, NEW_FACTS);
+  assert.equal(four.duration, 27);
+  assert.ok(!four.posts.instagram_reel.body.includes(NEW_FACTS[3]));
+  // the X thread does not change with the points
+  const plain = campaignFromStory(RAGUSA, scicliStory());
+  assert.deepEqual(c.posts.twitter, plain.posts.twitter);
+  const thread = composeThread({ title: SCICLI.title, dek: SCICLI.dek, url: SCICLI.url, limit: 280 });
+  assert.deepEqual([c.posts.twitter.body, c.posts.twitter.thread], [thread.body, thread.thread]);
+  // no AI points: no slides (never the dek split), and the caption is the one without points
+  assert.deepEqual(plain.copy.points, []);
+  assert.deepEqual(plain.copy.captionPoints, []);
+  assert.equal(plain.posts.instagram_reel.body, `${SCICLI.title}\n\n${SCICLI.dek}\n\nBasato su 2 fonti in 1 lingua.\n\nLa storia completa: ${SCICLI.url}\n\n#Ragusa #Sicilia #Cronaca #Notizie`);
+});
+
 test("campaignFromStory enables twitter when in social.platforms", () => {
   const tenant = {
     slug: "alienwatch", name: "Alien Watch", site: "https://alienwatch.buzz/", language: "en", feed: FEED,
@@ -302,13 +611,18 @@ test("the AI summary pre-script: prompt, line parsing, agent run and fallback", 
     assert.match(opts.input, /Riassumi/);
     return { status: 0, stdout: JSON.stringify({ result: slides.join("\n") }), stderr: "" };
   };
-  const got = await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED), { spawnImpl });
+  // the detail endpoint has no article for it: the summary goes on from headline and deck
+  const noBody = async () => new Response("not found", { status: 404 });
+  const got = await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED), { spawnImpl, fetchImpl: noBody });
   assert.deepEqual(got, slides);
-  // no agent configured → null (createStoryCampaign falls back to the dek split)
-  assert.equal(await summarizeStory({ ...tenant, feed: { ...FEED, agent: null } }, normalizeStory(ITEM, FEED)), null);
-  // one usable line is not a summary → null
-  assert.equal(await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED),
-    { spawnImpl: () => ({ status: 0, stdout: slides[0], stderr: "" }) }), null);
+  // no agent configured → null (the campaign has no points: title and close), nothing fetched
+  const never = async () => assert.fail("no agent, no body fetch");
+  assert.equal(await summarizeStory({ ...tenant, feed: { ...FEED, agent: null } }, normalizeStory(ITEM, FEED), { fetchImpl: never }), null);
+  // one usable line and no article to rewrite it from: the one line stays (a reel with one slide)
+  let asked = 0;
+  assert.deepEqual(await summarizeStory({ ...tenant, feed: { ...FEED, agent: { command: ["fake-agent"] } } }, normalizeStory(ITEM, FEED),
+    { spawnImpl: () => { asked++; return { status: 0, stdout: slides[0], stderr: "" }; }, fetchImpl: noBody }), [slides[0]]);
+  assert.equal(asked, 1, "no article, no rewrite");
   // and a campaign built with the summary points uses them on the reel slides
   const c = campaignFromStory(tenant, normalizeStory(ITEM, FEED), { points: slides });
   assert.deepEqual(c.copy.points, slides);
@@ -330,9 +644,13 @@ test("the story template scaffolds with headline words, kicker, meta, brand and 
   assert.match(html, /var HAS_PHOTO = true;/);
   assert.match(html, /<span class="part" style="font-weight: 300">Acme<\/span>/);
   assert.ok(existsSync(join(reel.dir, "assets", "story.jpg")));
+  // no summary: title slide and close only, no empty point slide
+  assert.deepEqual(campaign.copy.points, []);
   assert.match(html, /data-duration="13"/);
-  assert.match(html, /class="scene point-scene" id="story-reel-s1"/);
-  assert.match(html, /var PN = 1;/);
+  assert.doesNotMatch(html, /point-scene/);
+  assert.match(html, /var PN = 0;/);
+  assert.match(html, /id="story-reel-s0"/);
+  assert.match(html, /id="story-reel-sclose"/);
   // the end card: the source count, then where to read the whole story — never the dek again
   assert.match(html, /<span id="story-reel-end-num">2<\/span><span id="story-reel-end-label">sources<\/span>/);
   assert.match(html, /Read the full story on <span class="end-site">acme\.example<\/span>/);
@@ -344,6 +662,32 @@ test("the story template scaffolds with headline words, kicker, meta, brand and 
   await assert.rejects(scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "story3"), fetchImpl: down }), /story image unreachable/);
   const missing = async () => new Response("nope", { status: 404 });
   await assert.rejects(scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, "story4"), fetchImpl: missing }), /HTTP 404/);
+});
+
+test("the story reel with 0, 1 or 2 points: one slide per kept point, none empty, the scene times inside the reel", async () => {
+  const tenant = loadTenant("acme");
+  const story = { ...normalizeStory(ITEM, FEED), image: null };
+  const facts = ["Geneva astronomers ran 10,000 simulated orbits.", "ESPRESSO starts a follow-up search in 2027."];
+  const echo = "Modelling suggests 70 Ophiuchi could host an Earth-sized planet.";
+  for (const [given, n, duration] of [[[echo], 0, 13], [[echo, facts[0]], 1, 13], [[facts[0], echo, facts[1]], 2, 18]]) {
+    const campaign = { ...campaignFromStory(tenant, story, { points: given }), name: `pts-${n}` };
+    assert.equal(campaign.copy.points.length, n);
+    assert.equal(campaign.duration, duration);
+    const [reel] = await scaffold({ tenant, campaign, variants: resolveVariants(campaign, ["reel"]), outRoot: join(world.root, `story-pts-${n}`) });
+    const html = readFileSync(join(reel.dir, "compositions", "story-reel.html"), "utf8");
+    assert.match(html, new RegExp(`data-duration="${duration}"`));
+    assert.match(html, new RegExp(`var PN = ${n};`));
+    const scenes = [...html.matchAll(/<div class="scene point-scene" id="story-reel-s(\d)">.*?<p class="p-text">(.*?)<\/p><\/div>/g)];
+    assert.deepEqual(scenes.map((m) => [Number(m[1]), m[2]]), campaign.copy.points.map((p, i) => [i + 1, p]), "one filled slide per kept point");
+    assert.doesNotMatch(html, /__[A-Z][A-Z0-9_]*__/, "every token is filled");
+    // the template's scene budget (title 5 s, close 4 s, a point ≥ 3.6 s): the close starts
+    // inside the reel and holds at least its 4 s
+    const tPoint = n > 0 ? Math.max(3.6, (duration - 5 - 4) / n) : 0;
+    const closeAt = 5 + n * tPoint;
+    assert.ok(closeAt + 4 <= duration + 1e-9, `${n} points: close at ${closeAt}s of ${duration}s`);
+    assert.match(html, /var tTitle = 5, tClose = 4;/);
+    assert.match(html, /var tPoint = PN > 0 \? Math\.max\(3\.6, \(DUR - tTitle - tClose\) \/ PN\) : 0;/);
+  }
 });
 
 test("the end card speaks the tenant's language and reads the count from the meta line", () => {

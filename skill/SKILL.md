@@ -73,15 +73,16 @@ one judgement per story, through the points file. Ziggy fixes everything else fr
 the platforms. Two runs with the same feed and the same points file give the same result.
 
 ```bash
-ziggy round <slug> --plan --json                     # 1. the stories still to do, with title, dek, deadline
+ziggy round <slug> --plan --json                     # 1. the stories still to do, with title, dek, body, deadline
 # 2. write points.json (rules below)
 ziggy round <slug> --points points.json --notify     # 3. campaigns → renders → checks → scheduled, summary to Telegram
 ziggy round <slug> --points points.json --dry-run    #    or first see where each story would go (writes nothing)
 ```
 
 `--plan` lists the stories that no live post or skipped campaign covers yet and that can still
-go out, oldest first. Each one comes with its `prefix`, `title`, `dek`, `sources`, `image` and
-`deadline`. With `freshness: "next-day"` a story goes out at the latest on the day after its date
+go out, oldest first. Each one comes with its `prefix`, `title`, `dek`, `sources`, `image`,
+`deadline` and `body`: the article as plain text, up to 1,200 characters (`""` when the feed has
+none for it). With `freshness: "next-day"` a story goes out at the latest on the day after its date
 (local news). With `"archive"` there is no deadline, and `--archive` lists older stories too.
 
 The **points file** covers every story the plan listed, with no exceptions:
@@ -225,14 +226,24 @@ In alternate mode, the round interleaves news and case files according to the ra
 
 How to write the points. These rules are fixed, so do not improvise.
 
-- **4 points.** Write 3 only when the title and dek do not hold a fourth fact, and never invent one.
-  Ziggy refuses anything other than 3–4 points, and any point over 90 characters.
+- **4 points.** Write 3 only when title, dek and body together do not hold a fourth fact, and
+  never invent one. Ziggy refuses anything other than 3–4 points, and any point over 90 characters.
 - **One fact per point**, as a plain sentence. Read in order, the points tell the story: what
   happened (who, where, when), then the details, then what comes next.
-- **Point 1 does not repeat the title; each point adds a new fact.** The points are the reel's
-  slides only: the caption is the title, the dek, the sources line, the link and the hashtags.
-- **Only what the title and dek say.** Copy numbers, names and places as written. Use no other
-  source and no background of your own.
+- **Each point adds a fact the title, the dek and the points before it do not hold**: a number,
+  a name, a date, a consequence or the next step, taken from the body. Point 1 never repeats the
+  title.
+- **The reel slides and the caption share the points.** A point that repeats the title, the dek
+  or an earlier point is dropped from both; the story is not refused for it. The reel shows up to
+  4 of the points that are left, one per slide; the caption shows the first 3, as "•" lines under
+  the dek.
+- **Fewer than 2 left: Ziggy asks the tenant's summary agent once** to rewrite them with new
+  facts from the article, telling it which points were dropped and why. It keeps the list with
+  more points left (yours on a tie). With no agent, no article or a failed call, it keeps what
+  is left of yours. 0 or 1 points is fine: the reel is the title, that one slide if any, and the
+  close. The dek is never split into slides.
+- **Only what the title, dek and body say.** Copy numbers, names and places as written. Use no
+  other source and no background of your own. With an empty `body`, write from title and dek.
 - **No adjectives of judgement, comments, questions, emojis, hashtags or calls to action.**
 - **Keep the source's hedges** ("avrebbe", "secondo", "most likely"). An allegation never
   becomes a fact.
@@ -260,6 +271,11 @@ Reading the result:
 - Each scheduled story takes the next free `daily.round.times` slot, nearest deadline first, at
   least `gapMinutes` away from anything already queued, on every platform in `daily.only` whose
   Postproxy profile is active.
+- `🕒 13:00 — <story> · 3 punti (1 scartato)` says how many of the story's points are left on the
+  reel (`points` in `--json`; `captionPoints`, at most 3, went into the caption) and how many were
+  dropped for repeating title, dek or another point (`dropped`). `riscritti` (`rewritten`) means
+  the summary agent replaced yours. `nessun punto` usually means the points only retold title and
+  dek: write them from the body.
 - `✗ … no audio` / `render failed` means the reel did not go out. Fix the cause and run the same
   points file again: covered stories are refused, never posted twice.
 - `⚠️ non pubblicati su …` means a profile is disconnected on Postproxy. Tell the user, who has to
