@@ -157,7 +157,7 @@ async function mapLimit(items, concurrency, fn) {
  * Each carries its article as `body` (plain text, ≤ BODY_CHARS, "" when the feed has none): the
  * points' new facts come from there, not from the title and dek they would only retell.
  */
-export async function planRound(tenant, { fetchImpl, now = new Date(), archive = false } = {}) {
+export async function planRound(tenant, { fetchImpl, now = new Date(), archive = false, retryDelayMs } = {}) {
   const cfg = roundConfig(tenant);
   const t0 = now.getTime();
   const placeNames = cfg.placeNames || [];
@@ -177,7 +177,7 @@ export async function planRound(tenant, { fetchImpl, now = new Date(), archive =
       return s.deadline ? Date.parse(s.deadline) > t0 + 30 * 60_000 : Date.parse(s.date) > t0 - 72 * 3600_000;
     })
     .sort((a, b) => String(a.row.date).localeCompare(String(b.row.date)));
-  const bodies = await mapLimit(planned, BODY_CONCURRENCY, ({ story }) => fetchStoryBody(tenant, story, { fetchImpl, maxChars: BODY_CHARS }));
+  const bodies = await mapLimit(planned, BODY_CONCURRENCY, ({ story }) => fetchStoryBody(tenant, story, { fetchImpl, maxChars: BODY_CHARS, retryDelayMs }));
   return planned.map(({ row }, i) => ({ ...row, body: bodies[i] }));
 }
 

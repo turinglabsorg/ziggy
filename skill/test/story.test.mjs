@@ -338,7 +338,7 @@ test("fetchStoryBody: the detail endpoint's article as plain text, cut at a sent
   assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply("not found", 404) }), "");
   assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply("{ not json") }), "");
   assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: reply({ data: [] }) }), "");
-  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: async () => { throw new TypeError("fetch failed"); } }), "");
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: async () => { throw new TypeError("fetch failed"); }, retryDelayMs: 0 }), "");
   // a request that never answers (the timer stands in for the open socket: AbortSignal.timeout's own is unref'd)
   const hang = (url, { signal }) => new Promise((_, reject) => {
     const socket = setTimeout(() => {}, 5_000);
@@ -348,6 +348,42 @@ test("fetchStoryBody: the detail endpoint's article as plain text, cut at a sent
   let called = false;
   assert.equal(await fetchStoryBody({ slug: "x", feed: {} }, story, { fetchImpl: async () => { called = true; } }), "");
   assert.equal(called, false, "no URL, no request");
+});
+
+test("fetchStoryBody: a request that fails outright is tried once more; an HTTP error or a timeout is not", async () => {
+  const tenant = { slug: "ragusa", language: "it", feed: { url: "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=50" } };
+  const story = { slug: "scicli-90e6f218" };
+  const article = () => new Response(JSON.stringify({ data: { bodyHtml: "<p>Di nuovo su.</p>" } }), { status: 200 });
+  // the stale keep-alive socket: the first call fails, the next one gets through
+  let signals = [];
+  const flaky = async (url, { signal }) => { signals.push(signal); if (signals.length === 1) throw new TypeError("fetch failed"); return article(); };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: flaky, retryDelayMs: 0 }), "Di nuovo su.");
+  assert.equal(signals.length, 2);
+  assert.notEqual(signals[0], signals[1], "each try has its own timeout");
+  // down twice: one retry, not more, and still no throw
+  let calls = 0;
+  const down = async () => { calls++; throw new TypeError("fetch failed"); };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: down, retryDelayMs: 0 }), "");
+  assert.equal(calls, 2);
+  // the retry waits retryDelayMs
+  signals = [];
+  const t0 = Date.now();
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: flaky, retryDelayMs: 40 }), "Di nuovo su.");
+  assert.ok(Date.now() - t0 >= 35, `${Date.now() - t0} ms`);
+  // an HTTP error is an answer, not a dropped socket
+  calls = 0;
+  const bad = async () => { calls++; return new Response("bad gateway", { status: 502 }); };
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: bad, retryDelayMs: 0 }), "");
+  assert.equal(calls, 1);
+  // a timeout already waited timeoutMs: no second wait
+  calls = 0;
+  const hang = (url, { signal }) => new Promise((_, reject) => {
+    calls++;
+    const socket = setTimeout(() => {}, 5_000);
+    signal.addEventListener("abort", () => { clearTimeout(socket); reject(signal.reason); });
+  });
+  assert.equal(await fetchStoryBody(tenant, story, { fetchImpl: hang, timeoutMs: 20, retryDelayMs: 0 }), "");
+  assert.equal(calls, 1);
 });
 
 test("the summary prompt: with the article, its facts that headline and deck do not say; without, the same as before", () => {

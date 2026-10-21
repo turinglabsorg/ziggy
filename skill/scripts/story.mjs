@@ -142,12 +142,22 @@ export function clipAtSentence(text, max) {
  * The story's article as plain text, cut at a sentence end within `maxChars`: the detail
  * endpoint's `data.bodyHtml` (or `bodyHtml` / `body` at the top). "" on any failure, never a
  * throw: the body only feeds the points, so a slow or broken endpoint must not stop a round.
+ * A request that fails outright (a keep-alive socket the server already closed: "fetch failed")
+ * is tried once more after `retryDelayMs`; an HTTP error or a timeout is not.
  */
-export async function fetchStoryBody(tenant, story, { fetchImpl = fetch, maxChars = 2500, timeoutMs = 10_000 } = {}) {
+export async function fetchStoryBody(tenant, story, { fetchImpl = fetch, maxChars = 2500, timeoutMs = 10_000, retryDelayMs = 500 } = {}) {
   try {
     const url = storyDetailUrl(tenant, story?.slug);
     if (!url) return "";
-    const res = await fetchImpl(url, { headers: { "User-Agent": "Mozilla/5.0 ziggy", Accept: "application/json" }, signal: AbortSignal.timeout(timeoutMs) });
+    const get = () => fetchImpl(url, { headers: { "User-Agent": "Mozilla/5.0 ziggy", Accept: "application/json" }, signal: AbortSignal.timeout(timeoutMs) });
+    let res;
+    try {
+      res = await get();
+    } catch (err) {
+      if (err?.name === "TimeoutError" || err?.name === "AbortError") return "";
+      await new Promise((r) => setTimeout(r, retryDelayMs));
+      res = await get();
+    }
     if (!res.ok) return "";
     const json = await res.json();
     const html = [json?.data?.bodyHtml, json?.bodyHtml, json?.body].find((v) => typeof v === "string");

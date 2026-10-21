@@ -196,9 +196,10 @@ test("planRound: each story carries its body, fetched four at a time; a failed f
     if (i === 5) throw new TypeError("fetch failed");
     return new Response(JSON.stringify({ data: { bodyHtml: i === 0 ? `<p>${long}</p>` : `<p>Pier ${i} &amp; its <b>lights</b>.</p>` } }), { status: 200 });
   };
-  const plan = await planRound(tenant, { fetchImpl, now: new Date(NOW) });
+  const plan = await planRound(tenant, { fetchImpl, now: new Date(NOW), retryDelayMs: 0 });
   assert.deepEqual(plan.map((s) => s.prefix), feed.map((s) => s.slug));
-  assert.deepEqual(asked, feed.map((s) => `/feed/v1/briefings/${s.slug}?lang=it`), "the detail URL keeps only lang");
+  const detail = feed.map((s) => `/feed/v1/briefings/${s.slug}?lang=it`);
+  assert.deepEqual(asked, [...detail, detail[5]], "the detail URL keeps only lang; the failed request is tried once more, the 502 is not");
   assert.equal(peak, 4);
   assert.ok(plan[0].body.length <= 1200 && plan[0].body.length > 1100, `${plan[0].body.length} characters`);
   assert.ok(long.startsWith(plan[0].body) && plan[0].body.endsWith("fact."), "cut at a sentence end");
