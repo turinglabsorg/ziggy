@@ -1,14 +1,15 @@
 {
-  "version": 1,
-  "description": "Story points labelled new / repeat / generic by meaning against the CAN/CANNOT spec (story.mjs POINT_SPEC). Each story's points are judged together, in order: a case is a point with its headline, dek and the points before it. See README.md.",
+  "version": 2,
+  "description": "Story points labelled new / repeat / generic / vague by meaning against the CAN/CANNOT spec (story.mjs POINT_SPEC). Each story's points are judged together, in order: a case is a point with its headline, dek and the points before it. repeat, generic and vague are rejects: only new should pass. See README.md.",
   "counts": {
-    "stories": 28,
-    "cases": 112,
-    "new": 48,
-    "repeat": 53,
+    "stories": 30,
+    "cases": 120,
+    "new": 54,
+    "repeat": 54,
     "generic": 11,
-    "human": 4,
-    "curated": 108
+    "vague": 1,
+    "human": 6,
+    "curated": 114
   },
   "stories": [
     {
@@ -46,6 +47,85 @@
           "label": "repeat",
           "why": "the dek: the Ragusa prosecutors charge the former mayor",
           "source": "operator queue 2026-10-21, badPointsEVt4JeD",
+          "labelSource": "human"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-pozzallo-corso-capitani-human",
+      "tenant": "ragusa",
+      "slug": "pozzallo-mezzo-secolo-del-corso-capitani-tre-targhe-e-una-piccola-vela-7a4cc281-3de7db07",
+      "date": "2026-10-20T12:36:40Z",
+      "title": "Pozzallo, mezzo secolo del Corso Capitani: tre targhe e una piccola vela",
+      "dek": "Nella sala «Meno Assenza» di Pozzallo il Nautico «Giorgio La Pira» ha celebrato i cinquant'anni del Corso Capitani, premiando tre professionisti del mare e ripercorrendo le origini della scuola.",
+      "note": "The title is the story's first one, as its slug and the caption link carry it and as the operator reviewed it; the feed now serves it as \"Pozzallo, cinquant'anni del Corso Capitani: il Nautico «La Pira» premia tre professionisti del mare\".",
+      "body": "Si sono ritrovati nella Sala Cultura «Meno Assenza» di Pozzallo, il 19 ottobre 2026, per i cinquant'anni dall'istituzione del Corso Capitani dell'Istituto Tecnico Nautico «Giorgio La Pira». L'iniziativa è stata voluta dalla Società Marinara locale e appartiene alla vita civile della provincia di Ragusa: al centro non c'è il mare in astratto, ma una scuola che, secondo Radio RTM, nel tempo ha formato generazioni di professionisti della navigazione, diventando un punto di riferimento non solo locale ma nazionale.\n\nA fare gli onori di casa, secondo Radio RTM, è stato il presidente della Società Marinara, il capitano Nino Campanella; la cronaca di Video Regione assegna invece quel ruolo al sindaco di Pozzallo, Roberto Ammatuna, che ha sottolineato come l'istituto sia sempre stato un vivaio di talenti. Entrambi sono comunque intervenuti, e in prima fila sedevano il vicesindaco Raffaele Monte, il presidente del Consiglio comunale Quintillia Celestri, il contrammiraglio Raffaele Macauda — comandante della Direzione Marittima della Sicilia Orientale, presente con il Corpo delle Capitanerie di Porto — e mons. Giorgio Gallaro, Eparca della Piana degli Albanesi.\n\nIl momento centrale è stato dedicato alla premiazione di tre professionisti pozzallesi. Il generale di brigata dell'Aeronautica Militare Carmelo Gambuzza ha approfondito la meteorologia applicata alla navigazione; il contrammiraglio della Marina Militare Rosario La Pira ha portato la propria testimonianza d'alto comando e il forte legame con le istituzioni marittime; PierPaolo Scala, che Video Regione indica come vice presidente Global Port Operation & Commodore MSC Crociere e Radio RTM come responsabile per MSC Cruise Management, è stato riconosciuto come figura di spicco nello shipping internazionale e nella gestione delle grandi navi da crociera. A ciascuno sono state consegnate una targa ricordo e una piccola vela con il logo della Società Marinara.\n\nLa ricostruzione delle origini ha avuto il suo passaggio più denso nella testimonianza dell'ex onorevole Attilio Sigona, che ha raccontato la nascita del Nautico attraverso le missive giunte da Roma, a firma di Giorgio La Pira, il «sindaco santo», sul finire degli anni Cinquanta e negli anni successivi. È il punto in cui la celebrazione smette di essere soltanto cerimonia e diventa memoria documentata di un istituto nato da un carteggio.",
+      "points": [
+        {
+          "text": "L'incontro del 19 ottobre 2026 è stato voluto dalla Società Marinara di Pozzallo.",
+          "label": "new",
+          "why": "the date (19 October 2026) and who organised it (the Società Marinara), in neither title nor dek",
+          "source": "operator queue 2026-10-21, IG PvtJYO0 (campaign story-2026-10-20-pozzallo-mezzo-secolo-del)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Premiati Carmelo Gambuzza, Rosario La Pira e PierPaolo Scala, di MSC Crociere.",
+          "label": "new",
+          "why": "the names of the three people honoured: the dek only says three seafaring professionals",
+          "source": "operator queue 2026-10-21, IG PvtJYO0 (campaign story-2026-10-20-pozzallo-mezzo-secolo-del)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "A ciascuno sono andate una targa ricordo e una piccola vela della Società Marinara.",
+          "label": "repeat",
+          "why": "the title in other words: «tre targhe e una piccola vela»; the Società Marinara is already point 1",
+          "source": "operator queue 2026-10-21, IG PvtJYO0 (campaign story-2026-10-20-pozzallo-mezzo-secolo-del)",
+          "labelSource": "human"
+        },
+        {
+          "text": "Attilio Sigona ha ricostruito la nascita del Nautico con le lettere di Giorgio La Pira.",
+          "label": "new",
+          "why": "who told the school's origins (Attilio Sigona) and how (Giorgio La Pira's letters): the dek only says the origins were recalled",
+          "source": "operator queue 2026-10-21, IG PvtJYO0 (campaign story-2026-10-20-pozzallo-mezzo-secolo-del)",
+          "labelSource": "curated"
+        }
+      ]
+    },
+    {
+      "id": "ragusa-modica-corte-vague-human",
+      "tenant": "ragusa",
+      "slug": "modica-la-corte-dei-conti-la-indica-al-parlamento-e-la-commissione-d-inc-c57e2fef-0271853c",
+      "date": "2026-10-19T23:25:39.753Z",
+      "title": "Modica, la Corte dei conti la indica al Parlamento mentre la commissione d'inchiesta non parte",
+      "dek": "La Sezione delle autonomie dedica a Modica una scheda sul dissesto; il Pd chiede l'insediamento della commissione d'inchiesta e il bilancio riequilibrato, mentre la Procura di Ragusa contesta l'ex sindaco.",
+      "body": "La Corte dei conti ha inserito Modica, nel Ragusano, tra i casi nazionali di crisi finanziaria degli enti locali: nella relazione 2025 sui Comuni in crisi finanziaria, approvata dalla Sezione delle autonomie lo scorso 24 settembre, alla città è dedicata una scheda autonoma che elenca sette versioni del piano di riequilibrio, un'istruttoria ministeriale durata 1.155 giorni, un disavanzo di 117,6 milioni di euro, una capacità di riscossione dei residui scesa sotto il 6 per cento e ritardi nei pagamenti ai fornitori fino a oltre 570 giorni. Secondo i due articoli, le responsabilità politiche e amministrative indicate si sarebbero maturate in larga misura tra il 2013 e il 2022. È il passaggio che riporta il dissesto di un comune della provincia di Ragusa al centro del confronto politico locale, sul terreno della gestione delle risorse pubbliche e dei tempi del risanamento.\n\nSul versante giudiziario, la Procura di Ragusa ha chiesto il rinvio a giudizio dell'ex sindaco Ignazio Abbate e di altri quattro indagati, tra cui l'allora segretario generale dell'Ente, per le vicende relative ai ristori per il maltempo e alla gestione dei fondi regionali destinati ai buoni libro negli anni scolastici 2019-2022. Francesco Stornello, segretario cittadino del Partito Democratico, dopo aver richiamato la presunzione di innocenza, definisce «devastante» il dato politico e amministrativo che emerge: a suo giudizio, mentre la Corte dei conti certifica al Parlamento il fallimento contabile di quegli anni, in sede giudiziaria si contesta l'indebita destinazione ad altre finalità di somme vincolate al diritto allo studio delle famiglie modicane, che secondo l'accusa non sarebbero mai state reintegrate. Il dirigente domanda quindi cosa stia facendo chi a Palazzo San Domenico ha il dovere di fare luce su questo disastro, e risponde: «assolutamente nulla».\n\nIl 2 febbraio 2026 il Consiglio comunale ha istituito all'unanimità una Commissione consiliare d'inchiesta sulle cause del dissesto, con l'obiettivo di esaminare vent'anni di gestione (2005-2025) e una durata dei lavori fissata in dodici mesi. A oltre otto mesi da quella decisione, secondo i due articoli l'organismo non ha mai iniziato l'attività: la nomina del presidente è rimasta bloccata tra rilievi di incompatibilità, dimissioni e un parere della Segreteria generale atteso da mesi.",
+      "points": [
+        {
+          "text": "Disavanzo di 117,6 milioni e fornitori pagati con ritardi fino a oltre 570 giorni.",
+          "label": "new",
+          "why": "two numbers from the Corte dei conti file: the 117.6 million deficit and supplier payments over 570 days late",
+          "source": "operator queue 2026-10-21, IG YytBJBG (campaign story-2026-10-19-modica-la-corte-dei)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Sette versioni del piano di riequilibrio e un'istruttoria ministeriale di 1.155 giorni.",
+          "label": "new",
+          "why": "numbers: seven versions of the rebalancing plan, a 1,155-day ministry review",
+          "source": "operator queue 2026-10-21, IG YytBJBG (campaign story-2026-10-19-modica-la-corte-dei)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Rinvio a giudizio chiesto per Abbate e altri quattro, anche per i buoni libro 2019-2022.",
+          "label": "new",
+          "why": "the dek's charges against the former mayor, plus his name, the four co-defendants and the 2019-2022 textbook vouchers",
+          "source": "operator queue 2026-10-21, IG YytBJBG (campaign story-2026-10-19-modica-la-corte-dei)",
+          "labelSource": "curated"
+        },
+        {
+          "text": "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi.",
+          "label": "vague",
+          "why": "not self-contained: president of what? (the inquiry committee); a list of generic nouns (incompatibilities, resignations, an opinion) where the facts should be",
+          "source": "operator queue 2026-10-21, IG YytBJBG (campaign story-2026-10-19-modica-la-corte-dei)",
           "labelSource": "human"
         }
       ]

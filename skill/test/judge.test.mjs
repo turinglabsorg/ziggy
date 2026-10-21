@@ -28,6 +28,9 @@ const FACTS = [
 const BODY = `La relazione 2026 della Sezione delle autonomie sugli enti in dissesto dedica una scheda a Modica. ${FACTS[0]} ${FACTS[2]} ${FACTS[3]}`;
 const RAGUSA = { slug: "ragusa", name: "Ragusa Buzz", language: "it", feed: { url: "https://ragusa.buzz/feed/v1/briefings?lang=it&limit=50", agent: { command: ["fake-agent"] }, displayUrl: "ragusa.buzz" }, social: { cta: "La storia completa: {url}", hashtags: "#Ragusa" } };
 const ECHO = { vsDek: 0.9, newFact: "" };
+// the queue's slide of 21 October 2026: president of what?
+const VAGUE = "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi.";
+const NAMED = "Commissione d'inchiesta senza presidente: si attende un parere della Segreteria generale.";
 
 test("the lexical filter lets the Modica paraphrases through: the judge exists for them", () => {
   assert.deepEqual(storyPoints(RAGUSA, MODICA, PARAPHRASES).kept, PARAPHRASES);
@@ -43,25 +46,31 @@ test("judgeConfig: tenant.json feed.judge, then the environment, then the defaul
   assert.equal(judgeConfig({}, { ZIGGY_JUDGE: "1" }).enabled, true);
 });
 
-test("the judge prompt: task, the CAN/CANNOT spec, four calibration examples, the JSON shape, then the story and the points", () => {
+test("the judge prompt: task, the CAN/CANNOT spec, five calibration examples, the JSON shape, then the story and the points", () => {
   const it = buildJudgePrompt(RAGUSA, { ...MODICA, body: BODY, points: PARAPHRASES });
   assert.match(it, /^Controlli i punti di una notizia/);
   assert.match(it, /vsTitle: dal titolo/);
   assert.match(it, /vsPoints: da ciascun punto prima di lui, un valore per punto/);
   assert.match(it, /Conta il significato, non le parole: 1 = la stessa informazione con altre parole/);
   assert.match(it, /newFact: il fatto nuovo e preciso che il punto aggiunge, in massimo 12 parole/);
+  assert.match(it, /vague: true se chi legge solo questa slide del reel non capisce di chi o di cosa parla il punto \("il presidente" senza dire di cosa/);
+  assert.match(it, /o se accenna a dei fatti senza dirli/);
   assert.ok(it.includes(POINT_SPEC.it));
-  // calibration: a paraphrase ~0.9, a partial overlap that adds a number ~0.3, a line about the sources (generic), a new name and amount ~0.1
+  // calibration: a paraphrase ~0.9, a partial overlap that adds a number ~0.3, a line about the sources (generic), a new name and amount ~0.1, a point with no referent (vague)
   assert.match(it, /"vsTitle":0\.9,"vsDek":0\.9,"newFact":""/);
   assert.match(it, /"vsTitle":0\.3,"vsDek":0\.3,"newFact":"chiusura di almeno 90 giorni"/);
   assert.match(it, /Le fonti non indicano[^\n]*"generic":true/);
   assert.match(it, /"vsTitle":0\.1,"vsDek":0\.1,"newFact":"appalto da 1,2 milioni/);
-  assert.match(it, /Rispondi SOLO con questo JSON[^\n]*\n\{"points":\[\{"i":0,"vsTitle":0\.0,"vsDek":0\.0,"vsPoints":\[\],"newFact":"","grounded":true,"generic":false\}\]\}\n/);
+  assert.match(it, /Il dirigente ha firmato l'atto[^\n]*"vague":true\} \(quale dirigente/);
+  assert.equal((it.match(/"vague":false\} \(/g) || []).length, 4, "the other examples are not vague");
+  assert.match(it, /Rispondi SOLO con questo JSON[^\n]*\n\{"points":\[\{"i":0,"vsTitle":0\.0,"vsDek":0\.0,"vsPoints":\[\],"newFact":"","grounded":true,"generic":false,"vague":false\}\]\}\n/);
   assert.ok(it.endsWith([`Headline: ${MODICA.title}`, `Deck: ${MODICA.dek}`, `Article: ${BODY}`, "Points:", ...PARAPHRASES.map((p, i) => `${i}. ${p}`)].join("\n")), it);
   const en = buildJudgePrompt({ language: "en" }, { title: "T", dek: "D", body: "", points: ["One."] });
   assert.match(en, /^You check the points of a news story/);
   assert.ok(en.includes(POINT_SPEC.en));
   assert.match(en, /The €1\.2 million contract went to Northline Builders/);
+  assert.match(en, /vague: true if a reader of this reel slide alone could not tell who or what the point is about/);
+  assert.match(en, /The official signed the order[^\n]*"vague":true\}/);
   assert.ok(en.endsWith("Headline: T\nDeck: D\nArticle: (no article: grounded is true unless the point contradicts the headline or the deck)\nPoints:\n0. One."), en);
   // the article clipped at a sentence end, like the summary's
   const long = Array.from({ length: 200 }, (_, i) => `Sentence ${i} of the article.`).join(" ");
@@ -70,15 +79,19 @@ test("the judge prompt: task, the CAN/CANNOT spec, four calibration examples, th
 });
 
 test("parseJudge: the claude JSON wrapper, code fences, prose around it; null on anything malformed", () => {
-  const two = [{ i: 0, vsTitle: 0.2, vsDek: 0.9, vsPoints: [], newFact: "", grounded: true, generic: false }, { i: 1, vsTitle: 0.1, vsDek: 0.1, vsPoints: [0.3], newFact: "40 milioni di disavanzo", grounded: true, generic: false }];
+  const two = [{ i: 0, vsTitle: 0.2, vsDek: 0.9, vsPoints: [], newFact: "", grounded: true, generic: false, vague: false }, { i: 1, vsTitle: 0.1, vsDek: 0.1, vsPoints: [0.3], newFact: "40 milioni di disavanzo", grounded: true, generic: false, vague: true }];
   const raw = JSON.stringify({ points: two });
   assert.deepEqual(parseJudge(raw, 2), two);
   assert.deepEqual(parseJudge(JSON.stringify({ type: "result", result: raw }), 2), two, "claude --output-format json");
   assert.deepEqual(parseJudge(JSON.stringify({ result: "```json\n" + raw + "\n```" }), 2), two, "fenced inside the wrapper");
   assert.deepEqual(parseJudge(`Ecco il giudizio {non json} richiesto:\n${raw}\nFine.`, 2), two, "prose and stray braces around it");
   assert.deepEqual(parseJudge(JSON.stringify({ points: [...two].reverse() }), 2), two, "out of order: sorted by i");
-  // defaults: no i (position), no vsPoints on the first, grounded true, generic false, newFact ""
-  assert.deepEqual(parseJudge(JSON.stringify({ points: [{ vsTitle: "0.4", vsDek: 0 }] }), 1), [{ i: 0, vsTitle: 0.4, vsDek: 0, vsPoints: [], newFact: "", grounded: true, generic: false }]);
+  // defaults: no i (position), no vsPoints on the first, grounded true, generic and vague false, newFact ""
+  assert.deepEqual(parseJudge(JSON.stringify({ points: [{ vsTitle: "0.4", vsDek: 0 }] }), 1), [{ i: 0, vsTitle: 0.4, vsDek: 0, vsPoints: [], newFact: "", grounded: true, generic: false, vague: false }]);
+  // a reply from before vague (no field): every point not vague; "true"/"false" strings read as booleans
+  const old = two.map(({ vague, ...p }) => p);
+  assert.deepEqual(parseJudge(JSON.stringify({ points: old }), 2).map((p) => p.vague), [false, false]);
+  assert.deepEqual(parseJudge(JSON.stringify({ points: [{ ...two[0], vague: "true" }, { ...two[1], vague: null }] }), 2).map((p) => p.vague), [true, false]);
   // longer vsPoints than earlier points: cut to them
   assert.deepEqual(parseJudge(JSON.stringify({ points: [two[0], { ...two[1], vsPoints: [0.3, 0.5] }] }), 2)[1].vsPoints, [0.3]);
   for (const [bad, why] of [
@@ -91,6 +104,7 @@ test("parseJudge: the claude JSON wrapper, code fences, prose around it; null on
     [JSON.stringify({ points: [two[0], { ...two[1], vsPoints: [] }] }), "vsPoints shorter than the earlier points"],
     [JSON.stringify({ points: [two[0], { ...two[1], vsPoints: ["high"] }] }), "vsPoints not a number"],
     [JSON.stringify({ points: [{ ...two[0], grounded: "maybe" }, two[1]] }), "grounded not a boolean"],
+    [JSON.stringify({ points: [two[0], { ...two[1], vague: "a bit" }] }), "vague not a boolean"],
     [JSON.stringify({ points: [{ ...two[0], newFact: 42 }, two[1]] }), "newFact not a string"],
   ]) assert.equal(parseJudge(bad, 2), null, why);
   assert.deepEqual(parseJudge(JSON.stringify({ points: [] }), 0), []);
@@ -100,20 +114,24 @@ test("strongest and judgeReason: the highest similarity and what it is against",
   assert.deepEqual(strongest({ vsTitle: 0.2, vsDek: 0.83, vsPoints: [0.5] }), { score: 0.83, against: "dek" });
   assert.deepEqual(strongest({ vsTitle: 0.2, vsDek: 0.3, vsPoints: [0.1, 0.9] }), { score: 0.9, against: "point 2" });
   assert.deepEqual(strongest({ vsTitle: 0.7, vsDek: 0.7, vsPoints: [0.7] }), { score: 0.7, against: "title" }, "a tie goes to the first");
-  const base = { score: 0.2, against: "dek", newFact: "x", grounded: true, generic: false };
+  const base = { score: 0.2, against: "dek", newFact: "x", grounded: true, generic: false, vague: false };
   assert.equal(judgeReason({ ...base, score: 0.83 }, 0.6), "semantic 0.83 vs dek");
   assert.equal(judgeReason({ ...base, grounded: false, score: 0.9 }, 0.6), "ungrounded");
   assert.equal(judgeReason({ ...base, generic: true }, 0.6), "generic");
+  assert.equal(judgeReason({ ...base, vague: true }, 0.6), "vague");
+  assert.equal(judgeReason({ ...base, vague: true, newFact: "" }, 0.6), "vague", "vague before no new fact");
+  assert.equal(judgeReason({ ...base, vague: true, score: 0.83 }, 0.6), "semantic 0.83 vs dek", "a repeat first");
   assert.equal(judgeReason({ ...base, newFact: "" }, 0.6), "no new fact");
 });
 
-test("judgePoints: one call per story; pass = under the threshold, a new fact, grounded, not generic", async () => {
-  const points = [...PARAPHRASES.slice(0, 1), ...FACTS.slice(0, 3), "Le fonti non indicano la cifra esatta."];
+test("judgePoints: one call per story; pass = under the threshold, a new fact, grounded, not generic, not vague", async () => {
+  const points = [...PARAPHRASES.slice(0, 1), ...FACTS.slice(0, 3), "Le fonti non indicano la cifra esatta.", VAGUE];
   const table = {
     [PARAPHRASES[0]]: { vsDek: 0.88, newFact: "" },
     [FACTS[1]]: { vsDek: 0.55, newFact: "relazione 2026" },
     [FACTS[2]]: { grounded: false },
     "Le fonti non indicano la cifra esatta.": { generic: true, newFact: "" },
+    [VAGUE]: { vague: true, newFact: "nomina ferma" },
   };
   const agent = fakeStoryAgent({ judge: table });
   const story = { ...MODICA, body: BODY };
@@ -126,9 +144,11 @@ test("judgePoints: one call per story; pass = under the threshold, a new fact, g
     [points[2], true, 0.55, "dek"],
     [points[3], false, 0.1, "title"],
     [points[4], false, 0.1, "title"],
+    [points[5], false, 0.1, "title"],
   ]);
-  assert.deepEqual(verdicts.map((v) => judgeReason(v, 0.6)).filter((_, i) => !verdicts[i].pass), ["semantic 0.88 vs dek", "ungrounded", "generic"]);
-  assert.deepEqual(Object.keys(verdicts[0]), ["point", "score", "against", "newFact", "grounded", "generic", "pass", "vsTitle", "vsDek", "vsPoints"]);
+  assert.deepEqual(verdicts.map((v) => judgeReason(v, 0.6)).filter((_, i) => !verdicts[i].pass), ["semantic 0.88 vs dek", "ungrounded", "generic", "vague"]);
+  assert.deepEqual(verdicts.map((v) => v.vague), [false, false, false, false, false, true]);
+  assert.deepEqual(Object.keys(verdicts[0]), ["point", "score", "against", "newFact", "grounded", "generic", "vague", "pass", "vsTitle", "vsDek", "vsPoints"]);
   // the threshold: tenant.json, then ZIGGY_JUDGE_THRESHOLD, then an explicit option
   const at = async (opts, tenant = RAGUSA) => (await judgePoints(tenant, story, points, { spawnImpl: fakeStoryAgent({ judge: table }).spawnImpl, ...opts }))[2].pass;
   assert.equal(await at({ threshold: 0.5 }), false, "0.55 repeats at 0.5");
@@ -190,6 +210,21 @@ test("refinePoints: the Modica paraphrases fail the judge, the agent replaces on
   const m = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, points, { spawnImpl: moved.spawnImpl });
   assert.deepEqual(m.points, [FACTS[0], FACTS[2], FACTS[3]]);
   assert.deepEqual(m.dropped, [{ point: PARAPHRASES[0], reason: "semantic 0.90 vs dek" }]);
+});
+
+test("refinePoints: a vague point (president of what?) fails the judge; the rewrite is told to name the referent", async () => {
+  const agent = fakeStoryAgent({ judge: { [VAGUE]: { vague: true, newFact: "nomina del presidente ferma" } }, replace: [FACTS[0], NAMED].join("\n") });
+  const r = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, [FACTS[0], VAGUE], { spawnImpl: agent.spawnImpl });
+  assert.deepEqual([r.points, r.dropped, r.rounds, r.rewriteCalls, r.rewritten], [[FACTS[0], NAMED], [], 2, 1, true]);
+  assert.deepEqual(r.replaced.map((x) => [x.point, x.reason, x.by]), [[VAGUE, "vague", NAMED]]);
+  const ask = agent.prompts.replace[0];
+  assert.match(ask, /\n2\. ✗ Nomina del presidente ferma[^\n]* — vago: sulla sua slide non dice di chi o di cosa parla, o accenna a dei fatti senza dirli\n/);
+  assert.match(ask, /Ogni punto nuovo dice di chi o di cosa parla, con il nome preso dall'articolo \("il presidente della commissione d'inchiesta", non "il presidente"\)/);
+  assert.match(ask, /dice il fatto invece di elencare parole generiche/);
+  // still vague after the last round: dropped as vague
+  const stuck = fakeStoryAgent({ judge: { [VAGUE]: { vague: true } }, replace: () => assert.fail("one round only") });
+  const once = await refinePoints(RAGUSA, { ...MODICA, body: BODY }, [FACTS[0], VAGUE], { spawnImpl: stuck.spawnImpl, maxRounds: 1 });
+  assert.deepEqual([once.points, once.dropped], [[FACTS[0]], [{ point: VAGUE, reason: "vague" }]]);
 });
 
 test("refinePoints: still failing after 3 rounds → dropped with its last reason; the story keeps the rest", async () => {

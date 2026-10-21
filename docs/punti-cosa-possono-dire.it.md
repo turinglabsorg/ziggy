@@ -5,7 +5,7 @@ sotto titolo e sommario: le slide del reel (fino a 4, una per slide) e le righe 
 didascalia (i primi 3). È **una sola lista**: un punto che ripete è una ripetizione sulla slide
 quanto nella didascalia, e viene tolto da entrambe.
 
-Il testo delle sezioni 1–3 è lo stesso che ricevono il riassuntore, la riscrittura e il giudice
+Il testo delle sezioni 1–4 è lo stesso che ricevono il riassuntore, la riscrittura e il giudice
 (`skill/scripts/story.mjs` `POINT_SPEC`, versione italiana). Se cambia, va cambiato anche lì, in
 `skill/SKILL.md`, in `AGENTS.md` e in `docs/round-prompt-points.it.md`. Il testo da incollare nel
 prompt del giro per scrivere i punti è in `docs/round-prompt-points.it.md`.
@@ -44,7 +44,26 @@ Ripetere con altre parole è il caso più insidioso: "ha dedicato una scheda spe
 del Comune" sotto un sommario che dice "dedica a Modica una scheda sul dissesto" è lo stesso fatto,
 anche se metà delle parole è diversa.
 
-## 3. La prova del lettore
+## 3. Ogni punto si capisce da solo
+
+Il reel mostra un punto per slide: chi legge una slide deve capire di chi o di cosa parla senza
+ricostruirlo dagli altri punti. Ogni punto:
+
+- **dice di chi o di cosa parla**: "il presidente della commissione d'inchiesta", non "il
+  presidente"; niente "la nomina", "l'atto", "lo stesso partito" senza il loro riferimento. Il
+  soggetto principale della notizia, quello del titolo, può restare sottinteso ("Disavanzo di
+  117,6 milioni…" in una notizia su Modica va bene);
+- **è preciso**: niente elenchi di parole generiche al posto dei fatti.
+
+| da scartare | perché | meglio |
+|---|---|---|
+| "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi." | presidente di cosa? quale parere? tre parole generiche al posto dei fatti | "Commissione d'inchiesta senza presidente: si attende un parere della Segreteria generale." |
+| "Il dirigente ha firmato l'atto dopo un parere atteso da settimane." | quale dirigente, quale atto, quale parere? | "L'ingegnere capo ha firmato l'ordinanza di chiusura dopo il parere del Genio civile." |
+
+Il primo è una slide vera, dalla coda del 21 ottobre 2026 (Corte dei conti e Modica): il punto
+parla della commissione d'inchiesta del consiglio comunale, ma sulla slide non lo dice.
+
+## 4. La prova del lettore
 
 > Chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e preciso?
 > Se no, è una ripetizione.
@@ -54,7 +73,7 @@ In pratica: copri tutto tranne titolo e sommario, leggi il punto e prova a dire 
 una parola diversa per una cosa già detta, il punto non va bene. Lo stesso vale contro i punti
 prima di lui: il terzo punto non può ridire il primo.
 
-## 4. Come Ziggy misura la somiglianza
+## 5. Come Ziggy misura la somiglianza
 
 Ogni punto passa due controlli. **Basta che uno dei due lo scarti** perché il punto non vada.
 
@@ -89,18 +108,22 @@ punti in ordine. Per ogni punto risponde:
   riprende un fatto noto ma aggiunge un numero, un nome o una data vale poco);
 - `newFact`: il fatto nuovo in al massimo 12 parole, vuoto se non ce n'è;
 - `grounded`: `false` se il punto dice qualcosa che l'articolo non dice;
-- `generic`: `true` per commenti, giudizi, frasi sulle fonti, domande, inviti all'azione.
+- `generic`: `true` per commenti, giudizi, frasi sulle fonti, domande, inviti all'azione;
+- `vague`: `true` se, letto solo sulla sua slide, il punto non dice di chi o di cosa parla, o
+  accenna a dei fatti senza dirli (sezione 3). Una risposta senza `vague` vale `false`.
 
 Il **punteggio** del punto è il più alto dei tre confronti. Il punto passa solo se:
 
-- punteggio **< soglia** (oggi **0,7**: `DEFAULT_JUDGE_THRESHOLD` in `skill/scripts/judge.mjs`,
-  scelta con l'eval della sezione 6),
+- punteggio **< soglia** (oggi **0,8**: `DEFAULT_JUDGE_THRESHOLD` in `skill/scripts/judge.mjs`,
+  scelta con l'eval della sezione 7),
 - `newFact` non è vuoto,
 - `grounded` non è `false`,
-- `generic` non è `true`.
+- `generic` non è `true`,
+- `vague` non è `true`.
 
 Altrimenti il motivo è uno di: `semantic 0.83 vs dek` (ripete il sommario; oppure `vs title`,
-`vs point 2`), `ungrounded` (non è nell'articolo), `generic`, `no new fact`.
+`vs point 2`), `ungrounded` (non è nell'articolo), `generic`, `vague` (vago), `no new fact`, in
+quest'ordine.
 
 Se l'agente sbaglia, va in errore o risponde qualcosa di illeggibile, il giudice non dà un
 verdetto e **decide il solo filtro lessicale**: una storia o un giro non si fermano mai per il
@@ -111,27 +134,29 @@ giudice.
 | dove | valore | effetto |
 |---|---|---|
 | `tenant.json` → `feed.judge` | `false` | giudice spento per il tenant |
-| `tenant.json` → `feed.judge` | `{ "threshold": 0.8 }` | soglia del tenant |
+| `tenant.json` → `feed.judge` | `{ "threshold": 0.7 }` | soglia del tenant |
 | ambiente | `ZIGGY_JUDGE=0` (anche `false`, `off`, `no`) | giudice spento |
-| ambiente | `ZIGGY_JUDGE_THRESHOLD=0.8` | soglia |
+| ambiente | `ZIGGY_JUDGE_THRESHOLD=0.7` | soglia |
 | `tenant.json` → `feed.agent` | `null` | nessun agente: niente riassunto, giudice e riscritture; solo filtro lessicale |
 
-La soglia viene da `tenant.json`, poi dall'ambiente, poi dal default 0,7; vale un numero maggiore
+La soglia viene da `tenant.json`, poi dall'ambiente, poi dal default 0,8; vale un numero maggiore
 di 0 e fino a 1. Il giudice è spento se lo spegne `tenant.json` **o** l'ambiente. Abbassare la
 soglia rende il controllo più severo (scarta più punti), alzarla più permissivo.
 
-## 5. Il ciclo: controlla, riscrivi, scarta
+## 6. Il ciclo: controlla, riscrivi, scarta
 
 `skill/scripts/story.mjs` `refinePoints`.
 
 1. **Giro 1.** Filtro lessicale e giudice su tutti i punti. Se passano tutti, finito.
 2. **Riscrittura.** Altrimenti l'agente riceve la lista con ✓ e ✗ e, per ogni punto scartato, il
    motivo ("ripete il sommario (0.85)", "generico: un commento o una frase sulle fonti, nessun
-   fatto", "non è nell'articolo", "non aggiunge un fatto nuovo"). Sostituisce **solo** i punti ✗:
+   fatto", "vago: sulla sua slide non dice di chi o di cosa parla, o accenna a dei fatti senza
+   dirli", "non è nell'articolo", "non aggiunge un fatto nuovo"). Sostituisce **solo** i punti ✗:
    prende un altro fatto dell'articolo che titolo, sommario e altri punti non dicono, oppure
-   riformula il punto perché aggiunga un fatto nuovo. I punti ✓ restano identici, parola per
-   parola, al loro posto. Se l'articolo non ha un altro fatto, toglie il punto invece di
-   inventarlo.
+   riformula il punto perché aggiunga un fatto nuovo. Ogni punto nuovo dice di chi o di cosa
+   parla, con il nome preso dall'articolo, e dice il fatto invece di elencare parole generiche. I
+   punti ✓ restano identici, parola per parola, al loro posto. Se l'articolo non ha un altro
+   fatto, toglie il punto invece di inventarlo.
 3. **Giro 2 e 3.** La nuova lista viene controllata di nuovo, tutta. Al massimo **3 giri** di
    controllo, quindi al massimo 2 riscritture.
 4. **Scarto.** Dopo l'ultimo giro, ciò che ancora non passa viene tolto.
@@ -153,33 +178,52 @@ Casi particolari:
 - **Casefile esclusi** (Alien Watch, `casefile.mjs`): i loro punti fissi Confermato / Non
   confermato / Perché conta li scrive l'operatore e passano solo il lint della didascalia.
 
-## 6. Risultati dell'eval (21 ottobre 2026)
+## 7. Risultati dell'eval (21 ottobre 2026, seconda versione)
 
-Set: `skill/eval/points-eval.json`, 28 storie, 112 punti etichettati per significato secondo
-questa specifica (48 nuovi, 53 ripetizioni, 11 generici; ragusa in italiano e alienwatch in
-inglese). Dettagli in `skill/eval/results/2026-10-21.md`.
+Set: `skill/eval/points-eval.json` versione 2, 30 storie, 120 punti etichettati per significato
+secondo questa specifica (54 nuovi, 54 ripetizioni, 11 generici, 1 vago; ragusa in italiano e
+alienwatch in inglese). Rispetto alla prima versione ci sono due storie della coda del 21 ottobre
+2026 riviste dall'operatore: Pozzallo e il Corso Capitani ("A ciascuno sono andate una targa
+ricordo e una piccola vela…" ripete il titolo) e Corte dei conti e Modica ("Nomina del presidente
+ferma…" è vago). Dettagli in `skill/eval/results/2026-10-21-v2.md`; la prima versione, con il
+ciclo, è in `skill/eval/results/2026-10-21.md`.
 
-| scarto = ripetizione o generico | precisione | richiamo | F1 |
+| scarto = ripetizione, generico o vago | precisione | richiamo | F1 |
 |---|---|---|---|
-| solo filtro lessicale | 92,3% | 18,8% (12 su 64) | 0,312 |
-| solo giudice, soglia 0,7 | 96,9% | 98,4% | 0,977 |
-| **filtro + giudice, soglia 0,7** | **95,5%** | **98,4%** | **0,969** |
+| solo filtro lessicale | 92,3% | 18,2% (12 su 66) | 0,304 |
+| solo giudice, soglia 0,8 | 93,0% | 100% | 0,964 |
+| **filtro + giudice, soglia 0,8** | **91,7%** | **100%** | **0,957** |
+| filtro + giudice, soglia 0,7 | 90,4% | 100% | 0,950 |
 
-- Il filtro lessicale da solo lasciava passare 52 ripetizioni su 64; il giudice ne prende 51 in
-  più. Restano 3 fatti nuovi scartati per errore (uno era un'etichetta sbagliata nel set) e 1
-  frase generica passata.
-- I punteggi si separano bene: i fatti nuovi hanno avuto al massimo 0,6, le ripetizioni almeno
-  0,8 (tranne una a 0,6, scartata comunque perché senza fatto nuovo). 0,7 sta nel mezzo. I casi
-  al limite sono i fatti nuovi che aggiungono solo un nome o una data alla frase del sommario, e
-  il punteggio può variare di circa 0,1 da una chiamata all'altra.
-- Ciclo su 10 storie reali di ragusa: 1,1 giri in media, una storia su 10 ha avuto una
-  riscrittura, nessun punto tolto; circa 98 secondi per storia, riassunto compreso (una chiamata
-  al giudice dura circa 37 secondi).
+- Nessuno scarto mancato: le 66 ripetizioni, frasi generiche e punti vaghi sono stati scartati
+  tutti, compresi i due casi nuovi dell'operatore. La slide di Pozzallo ha preso 0,80 contro il
+  titolo, proprio sulla soglia, ed è stata segnata anche come vaga ("A ciascuno"). Quella di
+  Modica ha preso 0,50 ed è stata scartata come vaga. Attenzione: la slide di Modica è l'esempio
+  della sezione 3, quindi il giudice la trova nel suo stesso prompt. Il caso conferma la regola,
+  non dimostra che il giudice la sappia generalizzare.
+- 6 fatti nuovi scartati per errore (erano 3). 4 sono segnati come vaghi, e tre di questi aprono
+  con un riferimento che la slide non spiega ("L'Hub…", "Per i tre esponenti quei fondi…", "The
+  source…"): erano etichettati come nuovi prima di questa regola, e vanno rivisti. Il quarto è "Il
+  disavanzo indicato nella scheda…", dove "la scheda" è quella del sommario. Gli altri due sono
+  un'attribuzione segnata come generica e la data del 19 ottobre sui cantieri Enel (scartata dal
+  filtro lessicale).
+- La soglia consigliata passa da 0,7 a 0,8. I fatti nuovi hanno avuto al massimo 0,7; le
+  ripetizioni sotto lo 0,8 non nominavano alcun fatto nuovo e sono state scartate per quello.
+  L'unica ripetizione con un "fatto nuovo" è la slide di Pozzallo, a 0,80. Fra 0,7 e 0,8 cambia
+  un solo punto (un fatto nuovo a 0,7), e il punteggio può variare di circa 0,1 da una chiamata
+  all'altra: lo scarto per "vago" fa da seconda rete.
+- Il giudice ha segnato come vaghe anche 10 ripetizioni e 1 frase generica, già scartate per
+  altro.
+- 30 chiamate al giudice, circa 26 secondi l'una, 4,5 minuti in tutto con 3 chiamate alla volta.
+- Ciclo (dalla prima versione, alla soglia 0,7, prima della regola sui punti vaghi): su 10 storie
+  reali di ragusa 1,1 giri in media, una storia su 10 ha avuto una riscrittura, nessun punto
+  tolto; circa 98 secondi per storia, riassunto compreso.
 
-## 7. Esempi prima e dopo
+## 8. Esempi prima e dopo
 
-Dalla prova del 21 ottobre 2026 con l'agente vero, alla soglia 0,7
-(`skill/eval/results/2026-10-21-before-after.md`, generato da `skill/eval/before-after.mjs`). In
+Dalla prova del 21 ottobre 2026 con l'agente vero, alla soglia di allora, 0,7, prima della regola
+sui punti vaghi (`skill/eval/results/2026-10-21-before-after.md`, generato da
+`skill/eval/before-after.mjs`). In
 tutti e tre i casi è bastata una riscrittura: al secondo giro i punti passavano tutti, nessuno è
 stato tolto.
 

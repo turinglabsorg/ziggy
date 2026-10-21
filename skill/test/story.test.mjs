@@ -390,9 +390,13 @@ test("what a point can and cannot say: one text per language, in the summary pro
   for (const [lang, must] of Object.entries({
     en: [/CAN say/, /a number, an amount or a quantity/, /a name \(person, organisation, place\) that is not in the headline or the deck/, /a date, a time or a deadline/, /a consequence/, /a next step: what happens next/, /a short attributed quote or position/, /a concrete detail: the cause, the method, where exactly/,
       /CANNOT say/, /the headline, the deck or another point in other words \(synonyms, reordered, the same fact worded more or less specifically\)/, /"it remains to be seen"/, /"the sources do not say…", "no details were given"\): they add no fact/, /no outside knowledge, no inference/, /questions, emoji, hashtags, calls to action/, /Keep the source's hedges/,
+      /Each point makes sense on its own, read on its slide/, /it names who or what it is about: "the chair of the inquiry committee", not "the chair"; no "the appointment", "the measure", "the same party" without what they refer to/,
+      /it is specific: no vague lists of generic nouns standing in for facts/,
       /The test: does a reader who already read the headline and the deck learn something new and specific from this point\? If not, it is a repeat\./],
     it: [/PUÒ dire/, /un numero, una cifra o una quantità/, /un nome \(persona, ente, luogo\) che non è nel titolo né nel sommario/, /una data, un orario o una scadenza/, /una conseguenza/, /un prossimo passo: cosa succede dopo/, /una breve citazione o posizione attribuita/, /un dettaglio concreto: la causa, il modo, dove esattamente/,
       /NON PUÒ dire/, /il titolo, il sommario o un altro punto con altre parole/, /"resta da vedere"/, /"le fonti non dicono…", "non ci sono dettagli"\): non aggiungono fatti/, /niente conoscenze esterne, niente deduzioni/, /domande, emoji, hashtag, inviti all'azione/, /Mantieni le cautele della fonte/,
+      /Ogni punto si capisce da solo, letto sulla sua slide/, /dice di chi o di cosa parla: "il presidente della commissione d'inchiesta", non "il presidente"; niente "la nomina", "l'atto", "lo stesso partito" senza il loro riferimento/,
+      /è preciso: niente elenchi di parole generiche al posto dei fatti\. Da scartare: "Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi\." \(presidente di cosa\? quale parere\?\)/,
       /La prova: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e preciso\? Se no, è una ripetizione\./],
   })) {
     for (const re of must) assert.match(POINT_SPEC[lang], re, `${lang}: ${re}`);
@@ -499,7 +503,7 @@ test("summarizeStory: a paraphrase the lexical filter lets through fails the jud
     `2. ✓ ${slides[0]}`,
     `3. ✓ ${slides[1]}`,
     "",
-    "Replace ONLY the ✗ points: for each, pick a different fact from the article that the headline, the deck and the other points do not hold, or rewrite it so it adds a new fact. Keep the ✓ points word for word, in their place. If the article holds no other fact, leave the point out rather than invent one.",
+    "Replace ONLY the ✗ points: for each, pick a different fact from the article that the headline, the deck and the other points do not hold, or rewrite it so it adds a new fact. Each new point names who or what it is about, with the name from the article (\"the chair of the inquiry committee\", not \"the chair\"), and states the fact instead of listing generic nouns. Keep the ✓ points word for word, in their place. If the article holds no other fact, leave the point out rather than invent one.",
     "Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per point.",
     "",
     POINT_SPEC.en,
@@ -535,6 +539,7 @@ test("summarizeStory: a paraphrase the lexical filter lets through fails the jud
   ]);
   assert.match(it, /^Questi sono i punti di una notizia per le slide di un reel verticale e la sua didascalia, in ordine\. Quelli con ✗ sono stati scartati, quelli con ✓ vanno bene:\n1\. ✗ Uno\. — ripete il titolo\n2\. ✓ Due\.\n3\. ✗ Tre\. — ripete il punto 2 \(0\.85\)\n4\. ✗ Quattro\. — generico: un commento o una frase sulle fonti, nessun fatto\n/);
   assert.match(it, /Sostituisci SOLO i punti ✗/);
+  assert.match(it, /Ogni punto nuovo dice di chi o di cosa parla/);
   assert.match(it, /Lascia i punti ✓ identici, parola per parola, al loro posto/);
   assert.ok(it.includes(POINT_SPEC.it));
   assert.ok(it.endsWith("Headline: T\nDeck: D\nArticle: B"), it);

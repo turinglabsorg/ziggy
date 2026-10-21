@@ -66,9 +66,9 @@ function recordingSpawn(tenant, story, trace) {
         points: points.map((point, i) => {
           if (!parsed) return { point, lexical: lexical[i], pass: !lexical[i], reason: lexical[i] };
           const v = { ...parsed[i], ...strongest(parsed[i]) };
-          const judgePass = v.score < THRESHOLD && v.newFact !== "" && v.grounded !== false && !v.generic;
+          const judgePass = v.score < THRESHOLD && v.newFact !== "" && v.grounded !== false && !v.generic && v.vague !== true;
           const reason = lexical[i] || (judgePass ? null : judgeReason(v, THRESHOLD));
-          return { point, lexical: lexical[i], score: v.score, against: v.against, newFact: v.newFact, grounded: v.grounded, generic: v.generic, judgePass, pass: !reason, reason };
+          return { point, lexical: lexical[i], score: v.score, against: v.against, newFact: v.newFact, grounded: v.grounded, generic: v.generic, vague: v.vague, judgePass, pass: !reason, reason };
         }),
       });
     } else if (isReplace(prompt)) {
@@ -117,7 +117,7 @@ const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
 const sec = (ms) => `${(ms / 1000).toFixed(1)} s`;
 const verdictCell = (p) => {
   if (p.score === undefined) return "—";
-  const flags = [p.grounded === false && "ungrounded", p.generic && "generic"].filter(Boolean);
+  const flags = [p.grounded === false && "ungrounded", p.generic && "generic", p.vague && "vague"].filter(Boolean);
   return `${p.score.toFixed(2)} vs ${p.against}${flags.length ? ` · ${flags.join(" · ")}` : ""}`;
 };
 

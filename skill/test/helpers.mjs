@@ -210,7 +210,7 @@ export const judgedPoints = (prompt) => (String(prompt).split("\nPoints:\n")[1] 
  * 0.1, unless `table` (point text → fields) says otherwise.
  */
 export function judgeReply(points, table = {}) {
-  const verdicts = points.map((p, i) => ({ i, vsTitle: 0.1, vsDek: 0.1, vsPoints: Array(i).fill(0.1), newFact: "a new fact", grounded: true, generic: false, ...(table[p] || {}) }));
+  const verdicts = points.map((p, i) => ({ i, vsTitle: 0.1, vsDek: 0.1, vsPoints: Array(i).fill(0.1), newFact: "a new fact", grounded: true, generic: false, vague: false, ...(table[p] || {}) }));
   return JSON.stringify({ type: "result", result: JSON.stringify({ points: verdicts }) });
 }
 

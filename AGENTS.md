@@ -62,16 +62,19 @@ working **with** Ziggy.
   - **semantic** (`judge.mjs` `judgePoints`): the story's summary agent (`storyAgent`, the same
     command, no other key) gets the headline, the deck, the article and the points in one call,
     and returns JSON per point: similarity to the headline, the deck and each earlier point
-    (meaning, 0–1), the new fact in ≤12 words, `grounded`, `generic`. A point passes when its
-    highest similarity is under the threshold, it names a new fact, is grounded and not generic.
+    (meaning, 0–1), the new fact in ≤12 words, `grounded`, `generic`, `vague` (the slide alone
+    does not say who or what it is about, or it hints at facts without stating them; a reply
+    without it reads as `false`). A point passes when its highest similarity is under the
+    threshold, it names a new fact, is grounded, not generic and not vague.
     Threshold: `tenant.feed.judge.threshold`, else `ZIGGY_JUDGE_THRESHOLD`, else
     `DEFAULT_JUDGE_THRESHOLD` (set from the eval in `skill/eval`). `tenant.feed.judge: false` or
     `ZIGGY_JUDGE=0` turns it off. Any agent or parse failure returns null and the lexical check
     decides alone — never a failed story or round.
   - `refinePoints` runs both, up to 3 rounds: when a point fails, the summary agent replaces
     **only** the failing ones (`buildReplacePrompt`: the list with ✓/✗, why each failed — the
-    score and what it repeats, or generic / not in the article / no new fact — the CAN/CANNOT
-    spec and the article; passing points stay word for word, in place), and the new list is
+    score and what it repeats, or generic / vague / not in the article / no new fact — the
+    CAN/CANNOT spec and the article, and the ask that every new point names who or what it is
+    about; passing points stay word for word, in place), and the new list is
     checked again. What still fails after round 3 is dropped. No article: judged and dropped,
     never rewritten. No agent: lexical only, as before. 0–4 points is fine. It returns
     `{ points, kept, dropped, replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, ms }`.
@@ -99,11 +102,18 @@ working **with** Ziggy.
     "no details were given") — they add no fact; facts that are not in the article (no outside
     knowledge, no inference); questions, emoji, hashtags, calls to action. Keep the source's
     hedges.
+  - ON ITS OWN: each point makes sense read on its slide. It names who or what it is about ("the
+    chair of the inquiry committee", not "the chair"; no "the appointment", "the measure", "the
+    same party" without what they refer to), and it is specific: no vague lists of generic nouns
+    standing in for facts. The Italian example is the queue's slide of 21 October 2026: "Nomina
+    del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi." (president
+    of what? which opinion?).
   - The test: does a reader who already read the headline and the deck learn something new and
     specific from this point? If not, it is a repeat.
-- `skill/eval/` holds the judge's eval set (`points-eval.json`, labelled by meaning) and
-  `run-points-eval.mjs`, which runs it with the real agent (not part of `npm test`) and writes
-  `results/<date>.{json,md}`; `before-after.mjs` runs three of its stories through the real
+- `skill/eval/` holds the judge's eval set (`points-eval.json`, labelled by meaning: `new`, and
+  the rejects `repeat`, `generic`, `vague`) and `run-points-eval.mjs`, which runs it with the
+  real agent (not part of `npm test`) and writes `results/<date>.{json,md}` (`<date>-v2`, … when
+  that date already has results: an earlier run is never overwritten); `before-after.mjs` runs three of its stories through the real
   `refinePoints` and writes `results/<date>-before-after.{json,md}`. Rerun the eval after
   changing the judge prompt, the spec or the agent, and set `DEFAULT_JUDGE_THRESHOLD` to the
   threshold it recommends.

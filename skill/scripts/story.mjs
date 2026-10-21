@@ -206,6 +206,9 @@ export const POINT_SPEC = {
     "- frasi sulle fonti (\"le fonti non dicono…\", \"non ci sono dettagli\"): non aggiungono fatti;",
     "- fatti che non sono nell'articolo: niente conoscenze esterne, niente deduzioni;",
     "- domande, emoji, hashtag, inviti all'azione.",
+    "Ogni punto si capisce da solo, letto sulla sua slide:",
+    "- dice di chi o di cosa parla: \"il presidente della commissione d'inchiesta\", non \"il presidente\"; niente \"la nomina\", \"l'atto\", \"lo stesso partito\" senza il loro riferimento;",
+    "- è preciso: niente elenchi di parole generiche al posto dei fatti. Da scartare: \"Nomina del presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi.\" (presidente di cosa? quale parere?). Meglio: \"Commissione d'inchiesta senza presidente: si attende un parere della Segreteria generale.\"",
     "Mantieni le cautele della fonte (\"avrebbe\", \"secondo\").",
     "La prova: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e preciso? Se no, è una ripetizione.",
   ].join("\n"),
@@ -224,6 +227,9 @@ export const POINT_SPEC = {
     "- statements about the sources (\"the sources do not say…\", \"no details were given\"): they add no fact;",
     "- facts that are not in the article: no outside knowledge, no inference;",
     "- questions, emoji, hashtags, calls to action.",
+    "Each point makes sense on its own, read on its slide:",
+    "- it names who or what it is about: \"the chair of the inquiry committee\", not \"the chair\"; no \"the appointment\", \"the measure\", \"the same party\" without what they refer to;",
+    "- it is specific: no vague lists of generic nouns standing in for facts. To reject: \"Appointment of the chair stalled amid incompatibilities, resignations and an opinion awaited for months.\" (chair of what? which opinion?). Better: \"The inquiry committee still has no chair: it is waiting on an opinion from the town clerk.\"",
     "Keep the source's hedges (\"allegedly\", \"according to\").",
     "The test: does a reader who already read the headline and the deck learn something new and specific from this point? If not, it is a repeat.",
   ].join("\n"),
@@ -357,11 +363,13 @@ const REJECTED_WHY = {
   en: {
     "no new words": "says nothing the headline and deck do not", title: "repeats the headline", dek: "repeats the deck", point: "repeats another point", lint: "repeats the caption", max: "one too many",
     generic: "generic: a comment or a line about the sources, no fact", ungrounded: "not in the article", "no new fact": "adds no new fact",
+    vague: "vague: on its slide it does not say who or what it is about, or it hints at facts without stating them",
     vs: { title: "the headline", dek: "the deck", point: "point" },
   },
   it: {
     "no new words": "non dice nulla che titolo e sommario non dicano", title: "ripete il titolo", dek: "ripete il sommario", point: "ripete un altro punto", lint: "ripete la didascalia", max: "uno di troppo",
     generic: "generico: un commento o una frase sulle fonti, nessun fatto", ungrounded: "non è nell'articolo", "no new fact": "non aggiunge un fatto nuovo",
+    vague: "vago: sulla sua slide non dice di chi o di cosa parla, o accenna a dei fatti senza dirli",
     vs: { title: "il titolo", dek: "il sommario", point: "il punto" },
   },
 };
@@ -391,8 +399,8 @@ export function buildReplacePrompt(tenant, story, verdicts = []) {
     ...list,
     ``,
     it
-      ? `Sostituisci SOLO i punti ✗: per ognuno scegli un altro fatto dell'articolo che titolo, sommario (Headline, Deck) e gli altri punti non dicono, oppure riscrivilo in modo che aggiunga un fatto nuovo. Lascia i punti ✓ identici, parola per parola, al loro posto. Se l'articolo non ha un altro fatto, togli il punto invece di inventarlo.`
-      : `Replace ONLY the ✗ points: for each, pick a different fact from the article that the headline, the deck and the other points do not hold, or rewrite it so it adds a new fact. Keep the ✓ points word for word, in their place. If the article holds no other fact, leave the point out rather than invent one.`,
+      ? `Sostituisci SOLO i punti ✗: per ognuno scegli un altro fatto dell'articolo che titolo, sommario (Headline, Deck) e gli altri punti non dicono, oppure riscrivilo in modo che aggiunga un fatto nuovo. Ogni punto nuovo dice di chi o di cosa parla, con il nome preso dall'articolo ("il presidente della commissione d'inchiesta", non "il presidente"), e dice il fatto invece di elencare parole generiche. Lascia i punti ✓ identici, parola per parola, al loro posto. Se l'articolo non ha un altro fatto, togli il punto invece di inventarlo.`
+      : `Replace ONLY the ✗ points: for each, pick a different fact from the article that the headline, the deck and the other points do not hold, or rewrite it so it adds a new fact. Each new point names who or what it is about, with the name from the article ("the chair of the inquiry committee", not "the chair"), and states the fact instead of listing generic nouns. Keep the ✓ points word for word, in their place. If the article holds no other fact, leave the point out rather than invent one.`,
     it
       ? `Regole: frasi brevi (max 90 caratteri l'una), italiano semplice, niente emoji, niente numerazione, una frase per punto.`
       : `Rules: short sentences (max 90 characters each), plain language, no emoji, no numbering, one sentence per point.`,
@@ -452,7 +460,7 @@ function mergeReplacements(verdicts, lines) {
  * `story.body` is fetched when the story does not carry it. Returns `{ points, kept, dropped,
  * replaced, rewritten, rounds, judgeCalls, rewriteCalls, judge, threshold, ms }`: `points` and
  * `kept` are the final list, `dropped` the points left out (`{ point, reason }`, reason lexical
- * or "semantic 0.83 vs dek" / "generic" / "ungrounded" / "no new fact"), `replaced` the ones a
+ * or "semantic 0.83 vs dek" / "generic" / "vague" / "ungrounded" / "no new fact"), `replaced` the ones a
  * rewrite swapped out, `judge` "on" | "off" | "failed".
  */
 export async function refinePoints(tenant, story, points, { agent = storyAgent(tenant), spawnImpl, fetchImpl, maxRounds = REFINE_ROUNDS, threshold } = {}) {

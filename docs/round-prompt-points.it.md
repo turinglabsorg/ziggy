@@ -17,6 +17,11 @@ What changed from the previous text:
   a consequence, a next step, an attributed quote or a concrete detail; it never restates title,
   dek or another point in other words, never comments, never talks about the sources ("le fonti
   non dicono…"), never adds what the article does not say.
+- Each point makes sense on its own slide: it names who or what it is about ("il presidente della
+  commissione d'inchiesta", not "il presidente") and states facts, not a list of generic nouns.
+  The example is the queue's Modica slide of 21 October 2026 ("Nomina del presidente ferma tra
+  incompatibilità, dimissioni e un parere atteso da mesi."); the judge flags such a point as
+  `vague` and it is replaced like a repeat.
 - The reel slides and the caption share the points. A point that repeats title, dek or an earlier
   point — in other words too: the summary agent judges the meaning — is replaced by the agent with
   another fact from the article, up to 3 rounds, and dropped if it still repeats. It does not block
@@ -52,14 +57,21 @@ What changed from the previous text:
      - frasi sulle fonti ("le fonti non dicono…", "non ci sono dettagli"): non aggiungono fatti;
      - fatti che non sono nell'articolo: niente conoscenze esterne, niente deduzioni;
      - domande, emoji, hashtag, inviti all'azione.
+   - Ogni punto si capisce da solo, letto sulla sua slide:
+     - dice di chi o di cosa parla: "il presidente della commissione d'inchiesta", non "il
+       presidente"; niente "la nomina", "l'atto", "lo stesso partito" senza il loro riferimento;
+     - è preciso: niente elenchi di parole generiche al posto dei fatti. Da scartare: "Nomina del
+       presidente ferma tra incompatibilità, dimissioni e un parere atteso da mesi." (presidente
+       di cosa? quale parere?). Meglio: "Commissione d'inchiesta senza presidente: si attende un
+       parere della Segreteria generale."
      Mantieni le cautele della fonte ("avrebbe", "secondo"): un'accusa non diventa mai un fatto.
    - La prova: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e
      preciso? Se no, è una ripetizione: non scriverlo.
    - Ziggy controlla ogni punto due volte: per parole in comune e per significato (il
      riassuntore lo confronta con titolo, sommario, testo e punti precedenti). Un punto che
-     ripete, non aggiunge un fatto o non è nel testo viene sostituito dal riassuntore con un
-     altro fatto del testo (i tuoi punti buoni restano identici, al loro posto), fino a 3 giri;
-     se ripete ancora, viene tolto. La storia esce comunque. Le slide del reel e la didascalia
+     ripete, non aggiunge un fatto, è vago o non è nel testo viene sostituito dal riassuntore
+     con un altro fatto del testo (i tuoi punti buoni restano identici, al loro posto), fino a 3
+     giri; se non va ancora, viene tolto. La storia esce comunque. Le slide del reel e la didascalia
      usano gli stessi punti: il reel ne mostra fino a 4, uno per slide; la didascalia i primi 3,
      come righe "•" sotto il dek. Zero o un punto va bene: il reel è il titolo, quell'unica
      slide e la chiusura. Il dek non viene mai spezzato in slide.

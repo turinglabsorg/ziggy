@@ -247,6 +247,14 @@ How to write the points. These rules are fixed, so do not improvise.
   > knowledge, no inference); questions, emoji, hashtags, calls to action. Keep the source's
   > hedges.
   >
+  > **ON ITS OWN** — each point makes sense read on its slide: it names who or what it is about
+  > ("the chair of the inquiry committee", not "the chair"; no "the appointment", "the measure",
+  > "the same party" without what they refer to), and it is specific: no vague lists of generic
+  > nouns standing in for facts. To reject: "Appointment of the chair stalled amid
+  > incompatibilities, resignations and an opinion awaited for months." (chair of what? which
+  > opinion?). Better: "The inquiry committee still has no chair: it is waiting on an opinion
+  > from the town clerk."
+  >
   > **The test**: does a reader who already read the headline and the deck learn something new
   > and specific from this point? If not, it is a repeat.
 
@@ -265,6 +273,13 @@ How to write the points. These rules are fixed, so do not improvise.
   > esterne, niente deduzioni); domande, emoji, hashtag, inviti all'azione. Mantieni le cautele
   > della fonte.
   >
+  > **DA SOLO** — ogni punto si capisce letto sulla sua slide: dice di chi o di cosa parla ("il
+  > presidente della commissione d'inchiesta", non "il presidente"; niente "la nomina", "l'atto",
+  > "lo stesso partito" senza il loro riferimento), ed è preciso: niente elenchi di parole
+  > generiche al posto dei fatti. Da scartare: "Nomina del presidente ferma tra incompatibilità,
+  > dimissioni e un parere atteso da mesi." (presidente di cosa? quale parere?). Meglio:
+  > "Commissione d'inchiesta senza presidente: si attende un parere della Segreteria generale."
+  >
   > **La prova**: chi ha già letto titolo e sommario impara da questo punto qualcosa di nuovo e
   > preciso? Se no, è una ripetizione.
 - **The reel slides and the caption share the points.** A point that repeats the title, the dek
@@ -273,7 +288,8 @@ How to write the points. These rules are fixed, so do not improvise.
   the dek.
 - **Ziggy checks every point twice**: by shared words, and by meaning — the tenant's summary
   agent judges each point against the title, the dek, the article and the points before it, so
-  a paraphrase with different words is caught too. A point that fails is **replaced**: the agent
+  a paraphrase with different words is caught too, and so is a point that does not say who or
+  what it is about on its own slide (`vague`). A point that fails is **replaced**: the agent
   rewrites only the failing ones with another fact from the article (yours that pass stay word
   for word, in place), and the new list is checked again, up to 3 rounds. What still fails after
   that is dropped. With no article nothing is rewritten (the new facts can only come from it);
@@ -311,7 +327,8 @@ Reading the result:
   Postproxy profile is active.
 - `🕒 13:00 — <story> · 3 punti (1 scartato, 2 giri)` says how many of the story's points are
   left on the reel (`points` in `--json`; `captionPoints`, at most 3, went into the caption), how
-  many were dropped for repeating title, dek or another point or for adding no fact (`dropped`),
+  many were dropped for repeating title, dek or another point, for adding no fact or for being
+  vague (`dropped`),
   and, when more than one, how many rounds of checks it took (`rounds`): a second round means the
   agent replaced some of yours (`rewritten` when a replacement is among the kept points).
   `judge` in `--json` says whether the meaning check ran (`status` on, off or failed), at which

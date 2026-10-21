@@ -4,6 +4,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
+import { DEFAULT_JUDGE_THRESHOLD } from "../scripts/judge.mjs";
 import { pointProblems, roundConfig, storyDeadline } from "../scripts/round.mjs";
 import { API_KEY, fakeStoryAgent, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
@@ -654,7 +655,7 @@ test("the operator's points through the lexical filter and the judge: the failin
   assert.match(a.prompts.judge[0], /\nPoints:\n0\. The council paid 40,000 euros/);
   const made = good.made[0];
   assert.deepEqual([made.points, made.captionPoints, made.dropped, made.rewritten, made.rounds], [3, 3, 1, true, 2]);
-  assert.deepEqual(made.judge, { status: "on", threshold: 0.7, calls: 1, rewrites: 1, ms: made.judge.ms });
+  assert.deepEqual(made.judge, { status: "on", threshold: DEFAULT_JUDGE_THRESHOLD, calls: 1, rewrites: 1, ms: made.judge.ms });
   assert.deepEqual(made.campaign.copy.points, FACTS);
   assert.deepEqual(made.campaign.copy.droppedPoints, [{ point: ECHO[3], reason: "dek" }], "the agent wrote three: the fourth is left out");
   assert.match(made.campaign.posts.instagram_reel.body, /\n\n• The council paid 40,000 euros from the 2026 budget\.\n• Opening hours/);

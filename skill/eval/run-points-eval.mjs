@@ -8,19 +8,21 @@
  * 1. Judge: every story of the eval set (points-eval.json) in one judge call, 3 at a time. Per
  *    case: the semantic score and verdict, the lexical decision (lint.mjs via storyPoints) and
  *    the combined one (rejected when either rejects). Precision, recall and F1 of "reject"
- *    (positive = repeat or generic) for judge only, lexical only and combined at thresholds
- *    0.4–0.8, the recommended threshold (best combined F1 with recall ≥ 0.9, else best F1), and
- *    the false positives and negatives there.
+ *    (positive = repeat, generic or vague) for judge only, lexical only and combined at
+ *    thresholds 0.4–0.8, the recommended threshold (best combined F1 with recall ≥ 0.9, else
+ *    best F1), the rejections per label, every human-labelled case, and the false positives and
+ *    negatives there.
  * 2. Loop: the 10 oldest of the latest 30 stories in the live ragusa feed, none skipped: the
  *    summary, then refinePoints at the recommended threshold. Rounds, judge and rewrite calls,
  *    kept and dropped points with reasons, wall time; averages.
  *
- * Writes results/<date>.json and results/<date>.md next to this file.
+ * Writes results/<date>.json and results/<date>.md next to this file; when <date> already has
+ * results it writes <date>-v2 (then -v3, …) instead, so an earlier run is never overwritten.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { judgePoints } from "../scripts/judge.mjs";
+import { judgePoints, judgeReason } from "../scripts/judge.mjs";
 import {
   askSummaryAgent, buildSummaryPrompt, fetchStories, fetchStoryBody, lexicalReasons, parseSummaryLines, refinePoints, spawnAgent, storyAgent,
 } from "../scripts/story.mjs";
@@ -29,6 +31,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..", "..");
 const THRESHOLDS = [0.4, 0.5, 0.6, 0.7, 0.8];
 const MIN_RECALL = 0.9;
+/** The labels a point should be rejected for; "new" is the only one that should pass. */
+const REJECT_LABELS = ["repeat", "generic", "vague"];
+const LABELS = ["new", ...REJECT_LABELS];
+const isReject = (label) => REJECT_LABELS.includes(label);
 
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[i + 1] : fallback; };
@@ -66,19 +72,21 @@ const round3 = (x) => Math.round(x * 1000) / 1000;
 function metrics(cases, rejects) {
   let tp = 0, fp = 0, fn = 0, tn = 0;
   for (const c of cases) {
-    const pos = c.label !== "new", rej = rejects(c);
+    const pos = isReject(c.label), rej = rejects(c);
     if (pos && rej) tp++; else if (!pos && rej) fp++; else if (pos) fn++; else tn++;
   }
   const precision = ratio(tp, tp + fp), recall = ratio(tp, tp + fn);
   return { tp, fp, fn, tn, precision: round3(precision), recall: round3(recall), f1: round3(ratio(2 * precision * recall, precision + recall)), accuracy: round3(ratio(tp + tn, cases.length)) };
 }
 
-const judgeRejects = (c, t) => Boolean(c.judge) && !(c.judge.score < t && c.judge.newFact !== "" && c.judge.grounded !== false && !c.judge.generic);
+const judgeRejects = (c, t) => Boolean(c.judge) && !(c.judge.score < t && c.judge.newFact !== "" && c.judge.grounded !== false && !c.judge.generic && c.judge.vague !== true);
 const combinedRejects = (c, t) => Boolean(c.lexical) || judgeRejects(c, t);
 
 // ── 1. the judge on the eval set ───────────────────────────────────────────
 async function judgeEval() {
   const set = JSON.parse(readFileSync(SET, "utf8"));
+  const unknown = set.stories.flatMap((s) => s.points.filter((p) => !LABELS.includes(p.label)).map((p) => `${s.id}: ${p.label}`));
+  if (unknown.length) throw new Error(`labels must be ${LABELS.join(", ")}: ${unknown.join("; ")}`);
   const tenants = Object.fromEntries([...new Set(set.stories.map((s) => s.tenant))].map((slug) => [slug, loadTenant(slug)]));
   const spawnImpl = meteredSpawn("judge-eval");
   const started = Date.now();
@@ -98,7 +106,7 @@ async function judgeEval() {
     return story.points.map((p, i) => ({
       story: story.id, tenant: story.tenant, i, text: p.text, label: p.label, labelSource: p.labelSource, why: p.why,
       lexical: lexical[i],
-      judge: verdicts ? { score: verdicts[i].score, against: verdicts[i].against, newFact: verdicts[i].newFact, grounded: verdicts[i].grounded, generic: verdicts[i].generic, vsTitle: verdicts[i].vsTitle, vsDek: verdicts[i].vsDek, vsPoints: verdicts[i].vsPoints } : null,
+      judge: verdicts ? { score: verdicts[i].score, against: verdicts[i].against, newFact: verdicts[i].newFact, grounded: verdicts[i].grounded, generic: verdicts[i].generic, vague: verdicts[i].vague, vsTitle: verdicts[i].vsTitle, vsDek: verdicts[i].vsDek, vsPoints: verdicts[i].vsPoints } : null,
     }));
   });
   const cases = judged.flat();
@@ -108,12 +116,13 @@ async function judgeEval() {
   const eligible = byThreshold.filter((r) => r.combined.recall >= MIN_RECALL);
   const best = (eligible.length ? eligible : byThreshold).slice().sort((a, b) => b.combined.f1 - a.combined.f1 || b.combined.precision - a.combined.precision || Math.abs(a.threshold - 0.6) - Math.abs(b.threshold - 0.6))[0];
   const t = best.threshold;
-  const row = (c) => ({ story: c.story, text: c.text, label: c.label, lexical: c.lexical, ...(c.judge ? { score: c.judge.score, against: c.judge.against, newFact: c.judge.newFact, grounded: c.judge.grounded, generic: c.judge.generic } : { judge: "failed" }) });
+  const row = (c) => ({ story: c.story, text: c.text, label: c.label, lexical: c.lexical, ...(c.judge ? { score: c.judge.score, against: c.judge.against, newFact: c.judge.newFact, grounded: c.judge.grounded, generic: c.judge.generic, vague: c.judge.vague } : { judge: "failed" }) });
   const perLanguage = Object.fromEntries(["ragusa", "alienwatch"].map((slug) => [slug, metrics(cases.filter((c) => c.tenant === slug), (c) => combinedRejects(c, t))]));
-  const perLabel = Object.fromEntries(["new", "repeat", "generic"].map((label) => {
+  const perLabel = Object.fromEntries(LABELS.map((label) => {
     const of = cases.filter((c) => c.label === label);
-    return [label, { cases: of.length, rejectedLexical: of.filter((c) => c.lexical).length, rejectedJudge: of.filter((c) => judgeRejects(c, t)).length, rejectedCombined: of.filter((c) => combinedRejects(c, t)).length }];
+    return [label, { cases: of.length, rejectedLexical: of.filter((c) => c.lexical).length, rejectedJudge: of.filter((c) => judgeRejects(c, t)).length, rejectedCombined: of.filter((c) => combinedRejects(c, t)).length, flaggedVague: of.filter((c) => c.judge?.vague === true).length }];
   }));
+  const human = cases.filter((c) => c.labelSource === "human").map((c) => ({ ...row(c), rejected: combinedRejects(c, t), reason: c.lexical || (judgeRejects(c, t) ? judgeReason(c.judge, t) : null), correct: combinedRejects(c, t) === isReject(c.label) }));
   const judgeCalls = calls.filter((c) => c.phase === "judge-eval");
   return {
     set: { file: SET.replace(`${REPO}/`, ""), stories: set.stories.length, cases: cases.length, counts: set.counts },
@@ -121,10 +130,11 @@ async function judgeEval() {
     byThreshold,
     perLanguage,
     perLabel,
-    falsePositives: cases.filter((c) => c.label === "new" && combinedRejects(c, t)).map(row),
-    falseNegatives: cases.filter((c) => c.label !== "new" && !combinedRejects(c, t)).map(row),
-    lexicalCatches: cases.filter((c) => c.label !== "new" && c.lexical).length,
-    judgeOnlyCatches: cases.filter((c) => c.label !== "new" && !c.lexical && judgeRejects(c, t)).length,
+    human,
+    falsePositives: cases.filter((c) => !isReject(c.label) && combinedRejects(c, t)).map(row),
+    falseNegatives: cases.filter((c) => isReject(c.label) && !combinedRejects(c, t)).map(row),
+    lexicalCatches: cases.filter((c) => isReject(c.label) && c.lexical).length,
+    judgeOnlyCatches: cases.filter((c) => isReject(c.label) && !c.lexical && judgeRejects(c, t)).length,
     failedStories: failed,
     time: { wallMs: Date.now() - started, calls: judgeCalls.length, failedCalls: judgeCalls.filter((c) => !c.ok).length, avgCallMs: Math.round(ratio(judgeCalls.reduce((n, c) => n + c.ms, 0), judgeCalls.length)), costUsd: round3(judgeCalls.reduce((n, c) => n + (c.cost || 0), 0)) },
     cases,
@@ -177,30 +187,36 @@ async function loopEval(threshold) {
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
 const sec = (ms) => `${(ms / 1000).toFixed(1)} s`;
 const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
-const verdictCell = (c) => (c.judge === "failed" ? "judge failed" : `${c.score.toFixed(2)} vs ${c.against}${c.newFact ? ` · new: "${esc(c.newFact)}"` : " · no new fact"}${c.grounded === false ? " · ungrounded" : ""}${c.generic ? " · generic" : ""}`);
+const verdictCell = (c) => (c.judge === "failed" ? "judge failed" : `${c.score.toFixed(2)} vs ${c.against}${c.newFact ? ` · new: "${esc(c.newFact)}"` : " · no new fact"}${c.grounded === false ? " · ungrounded" : ""}${c.generic ? " · generic" : ""}${c.vague ? " · vague" : ""}`);
+const countsLine = (counts) => LABELS.map((l) => `${counts[l] ?? 0} ${l}`).join(", ");
 
-function markdown({ judge, loop, model }) {
+function markdown({ judge, loop, model, run = DATE }) {
   const t = judge.recommended.threshold;
   const L = [];
-  L.push(`# Point judge eval — ${DATE}`, "");
-  L.push(`Agent: \`${(storyAgent(loadTenant("ragusa")).command || []).join(" ")}\`${model ? ` (${model})` : ""}. Eval set: \`${judge.set.file}\`, ${judge.set.stories} stories, ${judge.set.cases} cases (${judge.set.counts.new} new, ${judge.set.counts.repeat} repeat, ${judge.set.counts.generic} generic).`, "");
+  L.push(`# Point judge eval — ${DATE}${run !== DATE ? ` (${run.slice(DATE.length + 1)})` : ""}`, "");
+  L.push(`Agent: \`${(storyAgent(loadTenant("ragusa")).command || []).join(" ")}\`${model ? ` (${model})` : ""}. Eval set: \`${judge.set.file}\`, ${judge.set.stories} stories, ${judge.set.cases} cases (${countsLine(judge.set.counts)}).`, "");
   L.push(`## Headline`, "");
   const rec = judge.byThreshold.find((r) => r.threshold === t);
   L.push(`- **Recommended threshold: ${t}** (${judge.recommended.rule}).`);
   L.push(`- Combined (lexical + judge) at ${t}: precision ${pct(rec.combined.precision)}, recall ${pct(rec.combined.recall)}, F1 ${rec.combined.f1}.`);
-  L.push(`- Lexical only: precision ${pct(rec.lexical.precision)}, recall ${pct(rec.lexical.recall)}, F1 ${rec.lexical.f1} — it catches ${judge.lexicalCatches} of ${judge.set.counts.repeat + judge.set.counts.generic} repeats/generic; the judge adds ${judge.judgeOnlyCatches} more.`);
+  L.push(`- Lexical only: precision ${pct(rec.lexical.precision)}, recall ${pct(rec.lexical.recall)}, F1 ${rec.lexical.f1} — it catches ${judge.lexicalCatches} of ${REJECT_LABELS.reduce((n, l) => n + (judge.set.counts[l] ?? 0), 0)} repeat/generic/vague points; the judge adds ${judge.judgeOnlyCatches} more.`);
+  L.push(`- Human-labelled cases at ${t}: ${judge.human.filter((c) => c.correct).length} of ${judge.human.length} decided as labelled.`);
   L.push(`- Judge only at ${t}: precision ${pct(rec.judge.precision)}, recall ${pct(rec.judge.recall)}, F1 ${rec.judge.f1}.`);
   L.push(`- Judge calls: ${judge.time.calls} (${judge.time.failedCalls} failed, ${judge.failedStories.length} stories without a verdict), ${sec(judge.time.avgCallMs)} per call, ${sec(judge.time.wallMs)} wall at concurrency ${CONCURRENCY}${judge.time.costUsd ? `, $${judge.time.costUsd}` : ""}.`);
   if (loop) L.push(`- Loop on ${loop.stories.length} live stories at ${loop.threshold}: ${loop.averages.rounds} rounds, ${loop.averages.judgeCalls} judge and ${loop.averages.rewriteCalls} rewrite calls, ${loop.averages.kept} points kept and ${loop.averages.dropped} dropped per story on average; ${sec(loop.averages.wallMs)} per story (summary included).`);
-  L.push("", `## Reject = repeat or generic: precision / recall / F1`, "");
+  L.push("", `## Reject = repeat, generic or vague: precision / recall / F1`, "");
   L.push(`| threshold | judge only | lexical only | combined |`, `|---|---|---|---|`);
   for (const r of judge.byThreshold) {
     const f = (m) => `${pct(m.precision)} / ${pct(m.recall)} / ${m.f1} (FP ${m.fp}, FN ${m.fn})`;
     L.push(`| ${r.threshold}${r.threshold === t ? " ✓" : ""} | ${f(r.judge)} | ${f(r.lexical)} | ${f(r.combined)} |`);
   }
   L.push("", `By tenant (combined at ${t}): ${Object.entries(judge.perLanguage).map(([k, m]) => `${k} P ${pct(m.precision)} R ${pct(m.recall)} F1 ${m.f1}`).join("; ")}.`, "");
-  L.push(`| label | cases | rejected lexical | rejected judge | rejected combined |`, `|---|---|---|---|---|`);
-  for (const [label, r] of Object.entries(judge.perLabel)) L.push(`| ${label} | ${r.cases} | ${r.rejectedLexical} | ${r.rejectedJudge} | ${r.rejectedCombined} |`);
+  L.push(`Per label at ${t} (for \`new\` a rejection is a false positive; \`vague\` flagged = the judge's \`vague\` was true):`, "");
+  L.push(`| label | cases | rejected lexical | rejected judge | rejected combined | vague flagged |`, `|---|---|---|---|---|---|`);
+  for (const [label, r] of Object.entries(judge.perLabel)) L.push(`| ${label} | ${r.cases} | ${r.rejectedLexical} | ${r.rejectedJudge} | ${r.rejectedCombined}${r.cases ? ` (${pct(r.rejectedCombined / r.cases)})` : ""} | ${r.flaggedVague} |`);
+  L.push("", `## Human-labelled cases at ${t}`, "");
+  L.push(`| story | point | label | verdict | decided |`, `|---|---|---|---|---|`);
+  for (const c of judge.human) L.push(`| \`${c.story}\` | ${esc(c.text)} | ${c.label} | ${c.lexical ? `lexical: ${esc(c.lexical)}; ` : ""}${verdictCell(c)} | ${c.rejected ? `rejected (${esc(c.reason)})` : "passed"} ${c.correct ? "✓" : "✗"} |`);
   L.push("", `## False positives at ${t}: new facts rejected (${judge.falsePositives.length})`, "");
   if (!judge.falsePositives.length) L.push("None.");
   for (const c of judge.falsePositives) L.push(`- \`${c.story}\` "${esc(c.text)}" — ${c.lexical ? `lexical: ${c.lexical}; ` : ""}${verdictCell(c)}`);
@@ -235,8 +251,15 @@ const loop = LOOP ? await loopEval(judge.recommended.threshold) : null;
 const model = [...new Set(calls.map((c) => c.model).filter(Boolean))].join(", ") || null;
 const outDir = join(HERE, "results");
 mkdirSync(outDir, { recursive: true });
-const result = { date: DATE, model, agent: storyAgent(loadTenant("ragusa")).command, judge, loop, calls: { total: calls.length, costUsd: round3(calls.reduce((n, c) => n + (c.cost || 0), 0)) } };
-writeFileSync(join(outDir, `${DATE}.json`), JSON.stringify(result, null, 2) + "\n");
-writeFileSync(join(outDir, `${DATE}.md`), markdown(result));
-log(`wrote ${join("skill", "eval", "results", `${DATE}.json`)} and .md`);
-console.log(JSON.stringify({ recommended: judge.recommended, headline: judge.byThreshold.find((r) => r.threshold === judge.recommended.threshold), loop: loop?.averages ?? null }, null, 2));
+let name = DATE;
+for (let v = 2; existsSync(join(outDir, `${name}.json`)) || existsSync(join(outDir, `${name}.md`)); v++) name = `${DATE}-v${v}`;
+const result = { date: DATE, run: name, model, agent: storyAgent(loadTenant("ragusa")).command, judge, loop, calls: { total: calls.length, costUsd: round3(calls.reduce((n, c) => n + (c.cost || 0), 0)) } };
+writeFileSync(join(outDir, `${name}.json`), JSON.stringify(result, null, 2) + "\n");
+writeFileSync(join(outDir, `${name}.md`), markdown(result));
+log(`wrote ${join("skill", "eval", "results", `${name}.json`)} and .md`);
+const brief = (c) => ({ story: c.story, label: c.label, text: c.text, ...(c.judge === "failed" ? { judge: "failed" } : { score: c.score, against: c.against, vague: c.vague }), lexical: c.lexical });
+console.log(JSON.stringify({
+  run: name, recommended: judge.recommended, headline: judge.byThreshold.find((r) => r.threshold === judge.recommended.threshold),
+  falsePositives: judge.falsePositives.map(brief), falseNegatives: judge.falseNegatives.map(brief),
+  human: judge.human.map((c) => ({ ...brief(c), rejected: c.rejected, reason: c.reason, correct: c.correct })), loop: loop?.averages ?? null,
+}, null, 2));
