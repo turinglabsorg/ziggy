@@ -1,5 +1,15 @@
 {
   "version": 1,
   "repo": "/Users/you/GIT/@turinglabs/@agentlab/ziggy",
-  "hyperframesVersion": "0.8.133"
+  "hyperframesVersion": "0.8.133",
+  "remoteRender": {
+    "enabled": false,
+    "host": "user@100.64.0.10",
+    "maxParallel": 2,
+    "connectTimeoutSec": 4,
+    "renderTimeoutSec": 600,
+    "minFreeGB": 10,
+    "slotWaitSec": 240,
+    "downCacheSec": 120
+  }
 }

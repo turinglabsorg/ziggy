@@ -7,12 +7,13 @@ FROM node:22-bookworm-slim
 
 # the shared libraries the HyperFrames renderer's headless Chromium needs, plus ffmpeg/ffprobe
 # (the renderer shells out to them for the mp4) and unzip (what puppeteer extracts its browser
-# zip with). Each missing one is a silent render failure, not a crash.
+# zip with). Each missing one is a silent render failure, not a crash. openssh-client: remote
+# render to the MacBook, see ops/remote-render.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
       libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 \
       libcairo2 libx11-xcb1 libxcb1 libxrender1 libxext6 libxss1 libxtst6 libxi6 \
-      fonts-liberation ca-certificates ffmpeg unzip \
+      fonts-liberation ca-certificates ffmpeg unzip openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
