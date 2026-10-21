@@ -164,7 +164,7 @@
     "exclusiveEndSources": [
       "ccn-antica-ibla-api"
     ],
-    "maxEvents": 6,
+    "maxEvents": 40,
     "minEvents": 3,
     "schedule": {
       "weekday": "mon",

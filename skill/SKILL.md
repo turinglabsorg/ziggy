@@ -25,7 +25,7 @@ When working from the repo without installing: `node ziggy/skill/index.js …`.
 | 4. Campaign | `ziggy campaign add <slug> <name>` → edit `campaign.json`, or `ziggy story <slug>` for the latest story of a publishing tenant | copy + per-platform posts + variants |
 | 5. Video | `ziggy video <slug> <name>` | HyperFrames projects, checked + rendered: reel 9:16, X 16:9, feed 4:5 + stills |
 | 5b. Carousel | `ziggy slides <slug> <name>` | three feed stills (cover, dek, close) for an Instagram carousel |
-| 5d. Events | `ziggy events <slug> --week [--from YYYY-MM-DD] [--publish] [--notify]` · `ziggy events <slug> --teaser` | the week's events reel (campaign `eventi-<monday>`, reel + post) or the evergreen events teaser; `--publish` posts the week's reel live on `daily.only` (Facebook through the Page guard, never twice); `ziggy serve` runs it weekly from `events.schedule` |
+| 5d. Events | `ziggy events <slug> --week [--from YYYY-MM-DD [--to YYYY-MM-DD]] [--publish] [--notify]` · `ziggy events <slug> --teaser` | the week's events reel: every event of the week except conference-type ones, one 2.6 s card each, town in big letters (campaign `eventi-<from>`, reel + post; `--from` + `--to` is an exact range such as the rest of the week) or the evergreen events teaser; `--publish` posts the week's reel live on `daily.only` (Facebook through the Page guard, never twice); `ziggy serve` runs it weekly from `events.schedule` |
 | 5c. Thread | `ziggy thread <slug> <name>` | X thread: cover image on the opening post, replies, the link in the last reply |
 | 6. Publish | `ziggy post <slug> <name>` (drafts) → `ziggy publish <slug> <ids>` or `ziggy post … --live` | Postproxy posts, permalinks in `ziggy status` |
 | 7. Listen | `ziggy inbox <slug>` · `ziggy stats <slug>` | new comments, DM threads, engagement |
@@ -323,6 +323,7 @@ The week's events as a reel (tenant.json → `events`; nothing is posted without
 ziggy events ragusa --week --dry-run                    # the selection: chosen cards, the ones left out and why
 ziggy events ragusa --week                              # campaign eventi-<monday>, posters, reel + post renders
 ziggy events ragusa --week --from 2026-10-26            # a given week; exit 3 = fewer than events.minEvents, skipped
+ziggy events ragusa --week --from 2026-10-21 --to 2026-10-25   # an exact range (the rest of a week), campaign eventi-2026-10-21
 ziggy events ragusa --week --publish --dry-run          # + what would go out where (Facebook guard included), nothing posted
 ziggy events ragusa --week --publish --notify           # render, publish live on daily.only, Italian summary via ZIGGY_REPORT_HOOK
 ziggy events ragusa --teaser                            # the evergreen teaser (no dates), campaign eventi-teaser

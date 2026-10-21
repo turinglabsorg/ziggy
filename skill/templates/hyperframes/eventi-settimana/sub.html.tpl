@@ -10,7 +10,7 @@
 __FONT_FACES__
         #root {
           --bg: __BG__; --fg: __FG__; --muted: __MUTED__; --line: __LINE__; --accent: __ACCENT__;
-          --sun: __EV_SUN__; --hot: __EV_HOT__; --lime: __EV_LIME__; --sea: __EV_SEA__; --card: __EV_CARD_BG__; --night2: __EV_NIGHT2__;
+          --sun: __EV_SUN__; --hot: __EV_HOT__; --lime: __EV_LIME__; --sea: __EV_SEA__; --card: __EV_CARD_BG__; --night2: __EV_NIGHT2__; --days: __EV_DAYS__;
           --display: "__DISPLAY_FAMILY__", sans-serif; --text: "__TEXT_FAMILY__", sans-serif; --mono: "__MONO_FAMILY__", monospace;
           __EV_VARS__
           position: absolute; inset: 0; overflow: hidden; background: var(--bg); color: var(--fg); -webkit-font-smoothing: antialiased;
@@ -31,7 +31,7 @@ __FONT_FACES__
         #__ID__-head .k-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
 
         /* the week, Monday to Sunday: the current card's days light up underneath */
-        .ev-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .ev-strip { display: grid; grid-template-columns: repeat(var(--days, 7), 1fr); gap: 10px; }
         #__ID__-mini { position: absolute; left: 0; right: 0; top: calc(var(--v-head) * 1.6 + 18px); height: var(--v-strip); visibility: hidden; }
         .ev-ms-day { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid var(--line); border-radius: 14px; }
         .ev-ms-wd { font-family: var(--mono); font-weight: 500; font-size: calc(var(--v-strip) * 0.2); letter-spacing: 0.12em; color: var(--muted); line-height: 1.2; }
@@ -53,7 +53,7 @@ __FONT_FACES__
         .ev-type-n { grid-row: 1; grid-column: 1; align-self: center; font-family: var(--display); font-weight: 800; font-size: calc(var(--v-poster-h) * 0.5); line-height: 0.82; letter-spacing: -0.05em; color: var(--accent); }
         .ev-type-m { grid-row: 1; grid-column: 2; align-self: center; display: flex; flex-direction: column; gap: 14px; font-family: var(--display); font-weight: 720; font-size: calc(var(--v-poster-h) * 0.1); line-height: 1; color: var(--fg); }
         .ev-type-wd { font-family: var(--mono); font-weight: 500; font-size: calc(var(--v-poster-h) * 0.044); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
-        .ev-type-grid { grid-row: 2; grid-column: 1 / span 2; display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .ev-type-grid { grid-row: 2; grid-column: 1 / span 2; display: grid; grid-template-columns: repeat(var(--days, 7), 1fr); gap: 10px; }
         .ev-tg-day { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; border-radius: 12px; border: 1px solid var(--line); }
         .ev-tg-wd { font-family: var(--mono); font-weight: 500; font-size: calc(var(--v-poster-h) * 0.032); color: var(--muted); }
         .ev-tg-n { font-family: var(--display); font-weight: 720; font-size: calc(var(--v-poster-h) * 0.05); line-height: 1; color: var(--fg); }
@@ -62,6 +62,8 @@ __FONT_FACES__
 
         .ev-credit, .ev-text { flex: 0 0 auto; }
         .ev-text { margin-top: 26px; }
+        /* the town first and big: which town is the first thing read on a card */
+        .ev-town { margin: 0 0 18px; font-family: var(--display); font-weight: 800; font-size: calc(var(--v-ev-title) * 1.05); line-height: 0.95; letter-spacing: 0.01em; text-transform: uppercase; color: var(--accent); overflow-wrap: break-word; }
         .ev-date { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; font-family: var(--mono); font-weight: 500; font-size: var(--v-ev-date); letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.2; }
         /* tinted, not filled: the text keeps its contrast while the card fades in */
         .ev-when { padding: 8px 16px; border-radius: 10px; background: rgba(__ACCENT_RGB__, 0.16); box-shadow: inset 0 0 0 2px rgba(__ACCENT_RGB__, 0.55); color: var(--accent); }
@@ -207,7 +209,7 @@ __EV_CARDS__
               tl.fromTo(card.querySelector(".ev-poster"), { y: 46, scale: 0.97 }, { y: 0, scale: 1, duration: 0.55, ease: hard }, tS);
               var img = card.querySelector(".ev-poster-img");
               if (img) tl.fromTo(img, { scale: 1 }, { scale: 1.05, duration: TC, ease: "none" }, tS);
-              tl.fromTo(q(".ev-date, .ev-title, .ev-meta", card), { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.36, ease: soft, stagger: 0.05 }, tS + 0.08);
+              tl.fromTo(q(".ev-town, .ev-date, .ev-title, .ev-meta", card), { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.36, ease: soft, stagger: 0.05 }, tS + 0.08);
               tl.fromTo(q(".ev-credit, .ev-count", card), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: soft }, tS + 0.2);
               var days = (card.getAttribute("data-days") || "").split(",");
               q("#" + ID + "-mini .ev-ms-day").forEach(function (cell) {
