@@ -8,6 +8,7 @@
  * HyperFrames desktop app can open it.
  *
  * Rendering shells out to the pinned HyperFrames CLI. Tests swap the binary (ZIGGY_HYPERFRAMES_BIN).
+ * An MP4 render first tries the remote machine when one is configured (remote.mjs), then falls back here.
  */
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -20,6 +21,7 @@ import { fontsDir, videosDir, rendersDir } from "./config.mjs";
 import { hexToRgb, installedFonts } from "./brand.mjs";
 import { formatDate } from "./story.mjs";
 import { eventTemplateTokens } from "./events.mjs";
+import { remoteRender } from "./remote.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const TEMPLATES_DIR = join(HERE, "..", "templates", "hyperframes");
@@ -495,7 +497,9 @@ export function check(projectDir, { version } = {}) {
   return { ok: r.status === 0 && !/Check failed/.test(out), output: out, errors: (out.match(/✗[^\n]*/g) || []), warnings: (out.match(/⚠[^\n]*/g) || []) };
 }
 
-export function render(projectDir, { output, quality = "high", version } = {}) {
+export function render(projectDir, { output, quality = "high", version, log = () => {} } = {}) {
+  const remote = remoteRender(projectDir, { output, quality, version: version || DEFAULT_HYPERFRAMES_VERSION, log });
+  if (remote.ok) return { output, log: "remote", remote: true };
   const r = runHf(["render", ".", "--skill=motion-graphics", "-q", quality, "-o", output], projectDir, version);
   const out = (r.stdout || "") + (r.stderr || "");
   if (r.status !== 0 || !existsSync(output)) throw new Error(`render failed for ${projectDir}:\n${out.split("\n").filter((l) => /✗|Error|error/.test(l)).join("\n") || out.slice(-800)}`);
@@ -523,7 +527,7 @@ export async function produce({ tenant, campaign, variants, quality = "high", ve
       log(`  check ok${c.warnings.length ? ` (${c.warnings.length} warning(s))` : ""}`);
     }
     const file = join(outDir, `${tenant.slug}-${campaign.name}-${p.variant}-${p.w}x${p.h}.mp4`);
-    render(p.dir, { output: file, quality, version });
+    render(p.dir, { output: file, quality, version, log });
     log(`  rendered ${file}`);
     const stillDir = join(p.dir, "snapshots", "final");
     mkdirSync(stillDir, { recursive: true });
