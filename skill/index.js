@@ -86,7 +86,7 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
                                                     rendered reels → scheduled on the tenant's slots
                                                     (tenant.json → daily: slots, tz, maxAgeHours, only)
   ziggy round <slug> --plan [--archive] [--json]   a session-driven round, step 1: the stories still to do
-                                                    (not covered, before their deadline), with title and dek
+                                                    (not covered, before their deadline), with title, dek and body
   ziggy round <slug> --points <file|-> [--dry-run] [--notify] [--json]
                                                     step 2: {"<prefix>": [3–4 points], "skip": [prefixes]} →
                                                     campaigns → renders → checks (audio, loudness, length) →

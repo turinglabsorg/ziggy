@@ -42,9 +42,25 @@ working **with** Ziggy.
   tenant it belongs to).
 - Story campaigns ask an agent for the reel slides before the campaign is written
   (`story.mjs`: `feed.agent` in tenant.json, same shape as `autopilot.agent`, default
-  `claude -p`; `null` disables). The agent prints 3–4 short slides, one story beat per line;
-  without an agent the dek is split at sentence ends. Reel length comes from the point count
-  (~5s title, 4.4s per point, 4s close — points must stay readable).
+  `claude -p`; `null` disables). The agent prints 3–4 short slides, one story beat per line.
+  The prompt carries the article (`Article:`) when there is one, and asks for facts the headline
+  and deck do not hold: the list endpoint has no body, so `fetchStoryBody` reads the per-story
+  endpoint (`storyDetailUrl`: `feed.detailUrl` with `{slug}`, else the list URL's path +
+  `/<slug>`, keeping only `lang`; `data.bodyHtml` → plain text, 2,500 characters, 10 s timeout,
+  `""` on any failure).
+- The reel slides and the caption bullets are **one filtered list** (`story.mjs` `storyPoints`,
+  i.e. `lint.mjs` `pointsReport` against headline, dek and the caption tail): a point that repeats
+  the headline, the dek or an earlier point is a repetition on a slide too, so it is dropped from
+  both (`copy.droppedPoints`, each with its reason). The reel keeps up to 4 (`copy.points`), the
+  caption the first 3 (`copy.captionPoints`). When fewer than 2 survive, `rewriteThinPoints` asks
+  the summary agent **once** for new ones from the article (`buildRewritePrompt`: headline, deck,
+  article and the rejected points with why), filters them the same way, and keeps the list with
+  more survivors (the first on a tie). No agent, no article or a failing agent keeps the first
+  list; 0 or 1 points is fine. This runs in `summarizeStory` (`ziggy story`, the daily loop) and
+  in the round on the operator's points. The dek is never split into slides (that is the dek
+  told twice): with no points the reel is the title slide and the close. Reel length comes from
+  the kept count (~5s title, 4.4s per point, 4s close — points must stay readable), never under
+  13 s: 0 points is title 5 s + close 8 s, 1 point 13 s, 2 points 18 s.
 - Story campaigns are localized per tenant: `tenant.social` holds the caption CTA (placeholders
   `{url}` = the full story link, `{site}` = the display domain) and the hashtags,
   `feed.sections` renames feed sections (e.g. English → Italian), and the
@@ -57,14 +73,20 @@ working **with** Ziggy.
   campaigns. "ambient" stays byte-stable — never change its defaults.
 - An X story post always carries the cover image: `posts.twitter.media` is `slide-cover`. Do not
   ship a text-only thread, and do not put the reel on that post instead of the still.
-- Story captions are headline, dek, the sources line ("Basato su N fonti in M lingue." /
-  "Sourced from N reports in M languages."), CTA and hashtags, one paragraph each. The summary
-  points stay on the reel slides only: they retell headline and dek, so the caption said
-  everything twice. Every caption is linted before it is scheduled or posted (`lint.mjs`
-  `campaignRepetition`: content-word overlap ≥ 0.6 between two sentences, ≥ 0.8 against the
-  headline, which a dek legitimately echoes): a round refuses the story or case file before the
-  render, `ziggy daily` reports it and leaves the campaign for an editor to fix, and
-  `publishCampaign` refuses it on any path. A case file is linted on headline, dek and points,
+- Story captions are headline, dek, 2–3 summary points, the sources line ("Basato su N fonti in
+  M lingue." / "Sourced from N reports in M languages."), CTA and hashtags, one paragraph each;
+  the points paragraph has one "• " line per point. Only points with new facts go in (numbers,
+  names, dates, what happens next — the summarizer and the round's points read the story body):
+  `lint.mjs` `pointsReport` drops a point whose content words (and numbers) are all in the
+  headline, dek or an earlier point, one that overlaps the headline ≥ 0.8 or the dek, a dek
+  sentence or an earlier point ≥ 0.6, and one that would make the caption fail the lint. The
+  caption shows the first 3 of the points the reel keeps (the same list, above). 0–1 points is
+  fine; with none there is no points paragraph and the caption is headline, dek, sources, CTA,
+  hashtags as before. The X thread is unchanged. Every caption is linted before it is scheduled
+  or posted (`lint.mjs` `campaignRepetition`: content-word overlap ≥ 0.6 between two sentences,
+  ≥ 0.8 against the headline, which a dek legitimately echoes): a round refuses the story or
+  case file before the render, `ziggy daily` reports it and leaves the campaign for an editor to
+  fix, and `publishCampaign` refuses it on any path. A case file is linted on headline, dek and points,
   without their labels and its `Source:` line, whose URL is dropped when the outlet already names
   it (`casefile.mjs` `sourceLine`). The weekly events caption is a list (towns and venues repeat
   by design) and is not linted. The caption ends with
@@ -140,10 +162,18 @@ working **with** Ziggy.
   the skill does it the same way. The fixed rules for points and skips are in
   `skill/SKILL.md → Running a round`.
   - `--plan` lists the stories not covered and still before their deadline, oldest first, with
-    title and dek.
+    title, dek and `body`: the article from the feed's per-story endpoint as plain text, at most
+    1,200 characters, fetched four at a time (`story.mjs` `fetchStoryBody`; a failed fetch is
+    `""`, never an error).
   - `--points <file|->` takes `{prefix: [3–4 points], "skip": [prefixes]}`. Points are checked
     (3–4, each at most 90 characters). Stories with no photo, past their deadline, already covered
-    or not in the feed are refused before any render.
+    or not in the feed are refused before any render. A point that repeats is not a refusal: it
+    is dropped from the reel and the caption (`storyPoints`). With fewer than 2 left the tenant's
+    summary agent (`storyAgent`) rewrites them once from the article (`rewriteThinPoints`, body
+    fetched then; skipped without an agent or an article, and a failing agent never fails the
+    round). Each result carries `points` (reel), `captionPoints` (at most 3), `dropped` and
+    `rewritten`; the summary line reads `· 3 punti (1 scartato)`, `· 3 punti riscritti`, or
+    `· nessun punto (4 scartati)`.
   - Each campaign gets the next jingle. Reels render in child CLI processes, four at a time, with
     no key in their environment.
   - `checkReel` checks every reel with ffprobe/ffmpeg: rendered, an audio track, mean volume

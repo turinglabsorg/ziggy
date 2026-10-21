@@ -73,7 +73,8 @@ const img = (s) => s && `__FEED__/${s}.jpg`;
 before(async () => {
   mock = await startMockPostproxy();
   items = [
-    { title: "Harbour reopens after the storm", dek: "The port authority lifted the ban this morning.", storyDate: "2026-10-11T09:00:00Z", sector: { name: "Cronaca" }, imageUrl: img("a"), slug: "harbour-reopens-after-the-storm", sourceCount: 3, languageCount: 1 },
+    { title: "Harbour reopens after the storm", dek: "The port authority lifted the ban this morning.", storyDate: "2026-10-11T09:00:00Z", sector: { name: "Cronaca" }, imageUrl: img("a"), slug: "harbour-reopens-after-the-storm", sourceCount: 3, languageCount: 1,
+      bodyHtml: "<p>The ban ended at 6:00, when the wind dropped under 20 knots.</p><p>Ferries to Linosa restart on Tuesday &amp; the fish market reopens on Wednesday.</p>" },
     { title: "Council approves the school budget", dek: "Twelve votes in favour, four against.", storyDate: "2026-10-12T07:00:00Z", sector: { name: "Politica" }, imageUrl: img("b"), slug: "council-approves-the-school-budget", sourceCount: 2, languageCount: 1 },
     { title: "Autumn fair closes its doors", dek: "Three days of stalls.", storyDate: "2026-10-09T09:00:00Z", sector: { name: "Eventi" }, imageUrl: img("c"), slug: "autumn-fair-closes-its-doors", sourceCount: 1, languageCount: 1 },
     { title: "Night market draws record crowds", dek: "Stalls stayed open past midnight.", storyDate: "2026-10-12T08:00:00Z", sector: { name: "Cronaca" }, imageUrl: null, slug: "night-market-draws-record-crowds", sourceCount: 1, languageCount: 1 },
@@ -86,8 +87,16 @@ before(async () => {
       telegram.push(JSON.parse(Buffer.concat(chunks).toString("utf8")));
       res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ ok: true }));
     }
+    // the per-story endpoint: the article for a story that has one, 404 for the rest
+    const detail = /^\/feed\/([^/?]+)/.exec(req.url);
+    if (detail) {
+      const it = items.find((x) => x.slug === decodeURIComponent(detail[1]));
+      if (!it?.bodyHtml) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ data: { slug: it.slug, title: it.title, bodyHtml: it.bodyHtml } }));
+    }
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ data: items.map((it) => ({ ...it, imageUrl: it.imageUrl && it.imageUrl.replace("__FEED__", `http://127.0.0.1:${feedPort}`) })) }));
+    res.end(JSON.stringify({ data: items.map(({ bodyHtml, ...it }) => ({ ...it, imageUrl: it.imageUrl && it.imageUrl.replace("__FEED__", `http://127.0.0.1:${feedPort}`) })) }));
   });
   feedServer.keepAliveTimeout = 120_000; // see helpers.mjs: no keep-alive race under load
   feedServer.headersTimeout = 121_000;
@@ -143,7 +152,7 @@ const FOUR = ["First fact.", "Second fact.", "Third fact.", "Fourth fact."];
 const creates = () => mock.calls.filter((c) => c.method === "POST" && c.path === "/api/posts");
 const pointsFile = (name, data) => { const f = join(world.root, `${name}.json`); writeFileSync(f, JSON.stringify(data)); return f; };
 
-test("--plan: stories not covered and still before their deadline, oldest first, with title and dek", async () => {
+test("--plan: stories not covered and still before their deadline, oldest first, with title, dek and body", async () => {
   const r = await runCli(["round", "acme", "--plan", "--now", NOW, "--json"], ENV());
   assert.equal(r.status, 0, r.stderr);
   const plan = JSON.parse(r.stdout);
@@ -157,6 +166,43 @@ test("--plan: stories not covered and still before their deadline, oldest first,
   assert.equal(plan.stories[0].deadline, "2026-10-12T21:59:00.000Z");
   assert.equal(plan.stories[0].dek, "The port authority lifted the ban this morning.");
   assert.equal(plan.stories.find((s) => s.prefix.startsWith("night")).image, false);
+  // the article from the per-story endpoint, as plain text; "" where the feed has none (404)
+  assert.equal(plan.stories[0].body, "The ban ended at 6:00, when the wind dropped under 20 knots.\n\nFerries to Linosa restart on Tuesday & the fish market reopens on Wednesday.");
+  assert.deepEqual(plan.stories.slice(1).map((s) => s.body), ["", "", ""]);
+  assert.deepEqual(Object.keys(plan.stories[0]), ["prefix", "date", "deadline", "section", "sources", "image", "title", "dek", "body"], "the plan is the same, plus body");
+});
+
+test("planRound: each story carries its body, fetched four at a time; a failed fetch is an empty body", async () => {
+  const { planRound } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  const tenant = {
+    ...loadTenant("acme"),
+    feed: { url: "https://news.example/feed/v1/briefings?lang=it&limit=20", items: "data", fields: { date: "storyDate", image: "imageUrl" }, agent: null },
+  };
+  const feed = Array.from({ length: 6 }, (_, i) => ({ title: `Pier ${"ABCDEF"[i]} lights up`, dek: "The pier lights up.", storyDate: "2026-10-12T08:00:00Z", imageUrl: "https://news.example/p.jpg", slug: `pier-${i}-lights-up-0a1b2c3${i}` }));
+  const long = Array.from({ length: 40 }, (_, i) => `Sentence ${i + 1} of the article adds one more fact.`).join(" ");
+  const asked = [];
+  let inFlight = 0, peak = 0;
+  const fetchImpl = async (url, init) => {
+    const u = new URL(url);
+    if (u.pathname === "/feed/v1/briefings") return new Response(JSON.stringify({ data: feed }), { status: 200 });
+    asked.push(`${u.pathname}${u.search}`);
+    assert.ok(init.signal instanceof AbortSignal, "every body fetch has a timeout");
+    inFlight++; peak = Math.max(peak, inFlight);
+    await new Promise((r) => setTimeout(r, 20));
+    inFlight--;
+    const i = Number(u.pathname.split("/").pop().split("-")[1]);
+    if (i === 4) return new Response("bad gateway", { status: 502 });
+    if (i === 5) throw new TypeError("fetch failed");
+    return new Response(JSON.stringify({ data: { bodyHtml: i === 0 ? `<p>${long}</p>` : `<p>Pier ${i} &amp; its <b>lights</b>.</p>` } }), { status: 200 });
+  };
+  const plan = await planRound(tenant, { fetchImpl, now: new Date(NOW) });
+  assert.deepEqual(plan.map((s) => s.prefix), feed.map((s) => s.slug));
+  assert.deepEqual(asked, feed.map((s) => `/feed/v1/briefings/${s.slug}?lang=it`), "the detail URL keeps only lang");
+  assert.equal(peak, 4);
+  assert.ok(plan[0].body.length <= 1200 && plan[0].body.length > 1100, `${plan[0].body.length} characters`);
+  assert.ok(long.startsWith(plan[0].body) && plan[0].body.endsWith("fact."), "cut at a sentence end");
+  assert.deepEqual(plan.slice(1).map((s) => s.body), ["Pier 1 & its lights.", "Pier 2 & its lights.", "Pier 3 & its lights.", "", ""]);
 });
 
 test("--dry-run shows where each story would go, and writes, renders and posts nothing", async () => {
@@ -189,10 +235,15 @@ test("a round: points → campaigns → renders → checks → scheduled; the re
   assert.deepEqual(out.skipped.map((s) => s.name), ["story-2026-10-12-concert-announced-for-tonight"]);
   assert.ok(out.checks.every((c) => c.ok && c.audio === "aac" && c.meanDb === -18.2), JSON.stringify(out.checks));
   const campaign = JSON.parse(readFileSync(join(tenantDir("acme"), "campaigns", "story-2026-10-11-harbour-reopens-after-the", "campaign.json"), "utf8"));
-  assert.deepEqual(campaign.copy.points, FOUR);
+  assert.deepEqual(campaign.copy.points, FOUR, "the reel has all four");
+  // the caption: the first three, one "•" line each, under the dek
+  assert.deepEqual(campaign.copy.captionPoints, FOUR.slice(0, 3));
+  assert.ok(campaign.posts.instagram_reel.body.includes("The port authority lifted the ban this morning.\n\n• First fact.\n• Second fact.\n• Third fact.\n\nSourced from"), campaign.posts.instagram_reel.body);
+  assert.equal(creates()[0].fields["post[body]"].replace(/\r\n/g, "\n"), campaign.posts.instagram_reel.body, "the caption that went out");
+  assert.deepEqual(out.scheduled.map((s) => [s.points, s.captionPoints, s.dropped, s.rewritten]), [[4, 3, 0, false], [4, 3, 0, false]]);
   assert.equal(JSON.parse(readFileSync(join(tenantDir("acme"), "campaigns", "story-2026-10-12-concert-announced-for-tonight", "campaign.json"), "utf8")).skip, true);
   assert.match(out.text, /2 programmati su instagram_reel/);
-  assert.match(out.text, /13:00 — harbour reopens after the/);
+  assert.match(out.text, /13:00 — harbour reopens after the · 4 punti$/m);
   assert.match(out.text, /Night market draws record crowds: no photo in the feed/);
 
   // the plan now holds only the story without a photo
@@ -537,4 +588,107 @@ test("a story or a case file whose caption repeats itself is refused before any 
   assert.match(body, /✅ CONFIRMED: AARO located the records for five cases\./);
   assert.doesNotMatch(body, /CONFIRMED: Confirmed:/i);
   assert.equal(out.scheduled.filter((s) => s.dryRun).length, 2);
+});
+
+const LIBRARY = [{ title: "Library opens a new reading room", dek: "The room seats forty readers and opens on Monday.", storyDate: "2026-10-12T07:00:00Z", sector: { name: "Cultura" }, imageUrl: "https://acme.example/l.jpg", slug: "library-room-9a8b7c6d", sourceCount: 2, languageCount: 1 }];
+const ECHO = ["The library opens a new reading room.", "The new room seats forty readers.", "The reading room opens on Monday.", "Forty readers fit in the new room."];
+const FACTS = ["The council paid 40,000 euros from the 2026 budget.", "Opening hours run from 9:00 to 19:00, Saturdays included.", "Volunteers from the school will run a reading club on Fridays."];
+
+test("points that repeat title, dek or each other leave the reel and the caption, never refuse the story; the new facts go in", async () => {
+  const { campaignsFromPoints } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  const { campaignRepetition } = await import("../scripts/lint.mjs");
+  const fetchImpl = async () => new Response(JSON.stringify({ data: LIBRARY }), { status: 200 });
+  const run = (pts) => campaignsFromPoints(loadTenant("acme"), { "library-room": pts }, { fetchImpl, now: new Date(NOW), write: false });
+
+  // no summary agent (feed.agent: null): nothing to rewrite them with, the story goes out without points
+  const repeated = await run(ECHO);
+  assert.deepEqual(repeated.refused, []);
+  assert.deepEqual([repeated.made[0].points, repeated.made[0].captionPoints, repeated.made[0].dropped, repeated.made[0].rewritten], [0, 0, 4, false]);
+  const c = repeated.made[0].campaign;
+  assert.deepEqual(c.copy.points, [], "no slide retells title or dek");
+  assert.deepEqual(c.copy.droppedPoints.map((d) => d.point), ECHO);
+  assert.equal(c.duration, 13, "title and close only");
+  assert.equal(c.posts.instagram_reel.body, `${LIBRARY[0].title}\n\n${LIBRARY[0].dek}\n\nSourced from 2 reports in 1 language.\n\nFull story with sources: https://acme.example/#/b/library-room-9a8b7c6d\n\n#UFO #UAP #Space #Astronomy`);
+
+  const mixed = await run([ECHO[0], ...FACTS]);
+  assert.deepEqual([mixed.made[0].points, mixed.made[0].captionPoints, mixed.made[0].dropped], [3, 3, 1]);
+  assert.deepEqual(mixed.made[0].campaign.copy.points, FACTS, "the reel shows the same points as the caption");
+  assert.deepEqual(mixed.made[0].campaign.copy.captionPoints, FACTS);
+  assert.deepEqual(mixed.made[0].campaign.copy.droppedPoints, [{ point: ECHO[0], reason: "no new words" }]);
+  assert.match(mixed.made[0].campaign.posts.instagram_reel.body, /on Monday\.\n\n• The council paid 40,000 euros/);
+  assert.deepEqual(campaignRepetition(mixed.made[0].campaign), { ok: true, pairs: [] });
+});
+
+test("fewer than 2 points left: the summary agent rewrites them once from the article; the better list wins, and the round never fails on it", async () => {
+  const { campaignsFromPoints, runRound } = await import("../scripts/round.mjs");
+  const { loadTenant } = await import("../scripts/config.mjs");
+  const { createClient } = await import("../scripts/postproxy.mjs");
+  const tenant = { ...loadTenant("acme"), feed: { ...loadTenant("acme").feed, url: "https://news.example/feed/v1/briefings?lang=en&limit=20", agent: { command: ["fake-agent"] } } };
+  const article = "<p>The council paid 40,000 euros from the 2026 budget.</p><p>Volunteers from the school will run a reading club on Fridays.</p>";
+  const urls = [];
+  const fetchImpl = async (url) => {
+    const u = new URL(url);
+    urls.push(u.pathname);
+    if (u.pathname === "/feed/v1/briefings") return new Response(JSON.stringify({ data: LIBRARY }), { status: 200 });
+    return new Response(JSON.stringify({ data: { bodyHtml: article } }), { status: 200 });
+  };
+  const prompts = [];
+  const agent = (reply) => (bin, args, { input }) => {
+    prompts.push(input);
+    return typeof reply === "function" ? reply() : typeof reply === "string" ? { status: 0, stdout: reply, stderr: "" } : reply;
+  };
+  const run = (pts, spawnImpl, t = tenant) => campaignsFromPoints(t, { "library-room": pts }, { fetchImpl, spawnImpl, now: new Date(NOW), write: false });
+
+  // the operator's points only retell title and dek: one rewrite, with the article and the rejected points
+  const good = await run(ECHO, agent(FACTS.join("\n")));
+  assert.equal(prompts.length, 1);
+  assert.deepEqual(urls.filter((p) => p !== "/feed/v1/briefings"), ["/feed/v1/briefings/library-room-9a8b7c6d"], "the body fetched for the rewrite");
+  assert.match(prompts[0], /^These slides for a vertical reel repeat the headline or the deck and were rejected:\n- The library opens a new reading room\. \(says nothing the headline and deck do not\)\n/);
+  for (const p of ECHO) assert.ok(prompts[0].includes(`- ${p} (`), p);
+  assert.match(prompts[0], /Do not repeat the rejected slides, the headline or the deck/);
+  assert.match(prompts[0], /invent nothing/);
+  assert.match(prompts[0], /\nHeadline: Library opens a new reading room\nDeck: The room seats forty readers and opens on Monday\.\nArticle: The council paid 40,000 euros/);
+  const made = good.made[0];
+  assert.deepEqual([made.points, made.captionPoints, made.dropped, made.rewritten], [3, 3, 0, true]);
+  assert.deepEqual(made.campaign.copy.points, FACTS);
+  assert.match(made.campaign.posts.instagram_reel.body, /\n\n• The council paid 40,000 euros from the 2026 budget\.\n• Opening hours/);
+
+  // a rewrite no better than the operator's (one kept each): the operator's stay
+  prompts.length = 0;
+  const tie = await run([ECHO[0], ECHO[1], ECHO[2], FACTS[0]], agent(`${ECHO[3]}\n${FACTS[0]}`));
+  assert.equal(prompts.length, 1);
+  assert.deepEqual([tie.made[0].points, tie.made[0].rewritten], [1, false]);
+  assert.deepEqual(tie.made[0].campaign.copy.points, [FACTS[0]]);
+
+  // enough points left: no agent call
+  prompts.length = 0;
+  await run([ECHO[0], ...FACTS], agent(() => assert.fail("no rewrite needed")));
+  assert.equal(prompts.length, 0);
+
+  // a failing agent, or none: the operator's survivors stay, the story still goes out
+  for (const spawnImpl of [agent({ status: 1, stdout: "", stderr: "boom" }), agent(() => ({ error: Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" }) }))]) {
+    const out = await run(ECHO, spawnImpl);
+    assert.deepEqual(out.refused, []);
+    assert.deepEqual([out.made[0].points, out.made[0].rewritten], [0, false]);
+  }
+  prompts.length = 0;
+  const none = await run(ECHO, agent(() => assert.fail("feed.agent: null")), { ...tenant, feed: { ...tenant.feed, agent: null } });
+  assert.deepEqual([none.made[0].points, none.made[0].rewritten, prompts.length], [0, false, 0]);
+
+  // no article to take new facts from: no rewrite
+  const noBody = async (url) => (new URL(url).pathname === "/feed/v1/briefings" ? new Response(JSON.stringify({ data: LIBRARY }), { status: 200 }) : new Response("nope", { status: 404 }));
+  prompts.length = 0;
+  const bare = await campaignsFromPoints(tenant, { "library-room": ECHO }, { fetchImpl: noBody, spawnImpl: agent(() => assert.fail("no body, no rewrite")), now: new Date(NOW), write: false });
+  assert.deepEqual([bare.made[0].points, bare.made[0].rewritten, prompts.length], [0, false, 0]);
+
+  // the round's summary line: kept points, dropped ones, and a rewrite
+  const client = createClient({ baseUrl: mock.baseUrl, apiKey: API_KEY });
+  const round = await runRound(tenant, { "library-room": ECHO }, { fetchImpl, spawnImpl: agent(`${FACTS.join("\n")}\n${ECHO[1]}`), client, now: new Date(NOW), dryRun: true });
+  assert.match(round.text, /— library room 9a8b7c6d · 3 punti riscritti \(1 scartato\)$/m);
+  assert.deepEqual(round.scheduled.map((s) => [s.points, s.captionPoints, s.dropped, s.rewritten]), [[3, 3, 1, true]]);
+  const thin = await runRound({ ...tenant, feed: { ...tenant.feed, agent: null } }, { "library-room": [ECHO[0], ECHO[1], ECHO[2], FACTS[0]] }, { fetchImpl, client, now: new Date(NOW), dryRun: true });
+  assert.match(thin.text, /— library room 9a8b7c6d · 1 punto \(3 scartati\)$/m);
+  const empty = await runRound({ ...tenant, feed: { ...tenant.feed, agent: null } }, { "library-room": ECHO }, { fetchImpl, client, now: new Date(NOW), dryRun: true });
+  assert.match(empty.text, /— library room 9a8b7c6d · nessun punto \(4 scartati\)$/m);
 });
