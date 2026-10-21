@@ -154,3 +154,43 @@ test("a disconnected profile and failed posts are the first thing the report say
   delete mock.state.posts.p_fail;
   writeFileSync(log, before);
 });
+
+test("an IANA daily.tz reads the clock in local time, DST included, where a fixed offset never moves", async () => {
+  const tenantFile = join(world.repo, "tenants", "acme", "tenant.json");
+  const tenantBefore = readFileSync(tenantFile, "utf8");
+  const log = join(world.home, "tenants", "acme", "posts.jsonl");
+  const logBefore = existsSync(log) ? readFileSync(log, "utf8") : "";
+  const sched = (id, at) => ({ id, status: "scheduled", platforms: [{ platform: "instagram", profile_id: "prof_ig", status: "pending" }], scheduled_at: at });
+  // Rome is +02:00 until 25 October 2026 and +01:00 after
+  Object.assign(mock.state.posts, {
+    q_summer: sched("q_summer", "2026-10-21T07:00:00Z"),
+    q_winter: sched("q_winter", "2026-10-26T06:00:00Z"),
+    q_broken: sched("q_broken", "soon"),
+    q_failed: { id: "q_failed", status: "processed", platforms: [{ platform: "instagram", profile_id: "prof_ig", status: "failed", error: "boom" }], scheduled_at: null },
+  });
+  writeFileSync(log, [
+    { postId: "q_summer", campaign: "story-summer", platform: "instagram" },
+    { postId: "q_winter", campaign: "story-winter", platform: "instagram" },
+    { postId: "q_broken", campaign: "story-broken", platform: "instagram" },
+    { postId: "q_failed", campaign: "story-failed", platform: "instagram" },
+  ].map((x) => JSON.stringify(x)).join("\n") + "\n");
+  const reportWith = async (tz) => {
+    const t = JSON.parse(tenantBefore);
+    writeFileSync(tenantFile, JSON.stringify({ ...t, daily: { ...(t.daily || {}), tz } }));
+    const r = await runCli(["report", "acme"], ENV());
+    assert.equal(r.status, 0, r.stderr);
+    assert.doesNotMatch(r.stderr, /Invalid time value/);
+    assert.match(r.stdout, /✗ \? instagram — story failed: boom/);
+    return r.stdout;
+  };
+  const rome = await reportWith("Europe/Rome");
+  assert.match(rome, /📊 Acme — \d{2}:\d{2}\n/);
+  assert.match(rome, /⏳ in programma:\n {3}🕒 09:00 — story summer\n {3}🕒 07:00 — story winter\n {3}🕒 \? — story broken\n/);
+  assert.match(await reportWith("+02:00"), /⏳ in programma:\n {3}🕒 09:00 — story summer\n {3}🕒 08:00 — story winter\n {3}🕒 \? — story broken\n/);
+  const utc = await reportWith("Z");
+  assert.match(utc, /📊 Acme — \d{2}:\d{2} UTC\n/);
+  assert.match(utc, /⏳ in programma:\n {3}🕒 07:00 — story summer\n {3}🕒 06:00 — story winter\n {3}🕒 \? — story broken\n/);
+  for (const id of ["q_summer", "q_winter", "q_broken", "q_failed"]) delete mock.state.posts[id];
+  writeFileSync(log, logBefore);
+  writeFileSync(tenantFile, tenantBefore);
+});

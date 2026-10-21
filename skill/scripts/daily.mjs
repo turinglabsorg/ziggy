@@ -6,7 +6,7 @@
  *
  *   "daily": {
  *     "slots": ["07:30", "13:00", "17:30", "20:00"],   // local times, first story first slot
- *     "tz": "+02:00",                                   // fixed UTC offset for the slots
+ *     "tz": "Europe/Rome",                              // IANA zone (DST-aware) or a fixed "+02:00"
  *     "maxAgeHours": 48,                                // older feed stories are left alone
  *     "only": ["instagram_reel"]                        // which post kinds to schedule
  *   }
@@ -24,6 +24,7 @@ import { produce, resolveVariants } from "./video.mjs";
 import { publishCampaign } from "./publish.mjs";
 import { createClient } from "./postproxy.mjs";
 import { campaignRepetition } from "./lint.mjs";
+import { addDays, localAt, localDay } from "./tz.mjs";
 
 export const DEFAULT_DAILY = {
   slots: ["07:30", "13:00", "17:30", "20:00"],
@@ -162,12 +163,11 @@ export function uncoveredStories(tenant, stories, { from = new Date(), daily = d
  * news scheduled days out is stale by the time it airs, so it is better left to age out.
  */
 export function freeSlotTimes(slots, tz, { from = new Date(), taken = new Set(), count = slots.length, horizonH = 24 } = {}) {
-  const offsetMs = Date.parse("2000-01-01T00:00:00Z") - Date.parse(`2000-01-01T00:00:00${tz}`);
   const end = from.getTime() + horizonH * 3600_000;
+  const today = localDay(from.getTime(), tz);
   const candidates = [];
   for (let day = 0; day <= Math.ceil(horizonH / 24) + 1; day++) {
-    const localDate = new Date(from.getTime() + offsetMs + day * 86400_000).toISOString().slice(0, 10);
-    for (const slot of slots) candidates.push(Date.parse(`${localDate}T${slot.length === 5 ? `${slot}:00` : slot}${tz}`));
+    for (const slot of slots) candidates.push(localAt(addDays(today, day), slot, tz));
   }
   return [...new Set(candidates)].sort((a, b) => a - b)
     .filter((at) => at > from.getTime() && at <= end && !taken.has(at))

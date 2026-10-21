@@ -29,6 +29,9 @@ import { createClient } from "./postproxy.mjs";
 import { dropQueuedFacebook, fbAllowed, fbGuardConfig, lastSpamBlock, queuedInPause } from "./fbguard.mjs";
 import { campaignRepetition, stripPointLabels } from "./lint.mjs";
 import { campaignFromCasefile } from "./casefile.mjs";
+import { addDays, localAt, localDay, localLabel } from "./tz.mjs";
+
+export { localAt, localDay, localLabel, offsetOf } from "./tz.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
@@ -54,81 +57,10 @@ export function roundConfig(tenant) {
   };
 }
 
-const isIANATz = (tz) => tz && !tz.startsWith("+") && !tz.startsWith("-") && tz !== "Z";
-
-/**
- * Get UTC offset in milliseconds for a timezone at a specific time.
- * Supports both fixed offsets ("+02:00", "Z") and IANA names ("Europe/Rome").
- */
-export const offsetOf = (tz, atMs = Date.parse("2000-01-01T00:00:00Z")) => {
-  if (isIANATz(tz)) {
-    // IANA timezone: use Intl to get DST-correct offset
-    const utcDate = new Date(atMs);
-    const tzDate = new Date(utcDate.toLocaleString("en-US", { timeZone: tz }));
-    const utcMs = Date.UTC(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate(), 
-                           utcDate.getUTCHours(), utcDate.getUTCMinutes(), utcDate.getUTCSeconds());
-    const tzMs = Date.UTC(tzDate.getFullYear(), tzDate.getMonth(), tzDate.getDate(),
-                          tzDate.getHours(), tzDate.getMinutes(), tzDate.getSeconds());
-    return tzMs - utcMs;
-  }
-  // Fixed offset: "+02:00", "-05:00", "Z"
-  return Date.parse("2000-01-01T00:00:00Z") - Date.parse(`2000-01-01T00:00:00${tz}`);
-};
-
-/**
- * Get the local date (YYYY-MM-DD) at a given UTC timestamp in a timezone.
- * Supports both fixed offsets and IANA names with DST.
- */
-export const localDay = (ms, tz) => {
-  if (isIANATz(tz)) {
-    return new Date(ms).toLocaleString("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).slice(0, 10);
-  }
-  return new Date(ms + offsetOf(tz)).toISOString().slice(0, 10);
-};
-
-/**
- * Parse a local time (day + HH:MM) in a timezone to UTC milliseconds.
- * Supports both fixed offsets and IANA names with DST.
- */
-export const localAt = (day, hm, tz) => {
-  const time = hm.length === 5 ? `${hm}:00` : hm;
-  if (isIANATz(tz)) {
-    // IANA timezone: parse in local time, then convert to UTC
-    const localStr = `${day}T${time}`;
-    const localDate = new Date(localStr);
-    // Get what this local time means in the target timezone
-    const tzStr = new Date(localStr).toLocaleString("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", 
-                                                                 hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-    const [datePart, timePart] = tzStr.split(", ");
-    const [month, dayPart, year] = datePart.split("/");
-    const [hour, minute, second] = timePart.split(":");
-    const tzDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(dayPart), parseInt(hour), parseInt(minute), parseInt(second)));
-    // Now compute the UTC time that corresponds to the desired local time
-    const [localHour, localMinute, localSecond] = time.split(":").map(Number);
-    const desiredLocal = Date.UTC(parseInt(day.slice(0, 4)), parseInt(day.slice(5, 7)) - 1, parseInt(day.slice(8, 10)), 
-                                   localHour, localMinute, localSecond || 0);
-    const offset = offsetOf(tz, desiredLocal);
-    return desiredLocal - offset;
-  }
-  // Fixed offset
-  return Date.parse(`${day}T${time}${tz}`);
-};
-/** "16:00" today, "13/10 09:00" on another day — the operator reads local time. */
-export function localLabel(ms, tz, now) {
-  if (isIANATz(tz)) {
-    const iso = new Date(ms).toLocaleString("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", 
-                                                        hour: "2-digit", minute: "2-digit", hour12: false }).replace(", ", "T");
-    const [date, time] = iso.split("T");
-    return localDay(ms, tz) === localDay(now, tz) ? time : `${date.slice(8, 10)}/${date.slice(5, 7)} ${time}`;
-  }
-  const iso = new Date(ms + offsetOf(tz, ms)).toISOString();
-  return localDay(ms, tz) === localDay(now, tz) ? iso.slice(11, 16) : `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`;
-}
-
 /** The last moment a story may go out: the end of the day after its date ("next-day"), or never. */
 export function storyDeadline(cfg, date) {
   if (cfg.freshness === "archive" || !date) return Infinity;
-  return localAt(localDay(Date.parse(date) + 86400_000, cfg.tz), "23:59", cfg.tz);
+  return localAt(addDays(localDay(Date.parse(date), cfg.tz), 1), "23:59", cfg.tz);
 }
 
 async function feedStories(tenant, fetchImpl) {
@@ -426,7 +358,8 @@ export async function scheduleRound(tenant, items, { client = createClient(), no
   const fbStories = new Set([...fbCampaigns].map(storyIdOf).filter(Boolean));
   const facebook = { kinds: fbKinds, blockedAt: fbBlockedAt ? new Date(fbBlockedAt).toISOString() : null, pausedUntil: fbBlockedAt ? new Date(fbBlockedAt + fbCfg.pauseMs).toISOString() : null, maxPerDay: fbCfg.maxPerDay, minGapMinutes: fbCfg.minGapMs / 60_000, held: [], dropped: drop.dropped, flagged: drop.flagged, dropErrors: drop.errors };
   const candidates = [];
-  for (let d = 0; d < SCHEDULE_DAYS; d++) for (const hm of cfg.times) candidates.push(localAt(localDay(t0 + d * 86400_000, cfg.tz), hm, cfg.tz));
+  const today = localDay(t0, cfg.tz);
+  for (let d = 0; d < SCHEDULE_DAYS; d++) for (const hm of cfg.times) candidates.push(localAt(addDays(today, d), hm, cfg.tz));
   candidates.sort((a, b) => a - b);
   const deadlineOf = (it) => storyDeadline(cfg, it.campaign.story?.date);
   const ordered = [...items].sort((a, b) => deadlineOf(a) - deadlineOf(b) || String(b.campaign.story?.date || "").localeCompare(String(a.campaign.story?.date || "")));
