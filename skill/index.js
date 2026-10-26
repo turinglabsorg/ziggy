@@ -91,7 +91,7 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
                                                     step 2: {"<prefix>": [3–4 points], "skip": [prefixes]} →
                                                     campaigns → renders → checks (audio, loudness, length) →
                                                     scheduled on the free times (tenant.json → daily: freshness, round)
-  ziggy events <slug> --week [--from YYYY-MM-DD] [--dry-run] [--no-render] [--force] [--publish] [--notify] [--json]
+  ziggy events <slug> --week [--from YYYY-MM-DD] [--max-events N] [--dry-run] [--no-render] [--force] [--publish] [--notify] [--json]
                                                     the week's events (tenant.json → events) → campaign eventi-<monday>
                                                     on the eventi-settimana template, posters downloaded, reel + post
                                                     rendered; nothing is posted without --publish. Week = Monday–Sunday:
@@ -377,6 +377,12 @@ async function main() {
     case "events": {
       const t = loadTenant(pos[0]);
       const cfg = eventsConfig(t);
+      const maxEventsFlag = flag("--max-events");
+      if (maxEventsFlag && maxEventsFlag !== true) {
+        const n = Number(maxEventsFlag);
+        if (!Number.isInteger(n) || n < 1) fail("--max-events wants a positive integer", 2);
+        cfg.maxEvents = n;
+      }
       const publish = has("--publish");
       if (publish && !has("--week")) fail("--publish goes with --week only (the teaser is never published by this command)", 2);
       if (publish) ensureKey(t.slug); // before anything is fetched or written: under hush the command runs again as a child
