@@ -29,6 +29,7 @@ services:
         required: false
     environment:
       ZIGGY_REPORT_HOOK: node /app/docker/telegram-notify.mjs
+      ZIGGY_TELEGRAM_RECAP_ENABLED: "false"
     volumes:
       - ziggy-data:/data
     ports:

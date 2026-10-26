@@ -1,6 +1,10 @@
 // Telegram report hook for the container (ZIGGY_REPORT_HOOK calls it for every report cycle).
 // Reads the bot token and chat id from the environment and posts $ZIGGY_REPORT_TEXT —
 // a secret is never printed, logged or read from a file.
+if (process.env.ZIGGY_TELEGRAM_RECAP_ENABLED === "false" && process.env.ZIGGY_REPORT_TENANT?.includes(",")) {
+  process.exit(0);
+}
+
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
 const text = process.env.ZIGGY_REPORT_TEXT;
