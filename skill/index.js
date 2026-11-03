@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createPublishingClient, providerName, providerKey } from "./scripts/provider.mjs";
 
 /**
  * ziggy — per-tenant social media manager.
@@ -160,8 +161,13 @@ const NEEDS_KEY = new Set(["round", "post", "publish", "delete", "reschedule", "
 
 function ensureKey(slug) {
   // in a container each tenant's key is POSTPROXY_API_KEY_<SLUG>: a command uses its own tenant's
-  const own = process.env[keyEnvFor(slug)];
-  if (own) process.env[KEY_ENV] = own;
+  const t = loadTenant(slug);
+  const { env: keyEnv } = providerKey(slug);
+  if (providerName(t) === "zernio" && !["post", "publish", "profiles", "status", "delete", "reschedule", "keys"].includes(command)) {
+    fail(`Zernio does not yet support ${command} in Ziggy`, 2);
+  }
+  const own = process.env[providerName(t) === "zernio" ? `ZERNIO_API_KEY_${slug.toUpperCase().replace(/-/g, "_")}` : keyEnvFor(slug)];
+  if (own) process.env[keyEnv] = own;
   const plan = keyPlan(slug, { noHush: has("--no-hush") });
   if (plan.mode === "env") return;
   if (plan.mode === "hush") {
@@ -521,7 +527,7 @@ async function main() {
 
     case "profiles": {
       const t = loadTenant(pos[0]); ensureKey(t.slug);
-      const list = await createClient().listProfiles();
+      const list = await createPublishingClient(t).listProfiles();
       return out(list, (d) => d.map((p) => `${p.id.padEnd(16)} ${(p.platform || "").padEnd(10)} ${p.name}  [${p.status}]  group=${p.profile_group_id}`).join("\n") || "(no profiles)");
     }
 
@@ -535,7 +541,7 @@ async function main() {
       if (has("--dry-run")) return out(results, (d) => d.map((r) => `${r.kind} → ${r.profile}\n${JSON.stringify(r.request, null, 2)}`).join("\n"));
       const ids = results.map((r) => r.post.id);
       let posts = results.map((r) => r.post);
-      if (live && has("--watch")) posts = await awaitPosts({ postIds: ids });
+      if (live && has("--watch")) posts = await awaitPosts({ postIds: ids, client: createPublishingClient(t) });
       const data = results.map((r, i) => ({ kind: r.kind, profile: r.profile, post: posts[i], permalinks: postPermalinks(posts[i]) }));
       return out(data, (d) => d.map((r) => `${r.kind} (${r.profile})\n  ${summarizePost(r.post)}`).join("\n") + (live ? "" : `\n\ndrafts only — review, then: ziggy publish ${slug} ${ids.join(" ")}`));
     }
@@ -545,15 +551,15 @@ async function main() {
       const t = loadTenant(slug); ensureKey(slug);
       if (!ids.length) fail("usage: ziggy publish <slug> <postId…>");
       let posts = await publishDrafts({ tenant: t, postIds: ids, log: () => {} });
-      if (has("--watch")) posts = await awaitPosts({ postIds: ids });
+      if (has("--watch")) posts = await awaitPosts({ postIds: ids, client: createPublishingClient(t) });
       return out(posts.map((p) => ({ post: p, permalinks: postPermalinks(p) })), (d) => d.map((r) => summarizePost(r.post)).join("\n"));
     }
 
     case "delete": {
       const [slug, ...ids] = pos;
-      loadTenant(slug); ensureKey(slug);
+      const t = loadTenant(slug); ensureKey(slug);
       if (!ids.length) fail("usage: ziggy delete <slug> <postId…>");
-      const client = createClient();
+      const client = createPublishingClient(t);
       const results = [];
       for (const id of ids) results.push({ id, deleted: await client.deletePost(id).then(() => true, (e) => String(e.message || e)) });
       // the daily loop reads deletes from the log: the story is uncovered again, its slot free
@@ -563,11 +569,11 @@ async function main() {
 
     case "reschedule": {
       const [slug, ...ids] = pos;
-      loadTenant(slug); ensureKey(slug);
+      const t = loadTenant(slug); ensureKey(slug);
       const at = flag("--at");
       if (!ids.length || !at || at === true || Number.isNaN(Date.parse(at))) fail("usage: ziggy reschedule <slug> <postId…> --at <ISO>");
       const when = new Date(at).toISOString();
-      const client = createClient();
+      const client = createPublishingClient(t);
       const results = [];
       for (const id of ids) {
         const r = await client.reschedulePost(id, when).then((p) => ({ id, scheduledAt: p?.scheduled_at || when }), (e) => ({ id, error: String(e.message || e) }));
@@ -580,8 +586,8 @@ async function main() {
 
     case "status": {
       const [slug, ...ids] = pos;
-      loadTenant(slug); ensureKey(slug);
-      const client = createClient();
+      const t = loadTenant(slug); ensureKey(slug);
+      const client = createPublishingClient(t);
       const want = ids.length ? ids : [...new Set(readPostLog(slug).map((r) => r.postId).filter(Boolean))].slice(-12);
       const posts = [];
       for (const id of want) {

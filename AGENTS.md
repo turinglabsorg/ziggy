@@ -24,6 +24,9 @@ working **with** Ziggy.
 
 ## Rules
 
+- Publishing providers: `provider.mjs` selects per-tenant clients and hush names;
+  `zernio.mjs` adapts Instagram publishing with exact account pins. Zernio keys use
+  `ZERNIO_API_KEY` via hush; never fall back to Postproxy for a Zernio command.
 - Node ESM, `type: "module"`, no runtime dependencies. Node 20+ (fetch, FormData, `openAsBlob`).
 - Output to stdout for the agent; `--json` must stay valid JSON (progress goes to stderr).
 - Secrets: never read, print, store or log a key. Keys reach commands only as `POSTPROXY_API_KEY`

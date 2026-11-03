@@ -17,6 +17,7 @@
  * Posts with `"enabled": false` are skipped. `thread` is the list of reply posts. A caption that
  * repeats itself (lint.mjs) makes the campaign not publishable, whatever path posts it.
  */
+import { createPublishingClient, providerName } from "./provider.mjs";
 import { existsSync, statSync } from "node:fs";
 import { logPost } from "./config.mjs";
 import { LIMITS, createClient, pickProfile, summarizePost } from "./postproxy.mjs";
@@ -127,7 +128,7 @@ export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt
  * `publishedAt` (a live post without `scheduledAt`, going out now) is logged as the post's
  * `scheduledAt`, so the slot and Facebook accounting of rounds see when it went out.
  */
-export async function publishCampaign({ tenant, campaign, live = false, scheduledAt, publishedAt, only, client = createClient(), log = () => {}, dryRun = false }) {
+export async function publishCampaign({ tenant, campaign, live = false, scheduledAt, publishedAt, only, client = createPublishingClient(tenant), log = () => {}, dryRun = false }) {
   const manifest = readManifest(tenant.slug, campaign.name);
   const profiles = await client.listProfiles();
   const results = [];
@@ -138,10 +139,13 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
   for (const [kind, spec] of entries) {
     const def = POST_KINDS[kind];
     if (!def) throw new Error(`unknown post kind ${JSON.stringify(kind)}`);
-    const profile = pickProfile(profiles, def.platform, { groupId: tenant.postproxy?.profileGroupId, profileIds: tenant.postproxy?.profileIds });
-    if (!profile) throw new Error(`no active ${def.platform} profile connected on Postproxy for ${tenant.slug}`);
+    const profile = providerName(tenant) === "zernio"
+      ? profiles.find(p => p.platform === def.platform && p.status === "active" && tenant.zernio?.accountIds?.includes(p.id))
+      : pickProfile(profiles, def.platform, { groupId: tenant.postproxy?.profileGroupId, profileIds: tenant.postproxy?.profileIds });
+    if (!profile) throw new Error(`no active ${def.platform} profile connected on ${providerName(tenant)} for ${tenant.slug}`);
     plans.push({ ...buildRequest(kind, spec, { profile, manifest, draft: !live, scheduledAt, facebookPageId: tenant.postproxy?.facebookPageId }), profile });
   }
+  for (const plan of plans) client.validateRequest?.(plan.request);
   const problems = plans.flatMap((p) => p.problems);
   const repeat = campaignRepetition(campaign, { only });
   if (!repeat.ok) problems.push(`${repeat.kind}: ${repeat.reason}`);
@@ -152,14 +156,14 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
     log(`→ ${plan.kind} on ${plan.profile.name}${names.length ? ` (${names.join(", ")})` : ""}`);
     if (dryRun) { results.push({ kind: plan.kind, request: plan.request, profile: plan.profile.name, dryRun: true }); continue; }
     const post = await client.createPost(plan.request);
-    logPost(tenant.slug, { campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || (live && publishedAt) || null, link: campaign.story?.url || campaign.link || null });
+    logPost(tenant.slug, { provider: providerName(tenant), campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || (live && publishedAt) || null, link: campaign.story?.url || campaign.link || null });
     results.push({ kind: plan.kind, post, profile: plan.profile.name, published: live });
     log(`  ${summarizePost(post).split("\n")[0]}`);
   }
   return results;
 }
 
-export async function publishDrafts({ tenant, postIds, client = createClient(), log = () => {} }) {
+export async function publishDrafts({ tenant, postIds, client = createPublishingClient(tenant), log = () => {} }) {
   const out = [];
   for (const id of postIds) {
     const post = await client.publishPost(id);

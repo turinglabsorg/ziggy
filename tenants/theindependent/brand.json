@@ -1,0 +1,74 @@
+{
+  "name": "The Independent AI",
+  "site": "https://theindependentai.com/",
+  "lang": "en",
+  "tagline": "A clearer view of AI.",
+  "palette": {
+    "bg": "#254BDE",
+    "fg": "#F6F2EC",
+    "accent": "#254BDE",
+    "line": "#F6F2EC",
+    "muted": "#D5D0C6",
+    "raw": {
+      "--cobalt": "#254BDE",
+      "--ivory": "#F6F2EC",
+      "--ink": "#1A1816",
+      "--forest": "#183C32",
+      "--vermilion": "#E23D28",
+      "--stone": "#E6E1D8"
+    }
+  },
+  "fonts": {
+    "display": {
+      "family": "Bodoni Moda",
+      "weights": [
+        500,
+        650
+      ]
+    },
+    "text": {
+      "family": "Inter",
+      "weights": [
+        500,
+        650
+      ]
+    },
+    "mono": {
+      "family": "Inter",
+      "weights": [
+        500,
+        650
+      ]
+    },
+    "google": "https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,650&family=Inter:wght@500;650&display=swap"
+  },
+  "wordmark": {
+    "text": "THE INDEPENDENT AI.",
+    "parts": [
+      {
+        "text": "THE INDEPENDENT AI.",
+        "weight": 650
+      }
+    ],
+    "transform": "none",
+    "letterSpacing": "0.012em",
+    "accentDot": false
+  },
+  "mark": {
+    "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='#254BDE'/></svg>",
+    "source": "placeholder-until-a-mark-is-supplied"
+  },
+  "stars": false,
+  "extractedAt": "2026-11-02T17:05:00.000Z",
+  "look": {
+    "locked": false,
+    "reference": [
+      "9k.png",
+      "news-reel-2.mp4"
+    ],
+    "masthead": "THE INDEPENDENT AI.",
+    "eyebrow": "A clearer view of AI.",
+    "mix": "about 3 cobalt, 3 ivory, 2 forest, 1 vermilion",
+    "rules": "One background, one text colour, one restrained accent. Masthead large and centred in the same place. Reel carries the cover colour. Long carousel frames sit on ivory. News leans cobalt. Tools lean forest. Vermilion is rare. Stone is for supporting detail inside carousels."
+  }
+}

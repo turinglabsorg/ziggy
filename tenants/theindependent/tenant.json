@@ -1,0 +1,19 @@
+{
+  "name": "The Independent AI",
+  "site": "https://theindependentai.com/",
+  "language": "en",
+  "postproxy": {},
+  "autopilot": {
+    "mode": "draft",
+    "dms": false,
+    "skipAuthors": []
+  },
+  "notes": "Ledger reel and caption approved for one Instagram publication on 2026-11-03. Use Zernio and pin the verified theindependentai_com Instagram account before publishing. No posting routine authorized; autopilot remains draft.",
+  "publishing": {
+    "provider": "zernio"
+  },
+  "zernio": {
+    "secretName": "ZERNIO_API_KEY",
+    "accountIds": []
+  }
+}

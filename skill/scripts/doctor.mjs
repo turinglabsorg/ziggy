@@ -2,6 +2,7 @@
  * Readiness checks: tools on PATH, the tenant's definition, fonts, renders, and whether the
  * Postproxy key is reachable — by name, never by value.
  */
+import { providerKey } from "./provider.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -55,7 +56,9 @@ export function runDoctor({ tenant: slug, probeHyperframes = true } = {}) {
       tadd(`renders:${c}`, Boolean(m), m ? Object.keys(m.outputs).join(", ") : "not rendered", `ziggy video ${slug} ${c}`);
     }
     const key = keyStatus(slug);
-    tadd("postproxy key", key.envPresent || key.hushStored === true, key.envPresent ? "POSTPROXY_API_KEY in env" : key.hushStored ? `hush:${key.secretName}` : key.hushError || `hush has no ${key.secretName}`, `ziggy keys pull ${slug} --send <bitwarden send url>`);
+    const pk = providerKey(slug);
+    tadd(`${pk.provider} key`, key.envPresent || key.hushStored === true, key.envPresent ? `${pk.env} in env` : key.hushStored ? `hush:${key.secretName}` : key.hushError || `hush has no ${key.secretName}`, `ziggy keys pull ${slug} --send <bitwarden send url>`);
+    if (pk.provider === "zernio") tadd("zernio targets", Boolean(t.zernio?.accountIds?.length), t.zernio?.accountIds?.join(", ") || "no pinned account", "set tenant.zernio.accountIds to the verified account ids");
     tadd("autopilot", true, `${t.autopilot?.mode || "draft"}${t.autopilot?.agent === null ? " · no agent" : ""}`);
     if (t.feed) {
       const agent = storyAgent(t);

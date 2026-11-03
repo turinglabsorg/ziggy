@@ -5,6 +5,10 @@ description: Per-tenant social media manager. Use when the user wants to launch 
 
 # Ziggy
 
+Publishing providers are selected per tenant with `publishing.provider`. Postproxy is
+the default; for Zernio setup and supported commands, read `references/zernio.md`.
+Zernio uses `ZERNIO_API_KEY` via hush and requires exact pinned `zernio.accountIds`.
+
 Ziggy runs a brand's social accounts end to end, one **tenant** at a time. Every step is a CLI
 command that prints to stdout (`--json` for machine-readable output); you orchestrate, Ziggy
 executes. The tenant is always explicit — nothing is global.

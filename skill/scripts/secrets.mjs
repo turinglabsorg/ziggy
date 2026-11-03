@@ -13,7 +13,7 @@
  * command is the only place the variable exists.
  */
 import { spawnSync } from "node:child_process";
-import { postproxySecretName } from "./config.mjs";
+import { providerKey } from "./provider.mjs";
 
 export const KEY_ENV = "POSTPROXY_API_KEY";
 
@@ -54,8 +54,8 @@ export function hushNames() {
 }
 
 export function keyStatus(slug) {
-  const name = postproxySecretName(slug);
-  const inEnv = Boolean(process.env[KEY_ENV]);
+  const name = providerKey(slug).name;
+  const inEnv = Boolean(process.env[providerKey(slug).env]);
   const hush = hushNames();
   return {
     tenant: slug,
@@ -69,7 +69,7 @@ export function keyStatus(slug) {
 
 /** `ziggy keys pull <slug> --send <url>` → `hush pull --name ziggy.<slug>.postproxy --send <url> --json`. */
 export function pullKey(slug, { send, passwordEnv, email, codeCmd } = {}) {
-  const args = ["pull", "--name", postproxySecretName(slug), "--json"];
+  const args = ["pull", "--name", providerKey(slug).name, "--json"];
   if (send) args.push("--send", send);
   if (passwordEnv) args.push("--passwordenv", passwordEnv);
   if (email) args.push("--email", email);
@@ -85,7 +85,7 @@ export function pullKey(slug, { send, passwordEnv, email, codeCmd } = {}) {
  * `self` is the absolute path of the CLI entry (index.js). Output is redacted by hush.
  */
 export function runUnderHush(slug, self, argv, { stdio = "inherit" } = {}) {
-  const args = ["run", "--name", postproxySecretName(slug), "--env", KEY_ENV, "--redact", "--", nodeBin(), self, ...argv];
+  const args = ["run", "--name", providerKey(slug).name, "--env", providerKey(slug).env, "--redact", "--", nodeBin(), self, ...argv];
   const result = spawnSync(hushBin(), args, { stdio, encoding: "utf8" });
   if (result.error) throw new Error(result.error.code === "ENOENT" ? `hush is not installed (${hushBin()})` : result.error.message);
   return result;
@@ -93,17 +93,18 @@ export function runUnderHush(slug, self, argv, { stdio = "inherit" } = {}) {
 
 /** Decide how a key-needing command proceeds. Pure; the caller performs the action. */
 export function keyPlan(slug, { noHush = false } = {}) {
-  if (process.env[KEY_ENV]) return { mode: "env" };
-  if (noHush) return { mode: "missing", reason: `${KEY_ENV} is not set and --no-hush was given` };
+  const { env: keyEnv } = providerKey(slug);
+  if (process.env[keyEnv]) return { mode: "env" };
+  if (noHush) return { mode: "missing", reason: `${keyEnv} is not set and --no-hush was given` };
   const status = keyStatus(slug);
   if (status.hushAvailable && status.hushStored) return { mode: "hush", secretName: status.secretName };
   if (!status.hushAvailable) {
-    return { mode: "missing", reason: `${KEY_ENV} is not set and ${status.hushError}. Export the key or install hush.` };
+    return { mode: "missing", reason: `${keyEnv} is not set and ${status.hushError}. Export the key or install hush.` };
   }
   return {
     mode: "missing",
     reason:
-      `${KEY_ENV} is not set and hush has no secret named ${status.secretName}. ` +
+      `${keyEnv} is not set and hush has no secret named ${status.secretName}. ` +
       `Share the key as a Bitwarden Send and run: ziggy keys pull ${slug} --send <url>`,
   };
 }
