@@ -27,6 +27,17 @@ export function mimeFor(path) {
   return MIME[extname(path).slice(1).toLowerCase()] || "application/octet-stream";
 }
 
+function appendFormValue(form, key, value) {
+  if (value == null) return;
+  if (Array.isArray(value)) {
+    value.forEach((item) => appendFormValue(form, `${key}[]`, item));
+  } else if (typeof value === "object") {
+    for (const [name, item] of Object.entries(value)) appendFormValue(form, `${key}[${name}]`, item);
+  } else {
+    form.append(key, String(value));
+  }
+}
+
 export class PostproxyError extends Error {
   constructor(status, body, url) {
     super(`Postproxy ${status} on ${url}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
@@ -119,7 +130,7 @@ export function createClient({ baseUrl = process.env.ZIGGY_POSTPROXY_BASE_URL ||
           if (child?.body) form.append(`thread[${i}][body]`, child.body);
         });
       }
-      // A platform whose params contain booleans or numbers travels as one JSON `platforms` field
+      // Typed and structured platform params travel as one JSON `platforms` field
       // so values keep their type — flattened `platforms[p][k]` fields are strings, which strict
       // validators (TikTok's booleans) reject. Platforms with a `*_file` upload stay flattened.
       const typed = {};
@@ -127,15 +138,14 @@ export function createClient({ baseUrl = process.env.ZIGGY_POSTPROXY_BASE_URL ||
         const entries = Object.entries(params || {}).filter(([, v]) => v != null);
         if (!entries.length) continue;
         const hasFile = entries.some(([k, v]) => k.endsWith("_file") && typeof v === "string");
-        const hasTyped = entries.some(([, v]) => typeof v === "boolean" || typeof v === "number");
+        const hasTyped = entries.some(([, v]) => typeof v === "boolean" || typeof v === "number" || typeof v === "object");
         if (!hasFile && hasTyped) {
           typed[platform] = Object.fromEntries(entries);
           continue;
         }
         for (const [k, v] of entries) {
           if (k.endsWith("_file") && typeof v === "string") form.append(`platforms[${platform}][${k}]`, await openAsBlob(v, { type: mimeFor(v) }), basename(v));
-          else if (Array.isArray(v)) for (const item of v) form.append(`platforms[${platform}][${k}][]`, String(item));
-          else form.append(`platforms[${platform}][${k}]`, String(v));
+          else appendFormValue(form, `platforms[${platform}][${k}]`, v);
         }
       }
       if (Object.keys(typed).length) form.append("platforms", JSON.stringify(typed));

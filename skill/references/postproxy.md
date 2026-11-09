@@ -58,3 +58,35 @@ campaigns is `enabled: false` until the tenant connects a TikTok profile. TikTok
 on Postproxy, so the comment-LINK → DM flow does not fire there; inbox/autopilot stay on Instagram.
 
 Full reference, every platform in one file: https://postproxy.dev/postproxy-docs.md
+
+## Instagram user tags
+
+Set tags in the campaign post's `platform.user_tags` (not in the caption):
+
+```json
+{
+  "instagram_post": {
+    "media": "slide-cover",
+    "body": "Approved event copy",
+    "platform": {
+      "user_tags": [{ "username": "confirmed_organizer", "x": 0.5, "y": 0.7, "media_index": 0 }]
+    }
+  }
+}
+```
+
+Images require `x` and `y` between 0 and 1. Reels use usernames without coordinates.
+`media_index` selects a carousel slide, starting at 0. Use a confirmed public organizer
+account; private accounts and accounts that disable tagging may be skipped by Instagram.
+A caption mention and a collaborator invitation are separate features.
+
+Local uploads preserve tag objects as JSON platform parameters. With an uploaded reel
+cover, nested multipart array fields keep tags separate from the binary file.
+
+Test safely with `ziggy post … --only instagram_post` (or `instagram_reel`), without
+`--live`, `--at`, or a publish call. Read back the draft and its Instagram `params.user_tags`,
+then delete the test draft. A successful draft round trip verifies transport and storage
+in Postproxy, not Instagram's eventual display of the tag. Verify that separately on an
+approved live post.
+
+Reference: https://postproxy.dev/reference/platforms/instagram/#user-tags
