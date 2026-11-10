@@ -19,7 +19,7 @@ import { produceAssets } from "./scripts/assets.mjs";
 import { produce, readManifest, resolveVariants, scaffold, check as hfCheck, listTemplates } from "./scripts/video.mjs";
 import { KEY_ENV, keyPlan, keyStatus, pullKey, runUnderHush } from "./scripts/secrets.mjs";
 import { createClient, summarizePost, postPermalinks } from "./scripts/postproxy.mjs";
-import { POST_KINDS, awaitPosts, buildRequest, publishCampaign, publishDrafts } from "./scripts/publish.mjs";
+import { POST_KINDS, applyPublishJitter, awaitPosts, buildRequest, publishCampaign, publishDrafts } from "./scripts/publish.mjs";
 import { pullInbox, pullStats, reply, hide, dm, comment, privateReply, readActions } from "./scripts/inbox.mjs";
 import { runAutopilot, readQueue, policyOf } from "./scripts/autopilot.mjs";
 import { installWatch, uninstallWatch, watchStatus } from "./scripts/watch.mjs";
@@ -115,10 +115,11 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
   ziggy video <slug> <name> [--variants reel,x,post] [--quality high] [--dry-run] [--skip-check]
                                                     scaffold HyperFrames projects, check, render, capture stills
   ziggy post <slug> <name> [--live] [--at <ISO>] [--only twitter,instagram_reel] [--dry-run] [--watch]
-                                                    create the posts as DRAFTS (default) or publish/schedule
+                                                    create the posts as DRAFTS (default) or publish/schedule.
+                                                    --at waits a random 0–300 seconds, so the post does not fire on the minute
   ziggy publish <slug> <postId…> [--watch]          publish reviewed drafts
   ziggy delete <slug> <postId…>                     delete drafts or scheduled posts
-  ziggy reschedule <slug> <postId…> --at <ISO>      move scheduled posts (no media re-upload)
+  ziggy reschedule <slug> <postId…> --at <ISO>      move scheduled posts (no media re-upload); same 0–300 s delay
   ziggy status <slug> [<postId…>] [--json]          post status + permalinks (defaults to the tenant's log)
 
 Inbox & engagement
@@ -572,7 +573,7 @@ async function main() {
       const t = loadTenant(slug); ensureKey(slug);
       const at = flag("--at");
       if (!ids.length || !at || at === true || Number.isNaN(Date.parse(at))) fail("usage: ziggy reschedule <slug> <postId…> --at <ISO>");
-      const when = new Date(at).toISOString();
+      const when = applyPublishJitter(new Date(at).toISOString());
       const client = createPublishingClient(t);
       const results = [];
       for (const id of ids) {

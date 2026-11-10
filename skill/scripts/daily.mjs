@@ -21,7 +21,7 @@ import { existsSync } from "node:fs";
 import { listCampaigns, loadCampaign, loadConfig, readPostLog } from "./config.mjs";
 import { fetchStories, createStoryCampaign, slugify } from "./story.mjs";
 import { produce, resolveVariants } from "./video.mjs";
-import { publishCampaign } from "./publish.mjs";
+import { SCHEDULE_JITTER_MAX_MS, publishCampaign } from "./publish.mjs";
 import { createClient } from "./postproxy.mjs";
 import { campaignRepetition } from "./lint.mjs";
 import { addDays, localAt, localDay } from "./tz.mjs";
@@ -162,6 +162,16 @@ export function uncoveredStories(tenant, stories, { from = new Date(), daily = d
  * story a later run finds would pile onto that one slot. Past the horizon a story waits —
  * news scheduled days out is stale by the time it airs, so it is better left to age out.
  */
+
+/** A programmed post holds its slot through the jitter window (0–300 s after the minute). */
+export function slotHeld(slotMs, taken, maxMs = SCHEDULE_JITTER_MAX_MS) {
+  for (const t of taken) {
+    const delta = t - slotMs;
+    if (delta >= 0 && delta <= maxMs) return true;
+  }
+  return false;
+}
+
 export function freeSlotTimes(slots, tz, { from = new Date(), taken = new Set(), count = slots.length, horizonH = 24 } = {}) {
   const end = from.getTime() + horizonH * 3600_000;
   const today = localDay(from.getTime(), tz);
@@ -170,7 +180,7 @@ export function freeSlotTimes(slots, tz, { from = new Date(), taken = new Set(),
     for (const slot of slots) candidates.push(localAt(addDays(today, day), slot, tz));
   }
   return [...new Set(candidates)].sort((a, b) => a - b)
-    .filter((at) => at > from.getTime() && at <= end && !taken.has(at))
+    .filter((at) => at > from.getTime() && at <= end && !slotHeld(at, taken))
     .slice(0, count)
     .map((at) => new Date(at).toISOString());
 }
@@ -230,8 +240,9 @@ export async function runDaily(tenant, {
         tenant, campaign, live: true, scheduledAt: at, only: daily.only,
         client: client || createClient(), log, dryRun,
       });
+      const scheduledAt = results.find((r) => r.scheduledAt)?.scheduledAt || at;
       report.planned.push({
-        campaign: name, title: story.title, storySlug: story.slug, scheduledAt: at,
+        campaign: name, title: story.title, storySlug: story.slug, scheduledAt,
         posts: results.map((r) => ({ kind: r.kind, postId: r.post?.id || null })),
       });
     } catch (error) {

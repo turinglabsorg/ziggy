@@ -232,7 +232,12 @@ test("a round: points → campaigns → renders → checks → scheduled; the re
     ["story-2026-10-11-harbour-reopens-after-the", "2026-10-12T11:00:00.000Z", 1],
     ["story-2026-10-12-council-approves-the-school", "2026-10-12T12:00:00.000Z", 1],
   ]);
-  assert.deepEqual(creates().map((c) => c.fields["post[scheduled_at]"]), ["2026-10-12T11:00:00.000Z", "2026-10-12T12:00:00.000Z"]);
+  const sent = creates().map((c) => c.fields["post[scheduled_at]"]);
+  assert.equal(sent.length, 2);
+  for (const [actual, expected] of [[sent[0], "2026-10-12T11:00:00.000Z"], [sent[1], "2026-10-12T12:00:00.000Z"]]) {
+    const delta = Date.parse(actual) - Date.parse(expected);
+    assert.ok(delta >= 0 && delta <= 300_000 && delta % 1000 === 0, `${actual} is ${delta} ms from ${expected}`);
+  }
   assert.deepEqual(out.refused.map((x) => [x.prefix, x.reason]), [["night-market", "no photo in the feed"], ["not-a-story", "not in the feed"]]);
   assert.deepEqual(out.skipped.map((s) => s.name), ["story-2026-10-12-concert-announced-for-tonight"]);
   assert.ok(out.checks.every((c) => c.ok && c.audio === "aac" && c.meanDb === -18.2), JSON.stringify(out.checks));

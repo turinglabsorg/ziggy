@@ -4,7 +4,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
-import { coveredStories, dailyConfig, freeSlotTimes, livePosts, storyCovered, uncoveredStories } from "../scripts/daily.mjs";
+import { coveredStories, dailyConfig, freeSlotTimes, livePosts, slotHeld, storyCovered, uncoveredStories } from "../scripts/daily.mjs";
 import { API_KEY, makeWorld, runCli, startMockPostproxy } from "./helpers.mjs";
 
 const world = makeWorld({ withRenders: false });
@@ -86,6 +86,16 @@ before(async () => {
 });
 after(() => new Promise((r) => { feedServer.closeAllConnections(); feedServer.close(r); mock.close(); }));
 
+
+const withinJitter = (actual, expected) => {
+  const delta = Date.parse(actual) - Date.parse(expected);
+  assert.ok(Number.isFinite(delta) && delta >= 0 && delta <= 300_000 && delta % 1000 === 0, `${actual} is ${delta} ms from ${expected}`);
+};
+const nearSlot = (actual, expected) => {
+  const delta = Date.parse(actual) - Date.parse(expected);
+  return Number.isFinite(delta) && delta >= 0 && delta <= 300_000;
+};
+
 const ENV = () => ({ ...world.env, ZIGGY_POSTPROXY_BASE_URL: mock.baseUrl, POSTPROXY_API_KEY: API_KEY, ZIGGY_HYPERFRAMES_BIN: fakeBin });
 
 let fakeBin;
@@ -110,11 +120,15 @@ test("the daily loop: fresh stories become campaigns, rendered and scheduled on 
   assert.equal(r.status, 0, r.stderr);
   const report = JSON.parse(r.stdout);
   assert.equal(report.planned.length, 2, `two fresh stories, the stale one is ignored — errors: ${JSON.stringify(report.errors)}`);
-  assert.deepEqual(report.planned.map((p) => p.scheduledAt), ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
+  assert.equal(report.planned.length, 2);
   assert.deepEqual(report.errors, []);
   const creates = mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts");
   assert.equal(creates.length, 2);
-  assert.deepEqual(creates.map((c) => c.fields["post[scheduled_at]"]), ["2026-10-07T05:30:00.000Z", "2026-10-07T11:00:00.000Z"]);
+  const wired = creates.map((c) => c.fields["post[scheduled_at]"]);
+  withinJitter(wired[0], "2026-10-07T05:30:00.000Z");
+  withinJitter(wired[1], "2026-10-07T11:00:00.000Z");
+  withinJitter(report.planned[0].scheduledAt, "2026-10-07T05:30:00.000Z");
+  withinJitter(report.planned[1].scheduledAt, "2026-10-07T11:00:00.000Z");
   // second run: everything is covered, nothing is created again
   const postsBefore = mockCalls().filter((x) => x.method === "POST" && x.path === "/api/posts").length;
   const again = await runCli(["daily", "acme", "--from", "2026-10-06T19:05:00Z"], ENV());
@@ -128,32 +142,37 @@ test("the daily loop never stacks stories on one slot: a later run takes the nex
   const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:10:00Z", "--json"], ENV());
   assert.equal(r.status, 0, r.stderr);
   const report = JSON.parse(r.stdout);
-  assert.deepEqual(report.planned.map((p) => [p.title, p.scheduledAt]), [["Night market draws record crowds", "2026-10-07T15:30:00.000Z"]], "07:30 and 13:00 already hold stories one and two");
+  assert.equal(report.planned.length, 1, JSON.stringify(report));
+  assert.equal(report.planned[0].title, "Night market draws record crowds");
+  withinJitter(report.planned[0].scheduledAt, "2026-10-07T15:30:00.000Z");
 });
 
 test("a deleted post frees its slot and uncovers its story: the next run redoes both", async () => {
   const log = readFileSync(join(world.home, "tenants", "acme", "posts.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-  const first = log.find((x) => x.scheduledAt === "2026-10-07T05:30:00.000Z");
+  const first = log.find((x) => nearSlot(x.scheduledAt, "2026-10-07T05:30:00.000Z"));
   const del = await runCli(["delete", "acme", first.postId], ENV());
   assert.equal(del.status, 0, del.stderr);
   const r = await runCli(["daily", "acme", "--from", "2026-10-06T19:20:00Z", "--json"], ENV());
   assert.equal(r.status, 0, r.stderr);
   const report = JSON.parse(r.stdout);
-  assert.deepEqual(report.planned.map((p) => [p.campaign, p.scheduledAt]), [[first.campaign, "2026-10-07T05:30:00.000Z"]]);
+  assert.equal(report.planned.length, 1);
+  assert.equal(report.planned[0].campaign, first.campaign);
+  withinJitter(report.planned[0].scheduledAt, "2026-10-07T05:30:00.000Z");
 });
 
 function mockCalls() { return mock.calls; }
 
 test("ziggy reschedule moves a scheduled post on Postproxy and in the slot accounting", async () => {
-  const target = livePosts("acme").find((x) => x.scheduledAt === "2026-10-07T15:30:00.000Z");
+  const target = livePosts("acme").find((x) => nearSlot(x.scheduledAt, "2026-10-07T15:30:00.000Z"));
   assert.ok(target, "the night market story from the stacking test");
   const r = await runCli(["reschedule", "acme", target.postId, "--at", "2026-10-07T21:15:00Z"], ENV());
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, new RegExp(`${target.postId}  → 2026-10-07T21:15:00.000Z`));
+  const moved = livePosts("acme").find((x) => x.postId === target.postId).scheduledAt;
+  withinJitter(moved, "2026-10-07T21:15:00.000Z");
+  assert.match(r.stdout, new RegExp(`${target.postId}  → ${moved.replace(/[.]/g, "\.")}`));
   const patch = mock.calls.filter((c) => c.method === "PATCH").at(-1);
   assert.equal(patch.path, `/api/posts/${target.postId}`);
-  assert.equal(mock.state.posts[target.postId].scheduled_at, "2026-10-07T21:15:00.000Z");
-  assert.equal(livePosts("acme").find((x) => x.postId === target.postId).scheduledAt, "2026-10-07T21:15:00.000Z");
+  assert.equal(mock.state.posts[target.postId].scheduled_at, moved);
   // the slot it left is free again, the new one is taken
   const free = freeSlotTimes(["17:30", "23:15"], "+02:00", { from: new Date("2026-10-07T12:00:00Z"), taken: new Set(livePosts("acme").map((x) => Date.parse(x.scheduledAt))) });
   assert.deepEqual(free, ["2026-10-07T15:30:00.000Z"]);

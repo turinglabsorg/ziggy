@@ -24,6 +24,26 @@ import { LIMITS, createClient, pickProfile, summarizePost } from "./postproxy.mj
 import { readManifest } from "./video.mjs";
 import { campaignRepetition } from "./lint.mjs";
 
+/** Whole seconds added to a programmed time so it does not fire on the exact minute. Inclusive. */
+export const SCHEDULE_JITTER_MAX_SEC = 300;
+export const SCHEDULE_JITTER_MAX_MS = SCHEDULE_JITTER_MAX_SEC * 1000;
+
+/**
+ * Random delay of 0 through `maxSec` seconds (default 5 minutes).
+ * `random` returns a number in [0, 1). Invalid timestamps pass through unchanged.
+ */
+export function applyPublishJitter(scheduledAt, { random = Math.random, maxSec = SCHEDULE_JITTER_MAX_SEC } = {}) {
+  if (scheduledAt == null || scheduledAt === "") return scheduledAt;
+  const base = Date.parse(scheduledAt);
+  if (Number.isNaN(base)) return scheduledAt;
+  const cap = Math.max(0, Math.floor(Number(maxSec)));
+  const sample = Number(random());
+  const raw = Number.isFinite(sample) ? Math.floor(sample * (cap + 1)) : 0;
+  const delaySec = Math.min(cap, Math.max(0, raw));
+  return new Date(base + delaySec * 1000).toISOString();
+}
+
+
 export const POST_KINDS = {
   twitter: { platform: "twitter", format: null, limits: LIMITS.twitter },
   instagram_post: { platform: "instagram", format: "post", limits: LIMITS.instagram_post },
@@ -128,7 +148,8 @@ export function buildRequest(kind, spec, { profile, manifest, draft, scheduledAt
  * `publishedAt` (a live post without `scheduledAt`, going out now) is logged as the post's
  * `scheduledAt`, so the slot and Facebook accounting of rounds see when it went out.
  */
-export async function publishCampaign({ tenant, campaign, live = false, scheduledAt, publishedAt, only, client = createPublishingClient(tenant), log = () => {}, dryRun = false }) {
+export async function publishCampaign({ tenant, campaign, live = false, scheduledAt, publishedAt, only, client = createPublishingClient(tenant), log = () => {}, dryRun = false, jitter = true, random = Math.random } = {}) {
+  if (jitter && scheduledAt) scheduledAt = applyPublishJitter(scheduledAt, { random });
   const manifest = readManifest(tenant.slug, campaign.name);
   const profiles = await client.listProfiles();
   const results = [];
@@ -154,10 +175,10 @@ export async function publishCampaign({ tenant, campaign, live = false, schedule
   for (const plan of plans) {
     const names = (plan.media || []).map((m) => m.split("/").pop());
     log(`→ ${plan.kind} on ${plan.profile.name}${names.length ? ` (${names.join(", ")})` : ""}`);
-    if (dryRun) { results.push({ kind: plan.kind, request: plan.request, profile: plan.profile.name, dryRun: true }); continue; }
+    if (dryRun) { results.push({ kind: plan.kind, request: plan.request, profile: plan.profile.name, dryRun: true, scheduledAt }); continue; }
     const post = await client.createPost(plan.request);
     logPost(tenant.slug, { provider: providerName(tenant), campaign: campaign.name, kind: plan.kind, postId: post.id, profileId: plan.profile.id, platform: POST_KINDS[plan.kind].platform, status: post.status, live, scheduledAt: scheduledAt || (live && publishedAt) || null, link: campaign.story?.url || campaign.link || null });
-    results.push({ kind: plan.kind, post, profile: plan.profile.name, published: live });
+    results.push({ kind: plan.kind, post, profile: plan.profile.name, published: live, scheduledAt });
     log(`  ${summarizePost(post).split("\n")[0]}`);
   }
   return results;
