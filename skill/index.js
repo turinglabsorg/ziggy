@@ -116,10 +116,10 @@ Campaigns (tenants/<slug>/campaigns/<name>/campaign.json)
                                                     scaffold HyperFrames projects, check, render, capture stills
   ziggy post <slug> <name> [--live] [--at <ISO>] [--only twitter,instagram_reel] [--dry-run] [--watch]
                                                     create the posts as DRAFTS (default) or publish/schedule.
-                                                    --at waits a random 0–300 seconds, so the post does not fire on the minute
+                                                    --at waits a random 2–10 minutes (120–600 s), so the post does not fire on the minute
   ziggy publish <slug> <postId…> [--watch]          publish reviewed drafts
   ziggy delete <slug> <postId…>                     delete drafts or scheduled posts
-  ziggy reschedule <slug> <postId…> --at <ISO>      move scheduled posts (no media re-upload); same 0–300 s delay
+  ziggy reschedule <slug> <postId…> --at <ISO>      move scheduled posts (no media re-upload); same 120–600 s delay
   ziggy status <slug> [<postId…>] [--json]          post status + permalinks (defaults to the tenant's log)
 
 Inbox & engagement

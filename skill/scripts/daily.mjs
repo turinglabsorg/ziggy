@@ -163,7 +163,7 @@ export function uncoveredStories(tenant, stories, { from = new Date(), daily = d
  * news scheduled days out is stale by the time it airs, so it is better left to age out.
  */
 
-/** A programmed post holds its slot through the jitter window (0–300 s after the minute). */
+/** A programmed post holds its slot through the jitter window (120–600 s after the minute). */
 export function slotHeld(slotMs, taken, maxMs = SCHEDULE_JITTER_MAX_MS) {
   for (const t of taken) {
     const delta = t - slotMs;

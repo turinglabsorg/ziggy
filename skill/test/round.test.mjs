@@ -236,7 +236,7 @@ test("a round: points → campaigns → renders → checks → scheduled; the re
   assert.equal(sent.length, 2);
   for (const [actual, expected] of [[sent[0], "2026-10-12T11:00:00.000Z"], [sent[1], "2026-10-12T12:00:00.000Z"]]) {
     const delta = Date.parse(actual) - Date.parse(expected);
-    assert.ok(delta >= 0 && delta <= 300_000 && delta % 1000 === 0, `${actual} is ${delta} ms from ${expected}`);
+    assert.ok(delta >= 120_000 && delta <= 600_000 && delta % 1000 === 0, `${actual} is ${delta} ms from ${expected}`);
   }
   assert.deepEqual(out.refused.map((x) => [x.prefix, x.reason]), [["night-market", "no photo in the feed"], ["not-a-story", "not in the feed"]]);
   assert.deepEqual(out.skipped.map((s) => s.name), ["story-2026-10-12-concert-announced-for-tonight"]);

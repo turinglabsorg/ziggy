@@ -89,11 +89,11 @@ after(() => new Promise((r) => { feedServer.closeAllConnections(); feedServer.cl
 
 const withinJitter = (actual, expected) => {
   const delta = Date.parse(actual) - Date.parse(expected);
-  assert.ok(Number.isFinite(delta) && delta >= 0 && delta <= 300_000 && delta % 1000 === 0, `${actual} is ${delta} ms from ${expected}`);
+  assert.ok(Number.isFinite(delta) && delta >= 120_000 && delta <= 600_000 && delta % 1000 === 0, `${actual} is ${delta} ms from ${expected}`);
 };
 const nearSlot = (actual, expected) => {
   const delta = Date.parse(actual) - Date.parse(expected);
-  return Number.isFinite(delta) && delta >= 0 && delta <= 300_000;
+  return Number.isFinite(delta) && delta >= 0 && delta <= 600_000;
 };
 
 const ENV = () => ({ ...world.env, ZIGGY_POSTPROXY_BASE_URL: mock.baseUrl, POSTPROXY_API_KEY: API_KEY, ZIGGY_HYPERFRAMES_BIN: fakeBin });

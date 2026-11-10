@@ -25,21 +25,29 @@ import { readManifest } from "./video.mjs";
 import { campaignRepetition } from "./lint.mjs";
 
 /** Whole seconds added to a programmed time so it does not fire on the exact minute. Inclusive. */
-export const SCHEDULE_JITTER_MAX_SEC = 300;
+export const SCHEDULE_JITTER_MIN_SEC = 120;
+export const SCHEDULE_JITTER_MAX_SEC = 600;
+export const SCHEDULE_JITTER_MIN_MS = SCHEDULE_JITTER_MIN_SEC * 1000;
 export const SCHEDULE_JITTER_MAX_MS = SCHEDULE_JITTER_MAX_SEC * 1000;
 
 /**
  * Random delay of 0 through `maxSec` seconds (default 5 minutes).
  * `random` returns a number in [0, 1). Invalid timestamps pass through unchanged.
  */
-export function applyPublishJitter(scheduledAt, { random = Math.random, maxSec = SCHEDULE_JITTER_MAX_SEC } = {}) {
+export function applyPublishJitter(
+  scheduledAt,
+  { random = Math.random, minSec = SCHEDULE_JITTER_MIN_SEC, maxSec = SCHEDULE_JITTER_MAX_SEC } = {},
+) {
   if (scheduledAt == null || scheduledAt === "") return scheduledAt;
   const base = Date.parse(scheduledAt);
   if (Number.isNaN(base)) return scheduledAt;
-  const cap = Math.max(0, Math.floor(Number(maxSec)));
+  let min = Math.max(0, Math.floor(Number(minSec)));
+  let max = Math.max(min, Math.floor(Number(maxSec)));
+  if (max < min) [min, max] = [max, min];
   const sample = Number(random());
-  const raw = Number.isFinite(sample) ? Math.floor(sample * (cap + 1)) : 0;
-  const delaySec = Math.min(cap, Math.max(0, raw));
+  const span = max - min + 1;
+  const raw = Number.isFinite(sample) ? min + Math.floor(sample * span) : min;
+  const delaySec = Math.min(max, Math.max(min, raw));
   return new Date(base + delaySec * 1000).toISOString();
 }
 

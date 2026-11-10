@@ -189,7 +189,7 @@ test("post → facebook_reel: format=reel and the tenant's Page id on the wire; 
   writeFileSync(tenantFile, JSON.stringify(t));
 });
 
-test("post --at waits a random 0 to 300 seconds, and every post in the campaign shares it", async () => {
+test("post --at waits a random 120 to 600 seconds, and every post in the campaign shares it", async () => {
   const at = "2030-06-01T08:00:00.000Z";
   const before = mock.calls.filter((x) => x.method === "POST" && x.path === "/api/posts").length;
   const r = await run(["post", "acme", "launch", "--live", "--at", at, "--only", "twitter,instagram_reel", "--json"]);
@@ -199,7 +199,7 @@ test("post --at waits a random 0 to 300 seconds, and every post in the campaign 
   const times = creates.map((c) => c.fields["post[scheduled_at]"]);
   assert.equal(new Set(times).size, 1, times.join(", "));
   const delta = Date.parse(times[0]) - Date.parse(at);
-  assert.ok(delta >= 0 && delta <= 300_000 && delta % 1000 === 0, `${times[0]} delta ${delta}`);
+  assert.ok(delta >= 120_000 && delta <= 600_000 && delta % 1000 === 0, `${times[0]} delta ${delta}`);
   const logged = JSON.parse(r.stdout).map((row) => row.post.scheduled_at);
   assert.deepEqual(logged, times);
 });
