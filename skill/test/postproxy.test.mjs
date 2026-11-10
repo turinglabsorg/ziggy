@@ -123,3 +123,41 @@ test("pickProfile with profileIds never crosses tenants on a shared account", ()
   assert.equal(pickProfile(profiles, "instagram", { profileIds: ["OLU4ab"] }).id, "OLU4ab");
   assert.equal(pickProfile(profiles, "linkedin", { profileIds: ["DaUWBa", "j3Ulwd"] }), null);
 });
+
+for (const format of ["post", "reel"]) {
+  test(`local ${format} keeps Instagram user tags structured`, async () => {
+    const media = join(dir, format === "post" ? "tag.jpg" : "tag.mp4");
+    writeFileSync(media, Buffer.alloc(256, 1));
+    const tags = format === "post"
+      ? [{ username: "brand", x: 0, y: 1, media_index: 0 }, { username: "partner", x: 0.25, y: 0.75, media_index: 1 }]
+      : [{ username: "brand" }, { username: "partner" }];
+    const params = { format, user_tags: tags, share_to_feed: false };
+    await client().createPost({ profiles: ["prof_ig"], media: format === "post" ? [media, media] : [media], draft: true, platforms: { instagram: params } });
+    const f = mock.calls.at(-1).fields;
+    assert.deepEqual(JSON.parse(f.platforms).instagram, params);
+    assert.equal(f["post[draft]"], "true");
+    assert.equal(JSON.stringify(f).includes("[object Object]"), false);
+  });
+}
+
+test("reel cover uploads preserve each nested tag and collaborator", async () => {
+  const media = join(dir, "tag-cover.mp4"); writeFileSync(media, Buffer.alloc(128));
+  const cover = join(dir, "tag-cover.jpg"); writeFileSync(cover, Buffer.alloc(128));
+  let sent;
+  const c = createClient({ baseUrl: mock.baseUrl, apiKey: API_KEY, fetchImpl: (url, init) => { sent = init.body; return fetch(url, init); } });
+  await c.createPost({ profiles: ["prof_ig"], media: [media], draft: true,
+    platforms: { instagram: { format: "reel", cover_file: cover,
+      user_tags: [{ username: "brand", media_index: 0 }, { username: "partner" }], collaborators: ["a", "b"] } } });
+  const f = mock.calls.at(-1).fields;
+  assert.deepEqual(sent.getAll("platforms[instagram][user_tags][][username]"), ["brand", "partner"]);
+  assert.equal(f["platforms[instagram][user_tags][][media_index]"], "0");
+  assert.deepEqual(f["platforms[instagram][collaborators][]"], ["a", "b"]);
+  assert.equal(f["platforms[instagram][cover_file]"].filename, "tag-cover.jpg");
+  assert.equal(JSON.stringify(f).includes("[object Object]"), false);
+});
+
+test("remote media keeps user tag coordinates and indexes as JSON numbers", async () => {
+  const params = { format: "post", user_tags: [{ username: "brand", x: 0, y: 1, media_index: 0 }] };
+  await client().createPost({ profiles: ["prof_ig"], media: ["https://example.com/image.jpg"], draft: true, platforms: { instagram: params } });
+  assert.deepEqual(mock.calls.at(-1).body.platforms.instagram, params);
+});
